@@ -6,6 +6,7 @@ import { NotificationService } from '@/services/notification.service';
 import stripe from '@/config/stripe';
 import { createPrice } from '@/config/stripe';
 import { Prisma } from '@prisma/client';
+import { StripeService } from '@/services/stripe.service';
 
 
 // Esquema de validação para criação e atualização de planos
@@ -108,6 +109,7 @@ export const updatePlan = async (req: Request, res: Response) => {
 
     let newStripePriceId = existingPlan.stripePriceId;
     let newStripeYearlyPriceId = existingPlan.stripeYearlyPriceId;
+    let newStripeProductId = existingPlan.stripeProductId;
 
     // Se o preço foi alterado, criar novos preços no Stripe
     if (priceChanged || yearlyPriceChanged) {
@@ -116,12 +118,27 @@ export const updatePlan = async (req: Request, res: Response) => {
           throw new Error('Stripe não configurado');
         }
 
+        // Verificar se o produto existe no Stripe (se não for um ID temporário)
+        const isTempProduct = existingPlan.stripeProductId?.startsWith('temp_product_');
+        
+        if (isTempProduct) {
+          // Criar o produto no Stripe primeiro
+          console.log(`🔄 Criando produto no Stripe para o plano: ${existingPlan.name}`);
+          const stripeService = new StripeService();
+          const newProduct = await stripeService.createProduct(
+            existingPlan.name,
+            `Plano ${existingPlan.name} do Baby Diary`
+          );
+          newStripeProductId = newProduct.id;
+          console.log(`✅ Produto criado no Stripe: ${newProduct.id}`);
+        }
+
         // Criar novo preço mensal se alterado
         if (priceChanged && updateData.price !== undefined) {
           const newMonthlyPrice = await createPrice(
             updateData.price,
             'month',
-            (existingPlan as any).stripeProductId!
+            newStripeProductId!
           );
           newStripePriceId = newMonthlyPrice.id;
           console.log(`✅ Novo preço mensal criado no Stripe: ${newMonthlyPrice.id} - R$ ${updateData.price}`);
@@ -132,15 +149,16 @@ export const updatePlan = async (req: Request, res: Response) => {
           const newYearlyPrice = await createPrice(
             updateData.yearlyPrice,
             'year',
-            (existingPlan as any).stripeProductId!
+            newStripeProductId!
           );
           newStripeYearlyPriceId = newYearlyPrice.id;
           console.log(`✅ Novo preço anual criado no Stripe: ${newYearlyPrice.id} - R$ ${updateData.yearlyPrice}`);
         }
 
-        // Atualizar os IDs dos preços no updateData
+        // Atualizar os IDs dos preços e produto no updateData
         (updateData as any).stripePriceId = newStripePriceId;
         (updateData as any).stripeYearlyPriceId = newStripeYearlyPriceId;
+        (updateData as any).stripeProductId = newStripeProductId;
 
       } catch (stripeError) {
         console.error('❌ Erro ao criar novos preços no Stripe:', stripeError);

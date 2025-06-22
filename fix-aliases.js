@@ -1,41 +1,54 @@
 const fs = require('fs');
 const path = require('path');
 
-function processDirectory(dir) {
+function fixAliasesInFile(filePath) {
   try {
-    const files = fs.readdirSync(dir);
-    
-    files.forEach(file => {
-      const filePath = path.join(dir, file);
-      const stat = fs.statSync(filePath);
-      
-      if (stat.isDirectory()) {
-        processDirectory(filePath);
-      } else if (file.endsWith('.js')) {
-        let content = fs.readFileSync(filePath, 'utf8');
-        
-        // Substituir aliases por caminhos relativos
-        content = content.replace(/@\/controllers\//g, '../controllers/');
-        content = content.replace(/@\/middlewares\//g, '../middlewares/');
-        content = content.replace(/@\/config\//g, '../config/');
-        content = content.replace(/@\/utils\//g, '../utils/');
-        content = content.replace(/@\/services\//g, '../services/');
-        content = content.replace(/@\/routes\//g, '../routes/');
-        content = content.replace(/@\/types\//g, '../types/');
-        
-        fs.writeFileSync(filePath, content);
-        console.log(`✅ Processado: ${filePath}`);
-      }
+    let content = fs.readFileSync(filePath, 'utf8');
+    let modified = false;
+
+    // Substituir imports com @/ por imports relativos
+    const importRegex = /from\s+['"]@\/([^'"]+)['"]/g;
+    const newContent = content.replace(importRegex, (match, importPath) => {
+      modified = true;
+      const relativePath = path.relative(path.dirname(filePath), path.join('dist', importPath));
+      return `from '${relativePath.startsWith('.') ? relativePath : './' + relativePath}'`;
     });
+
+    if (modified) {
+      fs.writeFileSync(filePath, newContent, 'utf8');
+      console.log(`✅ Corrigido: ${filePath}`);
+    }
   } catch (error) {
-    console.log(`⚠️  Erro ao processar diretório ${dir}:`, error.message);
+    console.error(`❌ Erro ao corrigir ${filePath}:`, error.message);
   }
 }
 
-// Verificar se o diretório dist existe
-if (fs.existsSync('dist')) {
-  processDirectory('dist');
-  console.log('✅ Aliases corrigidos com sucesso!');
+function processDirectory(dirPath) {
+  try {
+    const items = fs.readdirSync(dirPath);
+    
+    for (const item of items) {
+      const fullPath = path.join(dirPath, item);
+      const stat = fs.statSync(fullPath);
+      
+      if (stat.isDirectory()) {
+        processDirectory(fullPath);
+      } else if (item.endsWith('.js')) {
+        fixAliasesInFile(fullPath);
+      }
+    }
+  } catch (error) {
+    console.error(`❌ Erro ao processar diretório ${dirPath}:`, error.message);
+  }
+}
+
+// Processar o diretório dist
+const distPath = path.join(__dirname, 'dist');
+if (fs.existsSync(distPath)) {
+  console.log('🔧 Corrigindo aliases nos arquivos compilados...');
+  processDirectory(distPath);
+  console.log('✅ Correção de aliases concluída!');
 } else {
-  console.log('❌ Diretório dist não encontrado!');
+  console.error('❌ Diretório dist não encontrado!');
+  process.exit(1);
 }

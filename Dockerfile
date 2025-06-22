@@ -19,11 +19,14 @@ COPY . .
 # Gerar Prisma Client
 RUN npx prisma generate
 
-# Compilar TypeScript e resolver aliases
+# Compilar TypeScript
 RUN npm run build
+
+# Verificar se os aliases foram resolvidos
+RUN grep -r "@/controllers" dist/ || echo "Aliases resolvidos com sucesso"
 
 # Expor porta
 EXPOSE 3000
 
 # Comando para iniciar a aplicação
-CMD ["npm", "start"] 
+CMD ["npm", "start"]

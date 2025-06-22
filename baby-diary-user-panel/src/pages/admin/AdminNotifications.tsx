@@ -25,7 +25,8 @@ import {
   AlertCircle,
   BarChart3,
   FileText,
-  Clock
+  Clock,
+  Play
 } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
 import { adminApi } from '../../lib/adminApi';
@@ -325,18 +326,19 @@ export const AdminNotifications: React.FC = () => {
 
   const openTemplateModal = (template?: NotificationTemplate) => {
     if (template) {
-      setSelectedTemplate(template);
       setTemplateForm({
+        id: template.id,
         name: template.name,
         type: template.type,
         subject: template.subject,
         body: template.body,
-        variables: template.variables,
+        variables: template.variables || [],
         isActive: template.isActive
       });
+      setIsEditingTemplate(true);
     } else {
-      setSelectedTemplate(null);
       resetTemplateForm();
+      setIsEditingTemplate(false);
     }
     setIsTemplateModalOpen(true);
   };

@@ -27,6 +27,7 @@ model User {
   resetPasswordToken String?
   resetPasswordExpires DateTime?
   stripeCustomerId String?    // ID do cliente no Stripe
+  fcmToken      String?       // Token principal do Firebase Cloud Messaging
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   planId        String?

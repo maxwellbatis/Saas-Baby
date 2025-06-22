@@ -462,3 +462,7 @@ export const cancelUserSubscription = async () => {
     return error.response?.data || { success: false, error: 'Erro ao cancelar assinatura.' };
   }
 };
+
+export const registerDeviceToken = async (data: { token: string; platform: 'web' | 'ios' | 'android' }) => {
+  return await api.post('/notifications/register-token', data);
+};

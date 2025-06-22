@@ -20,6 +20,7 @@ import HealthAlertsCard from '@/components/HealthAlertsCard';
 import AIChatModal from '@/components/AIChatModal';
 import AddBabyModal from '@/components/AddBabyModal';
 import { API_CONFIG } from '../config/api';
+import { requestNotificationPermission } from '../lib/notification';
 
 const chartConfig = {
   peso: {
@@ -70,6 +71,15 @@ const Dashboard = () => {
   const [showAddBabyModal, setShowAddBabyModal] = useState(false);
   const [refreshGrowth, setRefreshGrowth] = useState(false);
   const [showSuccessConfetti, setShowSuccessConfetti] = useState(false);
+
+  // Pede permissão para notificações
+  useEffect(() => {
+    // Apenas pede se o usuário estiver autenticado e não estiver carregando
+    if (isAuthenticated && !isLoading) {
+      console.log("Tentando pedir permissão de notificação...");
+      requestNotificationPermission();
+    }
+  }, [isAuthenticated, isLoading]);
 
   const handleBabyAdded = async () => {
     await refetch();

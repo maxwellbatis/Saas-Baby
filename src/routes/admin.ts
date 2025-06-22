@@ -3291,4 +3291,31 @@ const bulkNotificationSchema = z.object({
   data: z.record(z.any()).optional()
 });
 
+// Rota para testar notificações automáticas
+router.post('/notifications/test-automated', async (req, res) => {
+  try {
+    const { CronService } = await import('../services/cron.service');
+    const cronService = new CronService();
+    
+    console.log('🧪 Testando notificações automáticas...');
+    
+    const result = await cronService.runManualChecks();
+    
+    res.json({
+      success: true,
+      message: 'Teste de notificações automáticas executado com sucesso',
+      data: result,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro ao testar notificações automáticas:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao executar teste de notificações automáticas',
+      details: error instanceof Error ? error.message : 'Erro desconhecido'
+    });
+  }
+});
+
 export default router; 

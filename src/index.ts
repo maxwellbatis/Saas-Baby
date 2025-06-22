@@ -30,6 +30,7 @@ import { authenticateUser, authenticateAdmin } from './middlewares/auth';
 
 // Criar aplicação Express
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 
 // Configurar rate limiting
@@ -108,7 +109,7 @@ app.use('/api/user', authenticateUser, userRoutes);
 app.use('/api/public', publicRoutes);
 
 // Rota do webhook do Stripe (deve vir antes das outras rotas de pagamento)
-app.use('/api/payments/stripe-webhook', paymentRoutes);
+app.use('/api/webhook/stripe', paymentRoutes);
 
 // Outras rotas de pagamento (com autenticação)
 app.use('/api/payments', authenticateUser, paymentRoutes);

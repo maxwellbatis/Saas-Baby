@@ -8,6 +8,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import ImageUpload from './ImageUpload';
 import { Baby } from 'lucide-react';
 import GrowthMeasurements from './GrowthMeasurements';
+import { API_CONFIG } from '../config/api';
 
 interface EditBabyModalProps {
   isOpen: boolean;
@@ -54,7 +55,7 @@ const EditBabyModal: React.FC<EditBabyModalProps> = ({
       if (babyImage) {
         const formData = new FormData();
         formData.append("image", babyImage);
-        const uploadRes = await fetch("http://localhost:3000/api/upload/image", {
+        const uploadRes = await fetch(`${API_CONFIG.BASE_URL}/upload/image`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
           body: formData,
@@ -65,7 +66,7 @@ const EditBabyModal: React.FC<EditBabyModalProps> = ({
       }
 
       // Atualizar bebê na API
-      const res = await fetch(`http://localhost:3000/api/user/babies/${baby.id}`, {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/user/babies/${baby.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

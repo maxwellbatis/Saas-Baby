@@ -5,9 +5,49 @@ import prisma from '@/config/database';
 import { createCheckoutSession, cancelSubscription, getSubscription } from '@/config/stripe';
 import stripe from '@/config/stripe';
 import Stripe from 'stripe';
+import { StripeService } from '@/services/stripe.service';
 
 const router = Router();
 
+// NOVO: Router exclusivo para o webhook Stripe
+const webhookRouter = express.Router();
+
+// Webhook Stripe - SEM NENHUM OUTRO MIDDLEWARE
+webhookRouter.post('/', express.raw({ type: 'application/json' }), async (req: Request, res: Response) => {
+  console.log("Webhook recebido!");
+  const sig = req.headers['stripe-signature'];
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!sig || !webhookSecret || !stripe) {
+    console.log('⚠️ Webhook secret ou assinatura não configurados.');
+    res.status(400).send('Webhook Error: Configuração ausente.');
+    return;
+  }
+
+  let event: Stripe.Event;
+
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+  } catch (err: any) {
+    console.error(`❌ Erro na verificação da assinatura do webhook: ${err.message}`);
+    res.status(400).send(`Webhook Error: ${err.message}`);
+    return;
+  }
+
+  // Processamento do evento Stripe
+  try {
+    const stripeService = new StripeService();
+    await stripeService.processWebhook(event);
+    console.log(`✅ Evento ${event.type} processado com sucesso.`);
+  } catch (error: any) {
+    console.error(`🔴 Erro ao processar o evento ${event.type}:`, error);
+    // Mesmo que o processamento falhe, retornamos 200 para o Stripe
+    // para evitar que ele reenvie o mesmo webhook repetidamente.
+    // O erro já foi logado para análise.
+  }
+
+  res.json({ received: true });
+});
 
 // Rota de teste para depuração do webhook
 router.post('/test-webhook', (req, res) => {
@@ -98,108 +138,6 @@ router.post('/create-checkout-session', checkoutValidation, async (req: Request,
       error: 'Erro interno do servidor',
     });
   }
-});
-
-// Rota para receber os webhooks do Stripe
-router.post('/', express.raw({ type: 'application/json' }), async (req: Request, res: Response) => {
-  console.log("Webhook recebido!");
-  const sig = req.headers['stripe-signature'];
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-  if (!sig || !webhookSecret || !stripe) {
-    console.log('⚠️ Webhook secret ou assinatura não configurados.');
-    res.status(400).send('Webhook Error: Configuração ausente.');
-    return;
-  }
-
-  let event: Stripe.Event;
-
-  try {
-    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-  } catch (err: any) {
-    console.error(`❌ Erro na verificação da assinatura do webhook: ${err.message}`);
-    res.status(400).send(`Webhook Error: ${err.message}`);
-    return;
-  }
-
-  // Lidar com os eventos
-  switch (event.type) {
-    case 'checkout.session.completed': {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const { userId, planId } = session.metadata || {};
-
-      if (!userId || !planId) {
-        console.error('❌ Webhook Error: userId ou planId ausentes nos metadados da sessão.');
-        res.status(400).send('Metadados ausentes na sessão.');
-        return;
-      }
-      
-      const stripeSubscriptionId = session.subscription as string;
-      const stripeCustomerId = session.customer as string;
-
-      try {
-        const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
-
-        // Atualiza o plano e o ID do cliente Stripe no usuário
-        await prisma.user.update({
-          where: { id: userId },
-          data: {
-            planId: planId,
-            stripeCustomerId: stripeCustomerId,
-          },
-        });
-
-        // Cria ou atualiza o registro da assinatura no nosso banco de dados
-        await prisma.subscription.upsert({
-          where: { stripeSubscriptionId: subscription.id },
-          update: {
-            status: subscription.status,
-            currentPeriodStart: new Date(subscription.current_period_start * 1000),
-            currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-            cancelAtPeriodEnd: subscription.cancel_at_period_end,
-          },
-          create: {
-            userId: userId,
-            planId: planId,
-            stripeSubscriptionId: subscription.id,
-            stripeCustomerId: stripeCustomerId,
-            status: subscription.status,
-            currentPeriodStart: new Date(subscription.current_period_start * 1000),
-            currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-            cancelAtPeriodEnd: subscription.cancel_at_period_end,
-          },
-        });
-
-        console.log(`✅ Assinatura para o usuário ${userId} no plano ${planId} processada com sucesso.`);
-      } catch (dbError) {
-        console.error('❌ Erro de banco de dados ao processar o webhook:', dbError);
-        res.status(500).send('Erro interno do servidor.');
-        return;
-      }
-      break;
-    }
-    
-    // Futuramente, podemos lidar com outros eventos importantes aqui
-    case 'customer.subscription.updated':
-    case 'customer.subscription.deleted': {
-        const subscription = event.data.object as Stripe.Subscription;
-        await prisma.subscription.update({
-            where: { stripeSubscriptionId: subscription.id },
-            data: {
-                status: subscription.status,
-                cancelAtPeriodEnd: subscription.cancel_at_period_end,
-                currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-            }
-        });
-        console.log(`✅ Assinatura ${subscription.id} atualizada para o status: ${subscription.status}`);
-        break;
-    }
-
-    default:
-      console.log(`🔔 Evento de webhook não tratado: ${event.type}`);
-  }
-
-  res.json({ received: true });
 });
 
 // Obter assinatura do usuário
@@ -390,4 +328,5 @@ router.get('/payment-history', async (req: Request, res: Response) => {
   }
 });
 
-export default router; 
+export { webhookRouter };
+export default router;

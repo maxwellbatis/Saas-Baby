@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { API_CONFIG } from '../config/api';
 
 const ChangePasswordForm = () => {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -24,7 +25,7 @@ const ChangePasswordForm = () => {
     setIsLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:3000/api/auth/me', {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/auth/me`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

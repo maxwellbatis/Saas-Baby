@@ -337,7 +337,7 @@ const Health: React.FC = () => {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-br from-baby-mint via-baby-lavender to-baby-peach">
         <Header />
-        <div className="container mx-auto p-4 flex-1 flex flex-col items-center justify-center">
+        <div className="w-full max-w-full px-2 sm:px-4 py-4 mx-auto flex-1 flex flex-col items-center justify-center">
           <Utensils className="w-16 h-16 mb-4 text-emerald-400" />
           <h2 className="text-2xl font-bold mb-2">Registre a saúde do seu bebê!</h2>
           <p className="text-muted-foreground mb-4 max-w-md text-center">
@@ -361,7 +361,7 @@ const Health: React.FC = () => {
 
   return (
     <div className={`min-h-screen ${getBgClass()} pb-8`}>
-      <div className="container max-w-4xl mx-auto pt-6">
+      <div className="w-full max-w-full px-2 sm:px-4 py-4 mx-auto pt-6">
         <div className="flex items-center gap-4 mb-4">
           <BackButton />
           <h1 className="text-2xl font-bold">Diário de Saúde</h1>

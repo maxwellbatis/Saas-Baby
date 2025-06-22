@@ -12,6 +12,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import GrowthMeasurements from '@/components/GrowthMeasurements';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { API_CONFIG } from '../config/api';
 
 const Onboarding = () => {
   const [babyName, setBabyName] = useState("");
@@ -44,7 +45,7 @@ const Onboarding = () => {
       if (babyImage) {
         const formData = new FormData();
         formData.append("image", babyImage);
-        const uploadRes = await fetch("http://localhost:3000/api/upload/image", {
+        const uploadRes = await fetch(`${API_CONFIG.BASE_URL}/upload/image`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
           body: formData,
@@ -54,7 +55,7 @@ const Onboarding = () => {
         photoUrl = uploadData.data?.url || "";
       }
 
-      const res = await fetch("http://localhost:3000/api/user/babies", {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/user/babies`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

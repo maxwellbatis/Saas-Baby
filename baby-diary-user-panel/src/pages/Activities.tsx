@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import SleepAnalysisModal from '@/components/SleepAnalysisModal';
 import SuggestedActivitiesModal from '@/components/SuggestedActivitiesModal';
+import { API_CONFIG } from '../config/api';
 
 interface Activity {
   id: string;
@@ -47,7 +48,7 @@ const Activities = () => {
     setIsLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:3000/api/user/babies/${baby.id}/activities`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/user/babies/${baby.id}/activities`, {
         headers: { "Authorization": `Bearer ${token}` },
       });
       if (!response.ok) throw new Error("Erro ao buscar atividades");
@@ -75,7 +76,7 @@ const Activities = () => {
   const handleDeleteActivity = async (id: string) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:3000/api/user/activities/${id}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/user/activities/${id}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` },
       });
@@ -181,40 +182,30 @@ const Activities = () => {
   return (
     <div className={`min-h-screen bg-gradient-to-br ${getBgClass()}`}>
       <Header />
-      
-      <div className="container max-w-5xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
+      <div className="w-full max-w-full px-2 sm:px-4 py-4 mx-auto">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4 mb-8">
+          <div className="flex items-center gap-2 sm:gap-4">
             <BackButton to="/dashboard" />
             <div>
-              <h1 className={`text-3xl font-bold bg-gradient-to-r ${theme === 'blue' ? 'from-blue-600 to-cyan-600' : 'from-pink-600 to-rose-600'} bg-clip-text text-transparent`}>
+              <h1 className={`text-2xl sm:text-3xl font-bold bg-gradient-to-r ${theme === 'blue' ? 'from-blue-600 to-cyan-600' : 'from-pink-600 to-rose-600'} bg-clip-text text-transparent`}>
                 Atividades de {baby.name}
               </h1>
-              <p className="text-muted-foreground mt-2">
+              <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
                 Registre a rotina diária e acompanhe os hábitos
               </p>
             </div>
             <Button
               onClick={() => setSleepModalOpen(true)}
-              className="ml-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg flex items-center gap-2"
+              className="ml-0 sm:ml-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg flex items-center gap-2 px-3 py-2 text-sm sm:px-6 sm:py-2 sm:text-base"
             >
-              <Moon className="w-4 h-4" />
-              Analisar Sono
-            </Button>
-            <Button
-              onClick={() => setSuggestedModalOpen(true)}
-              className="ml-2 bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-lg flex items-center gap-2"
-            >
-              <Sparkles className="w-4 h-4" />
-              Sugestão de Atividades
+              <Moon className="w-4 h-4" /> Análise do Sono
             </Button>
           </div>
-          <Button 
-            onClick={() => openModal('create')}
-            className={`${getGradientClass()} text-white border-0 hover:shadow-lg transition-all duration-300`}
+          <Button
+            onClick={() => setSuggestedModalOpen(true)}
+            className="bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg flex items-center gap-2 px-3 py-2 text-sm sm:px-6 sm:py-2 sm:text-base"
           >
-            <PlusCircle className="w-4 h-4 mr-2" />
-            Nova Atividade
+            <Sparkles className="w-4 h-4" /> Sugestões
           </Button>
         </div>
 

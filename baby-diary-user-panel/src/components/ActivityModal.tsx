@@ -11,6 +11,7 @@ import { Loader2 } from 'lucide-react';
 import UpgradePrompt from "./UpgradePrompt";
 import { useAuth } from '@/contexts/AuthContext';
 import { Calendar } from 'lucide-react';
+import { API_CONFIG } from '../config/api';
 
 interface Activity {
   id?: string;
@@ -94,8 +95,8 @@ const ActivityModal: React.FC<ActivityModalProps> = ({
 
       const isEditing = mode === 'edit' && activity?.id;
       const url = isEditing 
-        ? `http://localhost:3000/api/user/activities/${activity.id}`
-        : 'http://localhost:3000/api/user/activities';
+        ? `${API_CONFIG.BASE_URL}/user/activities/${activity.id}`
+        : `${API_CONFIG.BASE_URL}/user/activities`;
       const method = isEditing ? 'PUT' : 'POST';
 
       const res = await fetch(url, {

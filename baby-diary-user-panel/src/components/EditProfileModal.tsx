@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useTheme } from '@/contexts/ThemeContext';
 import ImageUpload from './ImageUpload';
 import { User } from 'lucide-react';
+import { API_CONFIG } from '../config/api';
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -52,7 +53,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
         console.log('EditProfileModal: Fazendo upload da nova imagem...');
         const formData = new FormData();
         formData.append("image", profileImage);
-        const uploadRes = await fetch("http://localhost:3000/api/upload/image", {
+        const uploadRes = await fetch(`${API_CONFIG.BASE_URL}/upload/image`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
           body: formData,
@@ -66,7 +67,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
       console.log('EditProfileModal: Atualizando perfil com dados:', { name, avatarUrl });
 
       // Atualizar perfil na API
-      const res = await fetch("http://localhost:3000/api/auth/me", {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/auth/me`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

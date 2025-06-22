@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import ImageUpload from '@/components/ImageUpload';
 import PredictedMilestonesCard from '../components/PredictedMilestonesCard';
+import { API_CONFIG } from '../config/api';
 
 interface Milestone {
   id: string;
@@ -63,7 +64,7 @@ const Milestones = () => {
     setIsLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/user/milestones?babyId=${currentBaby.id}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/user/milestones?babyId=${currentBaby.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error('Falha ao buscar marcos');
@@ -87,7 +88,7 @@ const Milestones = () => {
     }
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/user/milestones/suggested?babyId=${currentBaby.id}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/user/milestones/suggested?babyId=${currentBaby.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error('Falha ao buscar marcos sugeridos');
@@ -128,7 +129,7 @@ const Milestones = () => {
   const handleDeleteMilestone = async (milestoneId: string) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/user/milestones/${milestoneId}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/user/milestones/${milestoneId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -166,7 +167,7 @@ const Milestones = () => {
         const formData = new FormData();
         formData.append('image', suggestedImageFile);
         formData.append('folder', 'milestones');
-        const uploadRes = await fetch('http://localhost:3000/api/upload/image', {
+        const uploadRes = await fetch(`${API_CONFIG.BASE_URL}/upload/image`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
           body: formData,
@@ -178,7 +179,7 @@ const Milestones = () => {
         const uploadData = await uploadRes.json();
         finalPhotoUrl = uploadData.data?.url;
       }
-      const res = await fetch('http://localhost:3000/api/user/milestones/from-suggested', {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/user/milestones/from-suggested`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -221,7 +222,7 @@ const Milestones = () => {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <div className="container mx-auto p-4 flex-1 flex flex-col">
+        <div className="w-full max-w-full px-2 sm:px-4 py-4 mx-auto flex-1 flex flex-col">
           <div className="flex items-center gap-4 mb-8">
             <BackButton to="/dashboard" />
             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
@@ -248,7 +249,7 @@ const Milestones = () => {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-br from-baby-blue via-baby-lavender to-baby-mint">
         <Header />
-        <div className="container mx-auto p-4 flex-1 flex flex-col items-center justify-center">
+        <div className="w-full max-w-full px-2 sm:px-4 py-4 mx-auto flex-1 flex flex-col items-center justify-center">
           <Baby className="w-16 h-16 mb-4 text-blue-400" />
           <h2 className="text-2xl font-bold mb-2">Acompanhe o desenvolvimento!</h2>
           <p className="text-muted-foreground mb-4 max-w-md text-center">
@@ -270,7 +271,7 @@ const Milestones = () => {
   return (
     <div className={`min-h-screen bg-gradient-to-br ${theme === 'blue' ? 'from-baby-blue via-baby-lavender to-baby-mint' : 'from-baby-pink via-baby-peach to-baby-lavender'}`}>
       <Header />
-      <div className="container mx-auto p-4">
+      <div className="w-full max-w-full px-2 sm:px-4 py-4 mx-auto">
         <div className="flex items-center gap-4 mb-8">
           <BackButton to="/dashboard" />
           <h1 className={`text-3xl font-bold bg-gradient-to-r ${theme === 'blue' ? 'from-blue-600 to-cyan-600' : 'from-pink-600 to-purple-600'} bg-clip-text text-transparent`}>

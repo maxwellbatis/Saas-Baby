@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
 import { Lock } from 'lucide-react';
+import { API_CONFIG } from '../config/api';
 
 function useQuery() {
   return new URLSearchParams(useLocation().search);
@@ -35,7 +36,7 @@ const ResetPassword = () => {
     }
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:3000/api/auth/reset-password', {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, token, newPassword }),

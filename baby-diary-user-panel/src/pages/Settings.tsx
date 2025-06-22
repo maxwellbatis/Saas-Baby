@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import ChangePasswordForm from "@/components/ChangePasswordForm";
 import AIUsageStatsCard from '../components/AIUsageStatsCard';
 import UpgradePrompt from "@/components/UpgradePrompt";
+import { API_CONFIG } from '../config/api';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -117,11 +118,9 @@ const Settings = () => {
   const handleDeleteBaby = async (babyId: string) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:3000/api/user/babies/${babyId}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/user/babies/${babyId}`, {
         method: "DELETE",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.ok) {
@@ -179,22 +178,21 @@ const Settings = () => {
   return (
     <div className={`min-h-screen bg-gradient-to-br ${getBgClass()}`}>
       <Header />
-      
-      <div className="container max-w-6xl mx-auto px-4 py-8">
-        <div className="flex items-center gap-4 mb-8">
+      <div className="w-full max-w-full px-2 sm:px-4 py-4 mx-auto">
+        <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 mb-8">
           <BackButton to="/dashboard" />
           <div>
-            <h1 className={`text-3xl font-bold bg-gradient-to-r ${theme === 'blue' ? 'from-blue-600 to-cyan-600' : 'from-pink-600 to-rose-600'} bg-clip-text text-transparent`}>
+            <h1 className={`text-2xl sm:text-3xl font-bold bg-gradient-to-r ${theme === 'blue' ? 'from-blue-600 to-cyan-600' : 'from-pink-600 to-rose-600'} bg-clip-text text-transparent`}>
               Configurações
             </h1>
-            <p className="text-muted-foreground mt-2">
+            <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
               Gerencie sua conta, bebês e preferências
             </p>
           </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <User className="w-4 h-4" />
               Perfil
@@ -537,7 +535,7 @@ const Settings = () => {
         </Tabs>
 
         {/* Seção de Analytics de IA */}
-        <div className="container max-w-3xl mx-auto px-4 py-8">
+        <div className="w-full max-w-full px-2 sm:px-4 py-4 mx-auto">
           <h1 className="text-2xl font-bold mb-6">Configurações</h1>
           <div className="mb-8 animate-fade-in">
             <AIUsageStatsCard />
@@ -546,7 +544,7 @@ const Settings = () => {
 
         {/* Botão de cancelar assinatura no rodapé */}
         {userPlan && userPlan.name !== 'Básico' && (
-          <div className="container max-w-lg mx-auto py-8 flex flex-col items-center">
+          <div className="w-full max-w-full px-2 sm:px-4 py-4 mx-auto flex flex-col items-center">
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" className="w-full max-w-xs">

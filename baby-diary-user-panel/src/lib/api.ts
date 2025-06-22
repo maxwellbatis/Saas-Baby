@@ -1,9 +1,8 @@
 import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+import { API_CONFIG } from '../config/api';
 
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: API_CONFIG.BASE_URL,
 });
 
 api.interceptors.request.use((config) => {
@@ -94,7 +93,7 @@ export const logout = () => {
 };
 
 // --- SAÚDE: Sintomas ---
-const HEALTH_URL = `${API_URL}/health`;
+const HEALTH_URL = `${API_CONFIG.BASE_URL}/health`;
 
 export async function getSymptoms(babyId) {
   const token = localStorage.getItem('token');
@@ -346,7 +345,7 @@ export async function getUpcomingVaccines(babyId, days = 30) {
 // --- SAÚDE: Alertas Inteligentes (IA) ---
 export async function getHealthAlerts(babyId) {
   const token = localStorage.getItem('token');
-  let url = `http://localhost:3000/api/ai/health-alerts?babyId=${babyId}`;
+  let url = `${API_CONFIG.BASE_URL}/ai/health-alerts?babyId=${babyId}`;
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` }
   });
@@ -356,7 +355,7 @@ export async function getHealthAlerts(babyId) {
 // --- CHAT ASSISTENTE VIRTUAL (IA) ---
 export async function sendAIChatMessage({ message, babyId, babyAge }) {
   const token = localStorage.getItem('token');
-  const res = await fetch('http://localhost:3000/api/ai/chat', {
+  const res = await fetch(`${API_CONFIG.BASE_URL}/ai/chat`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -370,7 +369,7 @@ export async function sendAIChatMessage({ message, babyId, babyAge }) {
 // --- DICAS DE ALIMENTAÇÃO (IA) ---
 export async function getFeedingTips({ babyId, question }) {
   const token = localStorage.getItem('token');
-  const res = await fetch('http://localhost:3000/api/ai/feeding-tips', {
+  const res = await fetch(`${API_CONFIG.BASE_URL}/ai/feeding-tips`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -384,7 +383,7 @@ export async function getFeedingTips({ babyId, question }) {
 // --- ANÁLISE DE SONO (IA) ---
 export async function analyzeSleepPattern({ babyId, days = 7 }) {
   const token = localStorage.getItem('token');
-  const res = await fetch('http://localhost:3000/api/ai/analyze-sleep', {
+  const res = await fetch(`${API_CONFIG.BASE_URL}/ai/analyze-sleep`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -398,7 +397,7 @@ export async function analyzeSleepPattern({ babyId, days = 7 }) {
 // --- PREVISÃO DE MARCOS (IA) ---
 export async function predictMilestones({ babyId }) {
   const token = localStorage.getItem('token');
-  const res = await fetch('http://localhost:3000/api/ai/predict-milestones', {
+  const res = await fetch(`${API_CONFIG.BASE_URL}/ai/predict-milestones`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -412,7 +411,7 @@ export async function predictMilestones({ babyId }) {
 // --- SUGESTÃO DE ATIVIDADES (IA) ---
 export async function suggestActivities({ babyId, category }) {
   const token = localStorage.getItem('token');
-  const res = await fetch('http://localhost:3000/api/ai/suggest-activities', {
+  const res = await fetch(`${API_CONFIG.BASE_URL}/ai/suggest-activities`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -426,7 +425,7 @@ export async function suggestActivities({ babyId, category }) {
 // --- CONSELHOS PERSONALIZADOS (IA) ---
 export async function getPersonalizedAdvice({ question, babyId }) {
   const token = localStorage.getItem('token');
-  const res = await fetch('http://localhost:3000/api/ai/personalized-advice', {
+  const res = await fetch(`${API_CONFIG.BASE_URL}/ai/personalized-advice`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -439,7 +438,7 @@ export async function getPersonalizedAdvice({ question, babyId }) {
 
 export async function getAIUsageStats() {
   const token = localStorage.getItem("token");
-  const res = await fetch(`${API_URL}/user/ai-usage`, {
+  const res = await fetch(`${API_CONFIG.BASE_URL}/user/ai-usage`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error("Falha ao buscar estatísticas de uso da IA");

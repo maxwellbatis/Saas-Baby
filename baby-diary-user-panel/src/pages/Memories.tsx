@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
 import BackButton from '@/components/BackButton';
 import AddBabyModal from '@/components/AddBabyModal';
+import { API_CONFIG } from '../config/api';
 
 interface Memory {
   id: string;
@@ -51,7 +52,7 @@ const Memories = () => {
     setIsLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/user/memories?babyId=${currentBaby.id}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/user/memories?babyId=${currentBaby.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error('Falha ao buscar memórias');
@@ -94,7 +95,7 @@ const Memories = () => {
   const handleDeleteMemory = async (memoryId: string) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/user/memories/${memoryId}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/user/memories/${memoryId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -118,15 +119,15 @@ const Memories = () => {
 
   if (isLoading || isAuthLoading) {
     return (
-      <div className="container mx-auto p-4">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Memórias de {currentBaby?.name || 'Bebê'}</h1>
-          <Skeleton className="h-10 w-40" />
+      <div className="w-full max-w-full px-2 sm:px-4 py-4 mx-auto">
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-2 sm:gap-0">
+          <h1 className="text-xl sm:text-2xl font-bold">Memórias de {currentBaby?.name || 'Bebê'}</h1>
+          <Skeleton className="h-10 w-32 sm:w-40" />
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {[...Array(4)].map((_, i) => (
             <Card key={i}>
-              <Skeleton className="h-48 w-full" />
+              <Skeleton className="h-40 sm:h-48 w-full" />
               <CardHeader>
                 <Skeleton className="h-6 w-3/4" />
                 <Skeleton className="h-4 w-1/2" />
@@ -142,7 +143,7 @@ const Memories = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-baby-pink via-baby-peach to-baby-lavender flex flex-col">
         <Header />
-        <div className="container mx-auto p-4 flex-1 flex flex-col items-center justify-center">
+        <div className="w-full max-w-full px-2 sm:px-4 py-4 mx-auto flex-1 flex flex-col items-center justify-center">
           <ImageIcon className="w-16 h-16 mb-4 text-pink-400" />
           <h2 className="text-2xl font-bold mb-2">{isPregnancyMode ? "Registre memórias da sua gestação!" : "Registre momentos especiais!"}</h2>
           <p className="text-muted-foreground mb-4 max-w-md text-center">
@@ -171,35 +172,35 @@ const Memories = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-baby-pink via-baby-peach to-baby-lavender">
       <Header />
-      <div className="container mx-auto p-4">
-        <div className="flex items-center gap-4 mb-8">
+      <div className="w-full max-w-full px-2 sm:px-4 py-4 mx-auto">
+        <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 mb-8">
           <BackButton to="/dashboard" />
-          <h1 className="text-3xl font-extrabold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
             Memórias de {currentBaby.name}
           </h1>
-          <Button onClick={handleCreateMemory} className="bg-pink-500 hover:bg-pink-600 text-white ml-auto px-6 py-2 rounded-lg shadow-lg text-base font-semibold flex items-center gap-2">
+          <Button onClick={handleCreateMemory} className="bg-pink-500 hover:bg-pink-600 text-white ml-auto px-3 py-2 text-sm rounded-lg shadow-lg font-semibold flex items-center gap-2 sm:px-6 sm:py-2 sm:text-base">
             <PlusCircle className="mr-2 h-4 w-4" /> Nova Memória
           </Button>
         </div>
 
         {memories.length === 0 ? (
-          <div className="text-center py-20 bg-gray-50 dark:bg-gray-800/20 rounded-lg">
-            <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
+          <div className="text-center py-10 sm:py-20 bg-gray-50 dark:bg-gray-800/20 rounded-lg">
+            <ImageIcon className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Sem memórias ainda</h3>
             <p className="mt-1 text-sm text-gray-500">Que tal registrar o primeiro momento especial?</p>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {memories.map((memory) => (
               <Card key={memory.id} className="overflow-hidden group">
                 <CardContent className="p-0 relative">
                   <div className="overflow-hidden">
-                      <img
-                        src={memory.photoUrl}
-                        alt={memory.title}
-                        className="w-full h-48 object-cover cursor-pointer transition-transform duration-300 group-hover:scale-105"
-                        onClick={() => handleViewImage(memory.photoUrl)}
-                      />
+                    <img
+                      src={memory.photoUrl}
+                      alt={memory.title}
+                      className="w-full h-48 object-cover cursor-pointer transition-transform duration-300 group-hover:scale-105"
+                      onClick={() => handleViewImage(memory.photoUrl)}
+                    />
                   </div>
                   <div className="absolute top-2 right-2">
                     <DropdownMenu>

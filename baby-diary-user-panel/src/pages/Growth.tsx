@@ -8,6 +8,7 @@ import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { useEffect, useState } from 'react';
 import GrowthMeasurements from '@/components/GrowthMeasurements';
 import { useNavigate } from 'react-router-dom';
+import { API_CONFIG } from '../config/api';
 
 const chartConfig = {
   peso: {
@@ -33,7 +34,7 @@ const Growth = () => {
       if (!baby) return;
       setLoading(true);
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3000/api/user/babies/${baby.id}/growth`, {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/user/babies/${baby.id}/growth`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -66,7 +67,7 @@ const Growth = () => {
     return (
       <div className={`min-h-screen bg-gradient-to-br ${getBgClass()}`}>
         <Header />
-        <div className="container max-w-2xl mx-auto px-4 py-8 text-center flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="w-full max-w-full px-2 sm:px-4 py-4 mx-auto text-center flex flex-col items-center justify-center min-h-[60vh]">
           <h2 className="text-2xl font-bold mb-2">Nenhum bebê encontrado</h2>
           <p className="text-muted-foreground mb-4">
             Você precisa adicionar um bebê para registrar medidas de crescimento.
@@ -80,7 +81,7 @@ const Growth = () => {
   return (
     <div className={`min-h-screen bg-gradient-to-br ${getBgClass()}`}>
       <Header />
-      <div className="container max-w-3xl mx-auto px-4 py-8">
+      <div className="w-full max-w-full px-2 sm:px-4 py-4 mx-auto">
         <div className="flex items-center gap-4 mb-8">
           <Button variant="ghost" onClick={() => navigate('/dashboard')}>Voltar ao Dashboard</Button>
           <h1 className="text-3xl font-bold">Histórico de Crescimento</h1>

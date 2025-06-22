@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
 import { Mail } from 'lucide-react';
+import { API_CONFIG } from '../config/api';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -19,7 +20,7 @@ const ForgotPassword = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await fetch('http://localhost:3000/api/auth/forgot-password', {
+      await fetch(`${API_CONFIG.BASE_URL}/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),

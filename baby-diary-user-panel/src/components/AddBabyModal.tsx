@@ -9,6 +9,7 @@ import { Baby } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import UpgradePrompt from "./UpgradePrompt";
 import { LimiteBebeModal } from "./LimiteBebeModal";
+import { API_CONFIG } from '../config/api';
 
 interface AddBabyModalProps {
   isOpen: boolean;
@@ -65,7 +66,7 @@ const AddBabyModal: React.FC<AddBabyModalProps> = ({
       if (babyImage) {
         const formData = new FormData();
         formData.append("image", babyImage);
-        const uploadRes = await fetch("http://localhost:3000/api/upload/image", {
+        const uploadRes = await fetch(`${API_CONFIG.BASE_URL}/upload/image`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
           body: formData,
@@ -75,7 +76,7 @@ const AddBabyModal: React.FC<AddBabyModalProps> = ({
         photoUrl = uploadData.data?.url || "";
       }
 
-      const res = await fetch("http://localhost:3000/api/user/babies", {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/user/babies`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

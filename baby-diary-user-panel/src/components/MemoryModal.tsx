@@ -15,6 +15,7 @@ import ImageUpload from './ImageUpload';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { API_CONFIG } from '../config/api';
 
 interface Memory {
   id?: string;
@@ -84,7 +85,7 @@ const MemoryModal: React.FC<MemoryModalProps> = ({
         formData.append("image", imageFile);
         formData.append("folder", "memories");
         
-        const uploadRes = await fetch("http://localhost:3000/api/upload/image", {
+        const uploadRes = await fetch(`${API_CONFIG.BASE_URL}/upload/image`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
           body: formData,
@@ -109,8 +110,8 @@ const MemoryModal: React.FC<MemoryModalProps> = ({
 
       const isEditing = mode === 'edit' && memory?.id;
       const url = isEditing 
-        ? `http://localhost:3000/api/user/memories/${memory.id}`
-        : 'http://localhost:3000/api/user/memories';
+        ? `${API_CONFIG.BASE_URL}/user/memories/${memory.id}`
+        : `${API_CONFIG.BASE_URL}/user/memories`;
       const method = isEditing ? 'PUT' : 'POST';
 
       const res = await fetch(url, {

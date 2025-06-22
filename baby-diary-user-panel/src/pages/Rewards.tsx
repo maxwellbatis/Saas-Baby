@@ -8,6 +8,7 @@ import Header from '@/components/Header';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import Confetti from 'react-confetti';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { API_CONFIG } from '../config/api';
 
 interface Gamification {
   level: number;
@@ -39,7 +40,7 @@ const Rewards = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       // Gamificação
-      const res = await fetch('http://localhost:3000/api/user/gamification', {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/user/gamification`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       let gamificationData = null;
@@ -49,7 +50,7 @@ const Rewards = () => {
         setGamification(gamificationData);
       }
       // Ranking
-      const resRank = await fetch('http://localhost:3000/api/user/ranking', {
+      const resRank = await fetch(`${API_CONFIG.BASE_URL}/user/ranking`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (resRank.ok) {
@@ -57,7 +58,7 @@ const Rewards = () => {
         setRanking(data.data.top || []);
       }
       // Desafios
-      const resChallenges = await fetch('http://localhost:3000/api/user/challenges', {
+      const resChallenges = await fetch(`${API_CONFIG.BASE_URL}/user/challenges`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (resChallenges.ok) {
@@ -97,7 +98,7 @@ const Rewards = () => {
     <TooltipProvider>
       <div className={`min-h-screen bg-gradient-to-br ${theme === 'blue' ? 'from-baby-blue via-baby-lavender to-baby-mint' : 'from-baby-pink via-baby-peach to-baby-lavender'}`}>
         <Header />
-        <div className="container max-w-3xl mx-auto px-4 py-8 animate-fade-in">
+        <div className="w-full max-w-full px-2 sm:px-4 py-4 mx-auto animate-fade-in">
           <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-6 flex items-center gap-2">
             <ArrowLeft className="w-4 h-4" /> Voltar ao Dashboard
           </Button>
@@ -141,7 +142,7 @@ const Rewards = () => {
                 </CardContent>
               </Card>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
                 <Card className="shadow-lg border-0">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-orange-600">
@@ -222,7 +223,7 @@ const Rewards = () => {
                   <CardTitle className="flex items-center gap-2 text-emerald-600"><Trophy className="w-6 h-6" /> Desafios da Semana</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {challenges.length > 0 ? challenges.map((challenge, i) => (
                       <div key={i} className={`p-4 rounded-lg transition-all duration-500 ${challenge.status === 'completed' ? 'bg-green-100 scale-95' : 'bg-emerald-100 hover:scale-105'} flex flex-col items-center animate-fade-in`}>
                         <span className="text-2xl font-bold text-emerald-600 mb-2">{challenge.name}</span>

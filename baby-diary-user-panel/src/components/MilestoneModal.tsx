@@ -15,6 +15,7 @@ import ImageUpload from './ImageUpload';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { API_CONFIG } from '../config/api';
 
 interface Milestone {
   id?: string;
@@ -83,7 +84,7 @@ const MilestoneModal: React.FC<MilestoneModalProps> = ({
         const formData = new FormData();
         formData.append("image", imageFile);
         formData.append("folder", "milestones");
-        const uploadRes = await fetch("http://localhost:3000/api/upload/image", {
+        const uploadRes = await fetch(`${API_CONFIG.BASE_URL}/upload/image`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
           body: formData,
@@ -105,8 +106,8 @@ const MilestoneModal: React.FC<MilestoneModalProps> = ({
       };
       const isEditing = mode === 'edit' && milestone?.id;
       const url = isEditing
-        ? `http://localhost:3000/api/user/milestones/${milestone.id}`
-        : 'http://localhost:3000/api/user/milestones';
+        ? `${API_CONFIG.BASE_URL}/user/milestones/${milestone.id}`
+        : `${API_CONFIG.BASE_URL}/user/milestones`;
       const method = isEditing ? 'PUT' : 'POST';
       const res = await fetch(url, {
         method,

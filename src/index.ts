@@ -7,6 +7,7 @@ import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { specs, swaggerUi } from './config/swagger';
+import paymentRoutes, { webhookRouter } from './routes/payments';
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -19,7 +20,6 @@ import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
 import userRoutes from './routes/user';
 import publicRoutes from './routes/public';
-import paymentRoutes from './routes/payments';
 import uploadRoutes from './routes/upload';
 import aiRoutes from './routes/ai';
 import notificationRoutes from './routes/notifications';
@@ -70,7 +70,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Rota do webhook do Stripe (deve vir antes dos middlewares de parsing!)
-app.use('/api/webhook/stripe', paymentRoutes);
+app.use('/api/webhook/stripe', webhookRouter);
 
 // Middlewares de parsing
 app.use(express.json({ limit: '10mb' }));

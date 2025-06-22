@@ -1,11 +1,10 @@
 import axios from 'axios';
-
-const API_URL = "http://localhost:3000/api";
+import { API_CONFIG } from '../config/api';
 
 // Criar instância do axios para admin
 export const adminApi = axios.create({
-  baseURL: API_URL,
-  timeout: 10000,
+  baseURL: API_CONFIG.BASE_URL,
+  timeout: API_CONFIG.TIMEOUT,
 });
 
 // Interceptor para adicionar token de admin automaticamente

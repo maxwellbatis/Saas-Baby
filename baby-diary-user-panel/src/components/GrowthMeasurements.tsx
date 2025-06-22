@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Calendar as CalendarPicker } from './ui/calendar';
+import { API_CONFIG } from '../config/api';
 
 interface GrowthRecord {
   id: string;
@@ -35,7 +36,7 @@ const GrowthMeasurements = ({ babyId, canEdit = true }: GrowthMeasurementsProps)
   const fetchRecords = async () => {
     setLoading(true);
     const token = localStorage.getItem('token');
-    const res = await fetch(`http://localhost:3000/api/user/babies/${babyId}/growth`, {
+    const res = await fetch(`${API_CONFIG.BASE_URL}/user/babies/${babyId}/growth`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
@@ -65,13 +66,13 @@ const GrowthMeasurements = ({ babyId, canEdit = true }: GrowthMeasurementsProps)
     try {
       let res;
       if (editingId) {
-        res = await fetch(`http://localhost:3000/api/user/growth/${editingId}`, {
+        res = await fetch(`${API_CONFIG.BASE_URL}/user/growth/${editingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify(payload),
         });
       } else {
-        res = await fetch(`http://localhost:3000/api/user/babies/${babyId}/growth`, {
+        res = await fetch(`${API_CONFIG.BASE_URL}/user/babies/${babyId}/growth`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify(payload),
@@ -105,7 +106,7 @@ const GrowthMeasurements = ({ babyId, canEdit = true }: GrowthMeasurementsProps)
     setSubmitting(true);
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`http://localhost:3000/api/user/growth/${id}`, {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/user/growth/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

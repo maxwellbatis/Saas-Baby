@@ -10,6 +10,7 @@ import {
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
 import { useToast } from '../hooks/use-toast';
+import { API_CONFIG } from '../config/api';
 
 interface Notification {
   id: string;
@@ -21,7 +22,7 @@ interface Notification {
   readAt?: string;
 }
 
-const API_URL = "http://localhost:3000/api";
+const API_URL = API_CONFIG.BASE_URL;
 
 // Função para fazer requisições autenticadas
 const apiRequest = async (endpoint: string, options: RequestInit = {}) => {

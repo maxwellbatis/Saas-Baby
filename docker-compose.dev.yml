@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  # Banco de dados PostgreSQL para desenvolvimento
+  postgres-dev:
+    image: postgres:15-alpine
+    container_name: babydiary_postgres_dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: babydiary_dev
+      POSTGRES_USER: babydiary_user
+      POSTGRES_PASSWORD: dev_password
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5433:5432"  # Porta diferente para não conflitar
+    networks:
+      - babydiary_dev_network
+
+  # Redis para cache (opcional)
+  redis-dev:
+    image: redis:7-alpine
+    container_name: babydiary_redis_dev
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - babydiary_dev_network
+
+  # Backend para desenvolvimento
+  backend-dev:
+    build: 
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: babydiary_backend_dev
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://babydiary_user:dev_password@postgres-dev:5432/babydiary_dev
+      REDIS_URL: redis://redis-dev:6379
+      JWT_SECRET: dev_jwt_secret
+      STRIPE_SECRET_KEY: sk_test_...
+      STRIPE_WEBHOOK_SECRET: whsec_test_...
+      SENDGRID_API_KEY: SG_test_...
+      CLOUDINARY_CLOUD_NAME: dev_cloud_name
+      CLOUDINARY_API_KEY: dev_api_key
+      CLOUDINARY_API_SECRET: dev_api_secret
+      FIREBASE_PROJECT_ID: dev_project_id
+      FIREBASE_PRIVATE_KEY: "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+      FIREBASE_CLIENT_EMAIL: firebase-adminsdk-...@dev-project.iam.gserviceaccount.com
+      FRONTEND_URL: http://localhost:5173
+      ADMIN_URL: http://localhost:5173/admin
+      PORT: 3000
+    depends_on:
+      - postgres-dev
+      - redis-dev
+    volumes:
+      - ./src:/app/src
+      - ./uploads:/app/uploads
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    networks:
+      - babydiary_dev_network
+    command: npm run dev
+
+  # Frontend para desenvolvimento
+  frontend-dev:
+    build: 
+      context: ./baby-diary-user-panel
+      dockerfile: Dockerfile.dev
+    container_name: babydiary_frontend_dev
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: http://localhost:3000
+      VITE_ADMIN_URL: http://localhost:5173/admin
+    depends_on:
+      - backend-dev
+    volumes:
+      - ./baby-diary-user-panel/src:/app/src
+      - ./baby-diary-user-panel/public:/app/public
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    networks:
+      - babydiary_dev_network
+    command: npm run dev -- --host 0.0.0.0
+
+  # Mailhog para testar emails
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: babydiary_mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - babydiary_dev_network
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:
+
+networks:
+  babydiary_dev_network:
+    driver: bridge 

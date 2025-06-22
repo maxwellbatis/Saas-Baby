@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  # Banco de dados PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: babydiary_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: babydiary
+      POSTGRES_USER: babydiary_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - babydiary_network
+
+  # Backend Node.js
+  backend:
+    build: .
+    container_name: babydiary_backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://babydiary_user:${DB_PASSWORD}@postgres:5432/babydiary
+      JWT_SECRET: ${JWT_SECRET}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
+      FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY}
+      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL}
+      FRONTEND_URL: https://babydiary.shop
+      ADMIN_URL: https://admin.babydiary.shop
+      PORT: 3000
+    depends_on:
+      - postgres
+    volumes:
+      - ./uploads:/app/uploads
+    networks:
+      - babydiary_network
+
+  # Frontend React
+  frontend:
+    build: 
+      context: ./baby-diary-user-panel
+      dockerfile: Dockerfile
+    container_name: babydiary_frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: https://api.babydiary.shop
+      VITE_ADMIN_URL: https://admin.babydiary.shop
+    depends_on:
+      - backend
+    networks:
+      - babydiary_network
+
+  # Nginx (Proxy Reverso)
+  nginx:
+    image: nginx:alpine
+    container_name: babydiary_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - babydiary_network
+
+  # Certbot (SSL/HTTPS)
+  certbot:
+    image: certbot/certbot
+    container_name: babydiary_certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    command: certonly --webroot --webroot-path=/var/www/certbot --email ${CERTBOT_EMAIL} --agree-tos --no-eff-email -d babydiary.shop -d api.babydiary.shop -d admin.babydiary.shop
+
+volumes:
+  postgres_data:
+
+networks:
+  babydiary_network:
+    driver: bridge 

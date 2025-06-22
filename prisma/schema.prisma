@@ -1,0 +1,572 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// MODELOS DE AUTENTICAÇÃO E USUÁRIOS
+model User {
+  id            String        @id @default(cuid())
+  email         String        @unique
+  name          String?
+  password      String
+  avatarUrl     String?
+  isActive      Boolean       @default(true)
+  emailVerified Boolean       @default(false)
+  phoneNumber   String?
+  timezone      String        @default("America/Sao_Paulo")
+  language      String        @default("pt-BR")
+  preferences   Json          @default("{}") // Preferências do usuário
+  lastLoginAt   DateTime?
+  resetPasswordToken String?
+  resetPasswordExpires DateTime?
+  stripeCustomerId String?    // ID do cliente no Stripe
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  planId        String?
+  plan          Plan?         @relation(fields: [planId], references: [id])
+  subscription  Subscription?
+  gamification  Gamification?
+  babies        Baby[]
+  activities    Activity[]
+  memories      Memory[]
+  milestones    Milestone[]
+  growthRecords GrowthRecord[]
+  sleepRecords  SleepRecord[]
+  feedingRecords FeedingRecord[]
+  diaperRecords DiaperRecord[]
+  weightRecords WeightRecord[]
+  vaccinationRecords VaccinationRecord[]
+  familyMembers FamilyMember[]
+  notifications Notification[]
+  aiInteractions AIInteraction[]
+  analytics     UserAnalytics?
+  deviceTokens  DeviceToken[]
+  emergencyContacts EmergencyContact[]
+  symptomRecords SymptomRecord[]
+  medicationRecords MedicationRecord[]
+  appointmentRecords AppointmentRecord[]
+  prenatalRecords PrenatalRecord[]
+  userChallenges UserChallenge[]
+}
+
+// MODELOS DE ADMINISTRAÇÃO
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("admin") // admin, super_admin
+  isActive  Boolean  @default(true)
+  permissions Json   @default("[]") // Permissões específicas
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  adminActions AdminAction[]
+}
+
+// MODELOS GERENCIÁVEIS PELO ADMIN
+model Plan {
+  id             String         @id @default(cuid())
+  name           String         // Ex: "Básico", "Premium", "Família"
+  price          Float          // Preço mensal
+  yearlyPrice    Float?         // Preço anual (opcional)
+  features       Json           // Lista de features: ["Feature 1", "Feature 2"]
+  userLimit      Int            // Limite de bebês
+  memoryLimit    Int?           // Limite de memórias por mês
+  milestoneLimit Int?           // Limite de marcos por mês
+  activityLimit  Int?           // Limite de atividades por mês
+  aiLimit        Int?           // Limite de interações com IA por semana
+  photoQuality   String         @default("low") // low, high
+  familySharing  Int            @default(0) // Número de familiares que podem compartilhar
+  exportFeatures Boolean        @default(false)
+  prioritySupport Boolean       @default(false)
+  aiFeatures     Boolean        @default(false) // Funcionalidades de IA
+  offlineMode    Boolean        @default(false) // Modo offline
+  stripeProductId String?        @unique // ID do Produto no Stripe
+  stripePriceId  String         @unique // ID do preço no Stripe
+  stripeYearlyPriceId String?   // ID do preço anual no Stripe
+  isActive       Boolean        @default(true)
+  sortOrder      Int            @default(0) // Para ordenação
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  users          User[]
+  subscriptions  Subscription[]
+}
+
+model Subscription {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id])
+  planId                String
+  plan                  Plan     @relation(fields: [planId], references: [id])
+  stripeSubscriptionId  String   @unique
+  stripeCustomerId      String?
+  status                String   // active, canceled, past_due, trialing
+  currentPeriodStart    DateTime?
+  currentPeriodEnd      DateTime?
+  cancelAtPeriodEnd     Boolean  @default(false)
+  trialEndsAt           DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  subscriptionEvents    SubscriptionEvent[]
+}
+
+model LandingPageContent {
+  id            Int      @id @default(1) // Só haverá uma linha nesta tabela
+  heroTitle     String
+  heroSubtitle  String
+  heroImage     String?
+  features      Json     // [{ "title": "...", "description": "...", "icon": "..." }]
+  testimonials  Json     // [{ "name": "...", "text": "...", "rating": 5 }]
+  faq           Json     // [{ "question": "...", "answer": "..." }]
+  stats         Json     // [{ "label": "...", "value": "...", "description": "..." }]
+  ctaText       String?
+  ctaButtonText String?
+  seoTitle      String?
+  seoDescription String?
+  seoKeywords   String?
+  updatedAt     DateTime @updatedAt
+}
+
+model GamificationRule {
+  id          String   @id @default(cuid())
+  name        String   // Ex: "Login Diário", "Primeiro Cadastro"
+  description String
+  points      Int      // Pontos ou recompensa
+  condition   String   // Lógica da condição (ex: "login_streak_5")
+  badgeIcon   String?
+  category    String   // daily, milestone, special
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Gamification {
+  id      String   @id @default(cuid())
+  userId  String   @unique
+  user    User     @relation(fields: [userId], references: [id])
+  points  Int      @default(0)
+  level   Int      @default(1)
+  badges  Json     @default("[]") // Lista de badges conquistados
+  streaks Json     @default("{}") // {"login": 0, "activities": 0}
+  achievements Json @default("[]") // Conquistas especiais
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model NotificationTemplate {
+  id        String @id @default(cuid())
+  name      String @unique // Ex: "welcome_email", "subscription_canceled"
+  type      String // email, push, sms
+  subject   String
+  body      String // Template do corpo do email/notificação (pode usar variáveis como {{name}})
+  variables Json   @default("[]") // Variáveis disponíveis no template
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// NOVOS MODELOS PARA FUNCIONALIDADES AVANÇADAS
+
+// Colaboração Familiar
+model FamilyMember {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  name        String
+  email       String?
+  phoneNumber String?
+  relationship String  // pai, mãe, avó, avô, tio, tia, babá
+  permissions Json     @default("[]") // Permissões específicas
+  isActive    Boolean  @default(true)
+  invitedAt   DateTime @default(now())
+  acceptedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Notificações Push
+model DeviceToken {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  token       String   @unique
+  platform    String   // ios, android, web
+  deviceInfo  Json     @default("{}")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  type        String   // push, email, sms
+  title       String
+  body        String
+  data        Json     @default("{}") // Dados adicionais
+  status      String   @default("pending") // pending, sent, failed, read
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  readAt      DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Integração com IA (Groq)
+model AIInteraction {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  type        String   // sleep_analysis, feeding_tips, milestone_prediction, cry_interpretation
+  input       Json     // Dados de entrada
+  output      Json     // Resposta da IA
+  model       String   // Modelo usado (llama-3.3-70b-versatile, etc.)
+  tokensUsed  Int?
+  cost        Float?
+  createdAt   DateTime @default(now())
+}
+
+// Analytics e Métricas
+model UserAnalytics {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  loginCount  Int      @default(0)
+  lastLoginAt DateTime?
+  sessionDuration Int  @default(0) // em minutos
+  featuresUsed Json    @default("[]") // Features mais usadas
+  retentionScore Float @default(0)
+  churnRisk   Float    @default(0)
+  updatedAt   DateTime @updatedAt
+}
+
+model SystemAnalytics {
+  id          String   @id @default(cuid())
+  date        DateTime @default(now())
+  metric      String   // new_users, active_users, revenue, etc.
+  value       Float
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+}
+
+// Contatos de Emergência
+model EmergencyContact {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  name        String
+  relationship String
+  phoneNumber String
+  isPrimary   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Eventos de Assinatura
+model SubscriptionEvent {
+  id          String   @id @default(cuid())
+  subscriptionId String
+  subscription Subscription @relation(fields: [subscriptionId], references: [id])
+  event       String   // created, updated, canceled, renewed
+  data        Json     @default("{}")
+  createdAt   DateTime @default(now())
+}
+
+// Ações do Admin
+model AdminAction {
+  id          String   @id @default(cuid())
+  adminId     String
+  admin       Admin    @relation(fields: [adminId], references: [id])
+  action      String   // create_plan, update_content, etc.
+  target      String?  // ID do recurso afetado
+  data        Json     @default("{}")
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+}
+
+// MODELOS ESPECÍFICOS DO BABY DIARY
+model Baby {
+  id          String   @id @default(cuid())
+  name        String
+  gender      String?  // male, female
+  birthDate   DateTime
+  photoUrl    String?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  isActive    Boolean  @default(true)
+  preferences Json     @default("{}") // Preferências específicas do bebê
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  activities  Activity[]
+  memories    Memory[]
+  milestones  Milestone[]
+  growthRecords GrowthRecord[]
+  sleepRecords SleepRecord[]
+  feedingRecords FeedingRecord[]
+  diaperRecords DiaperRecord[]
+  weightRecords WeightRecord[]
+  vaccinationRecords VaccinationRecord[]
+  symptomRecords SymptomRecord[]
+  medicationRecords MedicationRecord[]
+  appointmentRecords AppointmentRecord[]
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  type        String   // sleep, feeding, diaper, weight, milestone, memory
+  title       String
+  description String?
+  photoUrl    String?
+  babyId      String
+  baby        Baby     @relation(fields: [babyId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  date        DateTime @default(now())
+  duration    Int?     // em minutos
+  notes       String?
+  tags        Json     @default("[]")
+  location    Json     @default("{}") // Coordenadas GPS
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Memory {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  photoUrl    String?
+  babyId      String
+  baby        Baby     @relation(fields: [babyId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  date        DateTime @default(now())
+  tags        Json     @default("[]")
+  isPublic    Boolean  @default(false)
+  sharedWith  Json     @default("[]") // IDs dos familiares com quem foi compartilhado
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Milestone {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  category    String   // motor, cognitive, social, language
+  babyId      String
+  baby        Baby     @relation(fields: [babyId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  date        DateTime @default(now())
+  photoUrl    String?
+  isPredicted Boolean  @default(false) // Se foi previsto pela IA
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model GrowthRecord {
+  id          String   @id @default(cuid())
+  height      Float?   // em cm
+  weight      Float?   // em kg
+  headCircumference Float? // em cm
+  babyId      String
+  baby        Baby     @relation(fields: [babyId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  date        DateTime @default(now())
+  notes       String?
+  percentile  Json     @default("{}") // Percentis da OMS
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SleepRecord {
+  id          String   @id @default(cuid())
+  startTime   DateTime
+  endTime     DateTime?
+  duration    Int?     // em minutos
+  quality     String?  // good, fair, poor
+  babyId      String
+  baby        Baby     @relation(fields: [babyId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  notes       String?
+  environment Json     @default("{}") // Temperatura, ruído, etc.
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model FeedingRecord {
+  id          String   @id @default(cuid())
+  type        String   // breast, bottle, solid
+  amount      Float?   // em ml ou gramas
+  duration    Int?     // em minutos
+  babyId      String
+  baby        Baby     @relation(fields: [babyId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  date        DateTime @default(now())
+  notes       String?
+  foodType    String?  // Tipo específico de alimento
+  reaction    String?  // Reação do bebê
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model DiaperRecord {
+  id          String   @id @default(cuid())
+  type        String   // wet, dirty, both
+  babyId      String
+  baby        Baby     @relation(fields: [babyId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  date        DateTime @default(now())
+  notes       String?
+  consistency String?  // Consistência (para fraldas sujas)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model WeightRecord {
+  id          String   @id @default(cuid())
+  weight      Float    // em kg
+  babyId      String
+  baby        Baby     @relation(fields: [babyId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  date        DateTime @default(now())
+  notes       String?
+  percentile  Float?   // Percentil da OMS
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model VaccinationRecord {
+  id          String   @id @default(cuid())
+  name        String
+  date        DateTime
+  nextDueDate DateTime?
+  babyId      String
+  baby        Baby     @relation(fields: [babyId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  notes       String?
+  batchNumber String?  // Número do lote da vacina
+  clinic      String?  // Clínica onde foi aplicada
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SuggestedMilestone {
+  id        String   @id @default(cuid())
+  title     String   @unique
+  category  String   // gravidez, nascimento, primeiro_ano, etc
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  icon      String?  // opcional, para frontend
+}
+
+model SymptomRecord {
+  id          String   @id @default(cuid())
+  description String
+  intensity   String?  // leve, moderado, forte
+  startDate   DateTime
+  endDate     DateTime?
+  babyId      String
+  baby        Baby     @relation(fields: [babyId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  notes       String?
+  photoUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model MedicationRecord {
+  id          String   @id @default(cuid())
+  name        String
+  dosage      String
+  frequency   String
+  startDate   DateTime
+  endDate     DateTime?
+  reason      String?
+  babyId      String
+  baby        Baby     @relation(fields: [babyId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AppointmentRecord {
+  id          String   @id @default(cuid())
+  date        DateTime
+  specialty   String
+  doctor      String?
+  location    String?
+  reason      String?
+  babyId      String
+  baby        Baby     @relation(fields: [babyId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model PrenatalRecord {
+  id          String   @id @default(cuid())
+  date        DateTime
+  description String
+  type        String   // consulta, exame, vacina, sintoma
+  result      String?
+  doctor      String?
+  location    String?
+  notes       String?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Challenge {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String
+  type        String // weekly, unique, event
+  goal        Int    // meta numérica (ex: 5 atividades)
+  progressType String // activities, memories, login, etc
+  points      Int
+  badge       String?
+  isActive    Boolean @default(true)
+  startDate   DateTime?
+  endDate     DateTime?
+  userChallenges UserChallenge[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model UserChallenge {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  challengeId String
+  challenge   Challenge @relation(fields: [challengeId], references: [id])
+  progress    Int      @default(0)
+  completedAt DateTime?
+  status      String   @default("in_progress") // in_progress, completed
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

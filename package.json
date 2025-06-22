@@ -6,11 +6,21 @@
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
   },
+  "_moduleAliases": {
+    "@": "dist",
+    "@/types": "dist/types",
+    "@/utils": "dist/utils",
+    "@/config": "dist/config",
+    "@/middlewares": "dist/middlewares",
+    "@/controllers": "dist/controllers",
+    "@/services": "dist/services",
+    "@/routes": "dist/routes"
+  },
   "scripts": {
     "dev": "nodemon src/index.ts",
     "start": "node dist/index.js",
     "start:simple": "node dist/index.js",
-    "build": "tsc",
+    "build": "tsc && tsc-alias",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -47,6 +57,7 @@
     "helmet": "^7.1.0",
     "joi": "^17.11.0",
     "jsonwebtoken": "^9.0.2",
+    "module-alias": "^2.2.3",
     "moment": "^2.29.4",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",

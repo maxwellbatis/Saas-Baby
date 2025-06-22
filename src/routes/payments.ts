@@ -8,6 +8,12 @@ import Stripe from 'stripe';
 
 const router = Router();
 
+
+// Rota de teste para depuração do webhook
+router.post('/test-webhook', (req, res) => {
+  res.json({ ok: true, msg: 'rota test-webhook ativa' });
+});
+
 // Validações para checkout
 const checkoutValidation = [
   body('planId')
@@ -95,7 +101,7 @@ router.post('/create-checkout-session', checkoutValidation, async (req: Request,
 });
 
 // Rota para receber os webhooks do Stripe
-router.post('', express.raw({ type: 'application/json' }), async (req: Request, res: Response) => {
+router.post('/', express.raw({ type: 'application/json' }), async (req: Request, res: Response) => {
   console.log("Webhook recebido!");
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;

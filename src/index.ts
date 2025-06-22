@@ -69,6 +69,9 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('combined'));
 }
 
+// Rota do webhook do Stripe (deve vir antes dos middlewares de parsing!)
+app.use('/api/webhook/stripe', paymentRoutes);
+
 // Middlewares de parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -107,9 +110,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', authenticateAdmin, adminRoutes);
 app.use('/api/user', authenticateUser, userRoutes);
 app.use('/api/public', publicRoutes);
-
-// Rota do webhook do Stripe (deve vir antes das outras rotas de pagamento)
-app.use('/api/webhook/stripe', paymentRoutes);
 
 // Outras rotas de pagamento (com autenticação)
 app.use('/api/payments', authenticateUser, paymentRoutes);

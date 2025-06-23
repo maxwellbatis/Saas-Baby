@@ -51,8 +51,7 @@ export class AutomatedNotificationsService {
                 select: {
                   id: true,
                   name: true,
-                  email: true,
-                  fcmToken: true
+                  email: true
                 }
               }
             }
@@ -60,6 +59,16 @@ export class AutomatedNotificationsService {
 
           if (!baby || !baby.user) {
             console.log(`⚠️ Bebê ou usuário não encontrado para vacina ${vaccine.id}`);
+            continue;
+          }
+
+          // Verificar se o usuário tem tokens de dispositivo
+          const deviceTokens = await prisma.deviceToken.findMany({
+            where: { userId: baby.user.id }
+          });
+
+          if (deviceTokens.length === 0) {
+            console.log(`⚠️ Usuário ${baby.user.name} não tem tokens de dispositivo registrados`);
             continue;
           }
 
@@ -140,8 +149,7 @@ export class AutomatedNotificationsService {
             select: {
               id: true,
               name: true,
-              email: true,
-              fcmToken: true
+              email: true
             }
           }
         }
@@ -151,6 +159,16 @@ export class AutomatedNotificationsService {
 
       for (const baby of birthdayBabies) {
         try {
+          // Verificar se o usuário tem tokens de dispositivo
+          const deviceTokens = await prisma.deviceToken.findMany({
+            where: { userId: baby.user.id }
+          });
+
+          if (deviceTokens.length === 0) {
+            console.log(`⚠️ Usuário ${baby.user.name} não tem tokens de dispositivo registrados`);
+            continue;
+          }
+
           const age = today.getFullYear() - baby.birthDate.getFullYear();
           
           const title = '🎉 Feliz Aniversário!';

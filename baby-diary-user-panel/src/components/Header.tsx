@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { User, Baby, LogOut } from "lucide-react";
+import { User, Baby, LogOut, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -63,6 +63,14 @@ const Header = ({ showAuth = true }: HeaderProps) => {
               </div>
             ) : (
               <div className="flex items-center space-x-2">
+                <Button 
+                  variant="ghost" 
+                  onClick={() => navigate('/admin/login')}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <Shield className="w-4 h-4 mr-1.5" />
+                  Admin
+                </Button>
                 <Button 
                   variant="ghost" 
                   onClick={() => navigate('/login')}

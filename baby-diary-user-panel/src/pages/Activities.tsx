@@ -24,7 +24,6 @@ interface Activity {
   date: string;
   duration: number; // in minutes
   notes?: string;
-  babyId: string;
 }
 
 const Activities = () => {
@@ -195,28 +194,19 @@ const Activities = () => {
                 Registre a rotina diária e acompanhe os hábitos
               </p>
             </div>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={() => openModal('create')}
-              className={`${getGradientClass()} text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300`}
-            >
-              <PlusCircle className="w-4 h-4 mr-2" />
-              Adicionar Atividade
-            </Button>
             <Button
               onClick={() => setSleepModalOpen(true)}
-              className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg flex items-center gap-2 px-3 py-2 text-sm sm:px-6 sm:py-2 sm:text-base"
+              className="ml-0 sm:ml-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg flex items-center gap-2 px-3 py-2 text-sm sm:px-6 sm:py-2 sm:text-base"
             >
               <Moon className="w-4 h-4" /> Análise do Sono
             </Button>
-            <Button
-              onClick={() => setSuggestedModalOpen(true)}
-              className="bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg flex items-center gap-2 px-3 py-2 text-sm sm:px-6 sm:py-2 sm:text-base"
-            >
-              <Sparkles className="w-4 h-4" /> Sugestões
-            </Button>
           </div>
+          <Button
+            onClick={() => setSuggestedModalOpen(true)}
+            className="bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg flex items-center gap-2 px-3 py-2 text-sm sm:px-6 sm:py-2 sm:text-base"
+          >
+            <Sparkles className="w-4 h-4" /> Sugestões
+          </Button>
         </div>
 
         {/* Activities List */}
@@ -311,19 +301,6 @@ const Activities = () => {
             >
               <PlusCircle className="w-4 h-4 mr-2" />
               Registrar primeira atividade
-            </Button>
-          </div>
-        )}
-
-        {/* Botão flutuante para adicionar atividade */}
-        {activities.length > 0 && (
-          <div className="fixed bottom-6 right-6 z-50">
-            <Button
-              onClick={() => openModal('create')}
-              size="lg"
-              className={`${getGradientClass()} text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-full w-14 h-14 p-0`}
-            >
-              <PlusCircle className="w-6 h-6" />
             </Button>
           </div>
         )}

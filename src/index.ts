@@ -8,7 +8,6 @@ import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { specs, swaggerUi } from './config/swagger';
 import paymentRoutes, { webhookRouter } from './routes/payments';
-import { CronService } from './services/cron.service';
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -116,7 +115,6 @@ app.use('/api/public', publicRoutes);
 app.use('/api/payments', authenticateUser, paymentRoutes);
 app.use('/api/upload', authenticateUser, uploadRoutes);
 app.use('/api/ai', authenticateUser, aiRoutes);
-app.use('/api/notifications', notificationRoutes);
 
 // Rotas de saúde
 app.use('/api/health', healthRoutes);
@@ -165,10 +163,6 @@ const startServer = async () => {
     // Conectar ao banco de dados
     await connectDatabase();
 
-    // Iniciar cron jobs para notificações automáticas
-    const cronService = new CronService();
-    cronService.startAllJobs();
-
     // Verificar se a porta está em uso
     const server = app.listen(PORT, () => {
       console.log(`🚀 Servidor rodando na porta ${PORT}`);
@@ -176,7 +170,6 @@ const startServer = async () => {
       console.log(`📚 Documentação: http://localhost:${PORT}/api/docs`);
       console.log(`🔧 Painel Admin: http://localhost:${PORT}/admin`);
       console.log(`📊 Health Check: http://localhost:${PORT}/health`);
-      console.log(`⏰ Cron jobs iniciados para notificações automáticas`);
     });
 
     // Tratamento de erros do servidor

@@ -102,6 +102,10 @@ export class StripeService {
         throw new Error('Plano não encontrado');
       }
 
+      if (!plan.stripePriceId) {
+        throw new Error('Plano não possui ID do Stripe configurado');
+      }
+
       // Criar ou buscar cliente no Stripe
       let customerId = user.stripeCustomerId;
       if (!customerId) {

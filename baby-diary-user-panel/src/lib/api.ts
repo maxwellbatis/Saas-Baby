@@ -462,3 +462,201 @@ export const cancelUserSubscription = async () => {
     return error.response?.data || { success: false, error: 'Erro ao cancelar assinatura.' };
   }
 };
+
+// ===== GAMIFICAÇÃO =====
+
+export async function getGamificationData() {
+  try {
+    const response = await api.get('/gamification');
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Erro ao buscar dados de gamificação');
+    }
+
+    return response.data.data;
+  } catch (error) {
+    console.error('Erro ao buscar dados de gamificação:', error);
+    throw error;
+  }
+}
+
+export async function updateDailyProgress(activityType: string, points: number) {
+  try {
+    const response = await api.post('/gamification/daily-progress', { activityType, points });
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Erro ao atualizar progresso diário');
+    }
+
+    return response.data.data;
+  } catch (error) {
+    console.error('Erro ao atualizar progresso diário:', error);
+    throw error;
+  }
+}
+
+export async function claimChallengeReward(challengeId: string) {
+  try {
+    const response = await api.post('/gamification/claim-challenge-reward', { challengeId });
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Erro ao reivindicar recompensa');
+    }
+
+    return response.data.data;
+  } catch (error) {
+    console.error('Erro ao reivindicar recompensa:', error);
+    throw error;
+  }
+}
+
+export async function unlockAIReward(rewardId: string) {
+  try {
+    const response = await api.post('/gamification/unlock-ai-reward', { rewardId });
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Erro ao desbloquear recompensa');
+    }
+
+    return response.data.data;
+  } catch (error) {
+    console.error('Erro ao desbloquear recompensa:', error);
+    throw error;
+  }
+}
+
+export async function getGamificationStats() {
+  try {
+    const response = await api.get('/gamification/stats');
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Erro ao buscar estatísticas');
+    }
+
+    return response.data.data;
+  } catch (error) {
+    console.error('Erro ao buscar estatísticas:', error);
+    throw error;
+  }
+}
+
+export async function getWeeklyRanking(limit: number = 10) {
+  try {
+    const response = await api.get(`/gamification/ranking?limit=${limit}`);
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Erro ao buscar ranking');
+    }
+
+    return response.data.data;
+  } catch (error) {
+    console.error('Erro ao buscar ranking:', error);
+    throw error;
+  }
+}
+
+// SISTEMA DE RESGATE MANUAL - LOJA DE RECOMPENSAS
+
+export async function getShopItems() {
+  try {
+    const response = await api.get('/gamification/shop');
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao buscar itens da loja:', error);
+    throw error;
+  }
+}
+
+export async function purchaseShopItem(itemId: string) {
+  try {
+    const response = await api.post('/gamification/shop/purchase', { itemId });
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao comprar item:', error);
+    throw error;
+  }
+}
+
+export async function getUserPurchases() {
+  try {
+    const response = await api.get('/gamification/shop/purchases');
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao buscar histórico de compras:', error);
+    throw error;
+  }
+}
+
+// SISTEMA DE MISSÕES DIÁRIAS
+
+export async function getDailyMissions() {
+  try {
+    const response = await api.get('/gamification/missions');
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao buscar missões diárias:', error);
+    throw error;
+  }
+}
+
+export async function generateDailyMissions() {
+  try {
+    const response = await api.post('/gamification/missions/generate');
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao gerar missões diárias:', error);
+    throw error;
+  }
+}
+
+export async function updateMissionProgress(missionId: string, progress: number) {
+  try {
+    const response = await api.post('/gamification/missions/progress', { missionId, progress });
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao atualizar progresso da missão:', error);
+    throw error;
+  }
+}
+
+// SISTEMA DE EVENTOS ESPECIAIS
+
+export async function getActiveEvents() {
+  try {
+    const response = await api.get('/gamification/events');
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao buscar eventos ativos:', error);
+    throw error;
+  }
+}
+
+export async function joinEvent(eventId: string) {
+  try {
+    const response = await api.post('/gamification/events/join', { eventId });
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao participar do evento:', error);
+    throw error;
+  }
+}
+
+export async function updateEventProgress(eventId: string, challengeId: string, progress: number) {
+  try {
+    const response = await api.post('/gamification/events/progress', { eventId, challengeId, progress });
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao atualizar progresso do evento:', error);
+    throw error;
+  }
+}
+
+export async function getUserEvents() {
+  try {
+    const response = await api.get('/gamification/events/user');
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao buscar eventos do usuário:', error);
+    throw error;
+  }
+}

@@ -1,7 +1,7 @@
 // Configuração centralizada da API
 export const API_CONFIG = {
   // URL base da API - pode ser sobrescrita por variável de ambiente
-  BASE_URL: import.meta.env.VITE_API_URL || 'https://api.babydiary.shop/api',
+  BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
   
   // Timeout padrão para requisições
   TIMEOUT: 10000,
@@ -9,7 +9,7 @@ export const API_CONFIG = {
   // Headers padrão
   DEFAULT_HEADERS: {
     'Content-Type': 'application/json',
-  }
+  } as Record<string, string>
 };
 
 // Função para obter a URL completa de um endpoint
@@ -27,9 +27,11 @@ export const getApiUrl = (endpoint: string): string => {
   return `${baseUrl}${cleanEndpoint}`;
 };
 
-// Função para obter headers com token
+// Função para obter headers de autenticação
 export const getAuthHeaders = (token?: string) => {
-  const headers = { ...API_CONFIG.DEFAULT_HEADERS };
+  const headers: Record<string, string> = {
+    ...API_CONFIG.DEFAULT_HEADERS
+  };
   
   if (token) {
     headers.Authorization = `Bearer ${token}`;
@@ -38,25 +40,29 @@ export const getAuthHeaders = (token?: string) => {
   return headers;
 };
 
-// Função utilitária para fazer requisições fetch com configuração centralizada
+// Função para fazer requisições à API
 export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
+  const url = getApiUrl(endpoint);
   const token = localStorage.getItem('token');
-  const url = `${API_CONFIG.BASE_URL}${endpoint}`;
   
   const config: RequestInit = {
     ...options,
     headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
+      ...getAuthHeaders(token),
       ...options.headers,
     },
   };
   
-  const response = await fetch(url, config);
-  
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+  try {
+    const response = await fetch(url, config);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('API request failed:', error);
+    throw error;
   }
-  
-  return response.json();
 }; 

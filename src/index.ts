@@ -24,6 +24,7 @@ import uploadRoutes from './routes/upload';
 import aiRoutes from './routes/ai';
 import notificationRoutes from './routes/notifications';
 import healthRoutes from './routes/health';
+import gamificationRoutes from './routes/gamification';
 
 // Importar middlewares
 import { authenticateUser, authenticateAdmin } from './middlewares/auth';
@@ -118,6 +119,9 @@ app.use('/api/ai', authenticateUser, aiRoutes);
 
 // Rotas de saúde
 app.use('/api/health', healthRoutes);
+
+// Rotas de gamificação
+app.use('/api/gamification', gamificationRoutes);
 
 // Middleware de tratamento de erros 404
 app.use('*', (req, res) => {

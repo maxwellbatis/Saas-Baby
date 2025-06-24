@@ -64,7 +64,9 @@ export interface GamificationRule extends BaseEntity {
   points: number;
   condition: string;
   badgeIcon?: string;
+  category: string; // daily, milestone, special, weekly_challenge
   isActive: boolean;
+  sortOrder: number;
 }
 
 export interface Gamification extends BaseEntity {
@@ -74,6 +76,16 @@ export interface Gamification extends BaseEntity {
   level: number;
   badges: Badge[];
   streaks: Record<string, number>;
+  achievements: string[];
+  // Novos campos
+  totalActivities: number;
+  totalMemories: number;
+  totalMilestones: number;
+  lastLoginDate?: Date;
+  dailyGoal: number;
+  dailyProgress: number;
+  weeklyChallenges: WeeklyChallenge[];
+  aiRewards: AIReward[];
 }
 
 export interface Badge {
@@ -81,6 +93,73 @@ export interface Badge {
   name: string;
   icon: string;
   earnedAt: Date;
+}
+
+// Novos tipos para gamificação avançada
+export interface WeeklyChallenge extends BaseEntity {
+  title: string;
+  description: string;
+  icon: string;
+  category: string; // sleep, memory, activity, consistency
+  goal: number;
+  reward: string;
+  points: number;
+  isActive: boolean;
+  weekStart: Date;
+  weekEnd: Date;
+}
+
+export interface AIReward extends BaseEntity {
+  title: string;
+  description: string;
+  type: 'tip' | 'activity' | 'milestone' | 'encouragement';
+  content?: string;
+  tips?: string[];
+  activities?: string[];
+  isActive: boolean;
+  unlockCondition: string;
+  sortOrder: number;
+}
+
+export interface UserAIReward extends BaseEntity {
+  userId: string;
+  user: User;
+  rewardId: string;
+  reward: AIReward;
+  isUnlocked: boolean;
+  unlockedAt?: Date;
+}
+
+export interface GamificationRanking extends BaseEntity {
+  userId: string;
+  user: User;
+  week: number;
+  year: number;
+  points: number;
+  rank?: number;
+}
+
+// Tipos para respostas da API de gamificação
+export interface GamificationResponse {
+  gamification: Gamification;
+  weeklyChallenges: WeeklyChallenge[];
+  aiRewards: AIReward[];
+  ranking: GamificationRanking[];
+  newBadges: string[];
+  levelUp: boolean;
+  // Novos dados para sistema de resgate manual
+  shopItems: ShopItem[];
+  dailyMissions: UserMission[];
+  activeEvents: UserEvent[];
+  userPurchases: UserPurchase[];
+}
+
+export interface ChallengeProgress {
+  challengeId: string;
+  progress: number;
+  goal: number;
+  isCompleted: boolean;
+  reward: string;
 }
 
 // Tipos de landing page
@@ -347,4 +426,74 @@ export interface ActivityFilters extends PaginationParams {
   babyId?: string;
   dateFrom?: Date;
   dateTo?: Date;
+}
+
+// SISTEMA DE RESGATE MANUAL - LOJA DE RECOMPENSAS
+export interface ShopItem extends BaseEntity {
+  name: string;
+  description: string;
+  type: 'theme' | 'feature' | 'bonus' | 'cosmetic';
+  category: 'premium' | 'basic' | 'seasonal';
+  price: number;
+  imageUrl?: string;
+  isActive: boolean;
+  isLimited: boolean;
+  stock?: number;
+  sortOrder: number;
+}
+
+export interface UserPurchase extends BaseEntity {
+  userId: string;
+  user: User;
+  itemId: string;
+  item: ShopItem;
+  pointsSpent: number;
+  purchasedAt: Date;
+}
+
+// SISTEMA DE MISSÕES DIÁRIAS
+export interface DailyMission extends BaseEntity {
+  title: string;
+  description: string;
+  type: 'login' | 'memory' | 'activity' | 'milestone' | 'streak';
+  goal: number;
+  points: number;
+  icon?: string;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export interface UserMission extends BaseEntity {
+  userId: string;
+  user: User;
+  missionId: string;
+  mission: DailyMission;
+  progress: number;
+  isCompleted: boolean;
+  completedAt?: Date;
+  assignedAt: Date;
+  expiresAt: Date;
+}
+
+// SISTEMA DE EVENTOS ESPECIAIS
+export interface SpecialEvent extends BaseEntity {
+  name: string;
+  description: string;
+  type: 'seasonal' | 'challenge' | 'celebration';
+  startDate: Date;
+  endDate: Date;
+  isActive: boolean;
+  rewards: any[];
+  challenges: any[];
+}
+
+export interface UserEvent extends BaseEntity {
+  userId: string;
+  user: User;
+  eventId: string;
+  event: SpecialEvent;
+  progress: Record<string, any>;
+  rewards: any[];
+  joinedAt: Date;
+  completedAt?: Date;
 } 

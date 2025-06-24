@@ -2,7 +2,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
-import { Baby, Image, User, Calendar, Trophy, TrendingUp, Clock, Heart, Utensils, Bath, Puzzle, Pill, Activity as ActivityIcon, Bot, CheckCircle } from "lucide-react";
+import { Baby, Image, User, Calendar, Trophy, TrendingUp, Clock, Heart, Utensils, Bath, Puzzle, Pill, Activity as ActivityIcon, Bot, CheckCircle, Share2 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, BarChart, Bar } from "recharts";
@@ -20,6 +20,16 @@ import HealthAlertsCard from '@/components/HealthAlertsCard';
 import AIChatModal from '@/components/AIChatModal';
 import AddBabyModal from '@/components/AddBabyModal';
 import { API_CONFIG } from '../config/api';
+import { ShareModal } from '@/components/ShareModal';
+import { GamificationCard } from '@/components/GamificationCard';
+import { SmartReminders } from '@/components/SmartReminders';
+import { AIRewardModal } from '@/components/AIRewardModal';
+import SuggestedActivitiesModal from '@/components/SuggestedActivitiesModal';
+import PersonalizedAdviceModal from '@/components/PersonalizedAdviceModal';
+import FeedingTipsModal from '@/components/FeedingTipsModal';
+import SleepAnalysisModal from '@/components/SleepAnalysisModal';
+import PredictedMilestonesCard from '@/components/PredictedMilestonesCard';
+import AIUsageStatsCard from '@/components/AIUsageStatsCard';
 
 const chartConfig = {
   peso: {
@@ -70,6 +80,9 @@ const Dashboard = () => {
   const [showAddBabyModal, setShowAddBabyModal] = useState(false);
   const [refreshGrowth, setRefreshGrowth] = useState(false);
   const [showSuccessConfetti, setShowSuccessConfetti] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedAIReward, setSelectedAIReward] = useState<any>(null);
+  const [showAIRewardModal, setShowAIRewardModal] = useState(false);
 
   const handleBabyAdded = async () => {
     await refetch();
@@ -273,12 +286,7 @@ const Dashboard = () => {
 
       // Exibe a notificação
       toast({
-        title: (
-          <div className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-500" />
-            <span className="font-bold">Assinatura realizada com sucesso!</span>
-          </div>
-        ),
+        title: "Assinatura realizada com sucesso!",
         description: "Seu plano foi atualizado. Bem-vindo(a) e aproveite todos os recursos premium!",
       });
 
@@ -449,6 +457,231 @@ const Dashboard = () => {
     };
     return names[category as keyof typeof names] || 'Outro';
   };
+
+  const formatDate = (date: string) => {
+    const formattedDate = new Date(date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: '2-digit' });
+    return formattedDate;
+  };
+
+  const handleShareActivity = (activity: any) => {
+    // Implemente a lógica para compartilhar uma atividade
+    console.log("Compartilhando atividade:", activity);
+  };
+
+  // Dados mock para demonstração
+  const mockGamificationData = {
+    points: 1250,
+    level: 8,
+    badges: ['first-memory', 'week-streak', 'milestone-master', 'consistency-queen'],
+    streak: 7,
+    nextLevelPoints: 1500,
+    currentLevelPoints: 1000,
+    dailyGoal: 50,
+    dailyProgress: 35,
+    weeklyChallenges: [
+      {
+        id: '1',
+        title: 'Registre 7 Atividades',
+        description: 'Complete 7 registros de atividades esta semana',
+        icon: 'activity-champion',
+        progress: 5,
+        target: 7,
+        reward: 'Dica especial da IA sobre desenvolvimento',
+        isCompleted: false
+      },
+      {
+        id: '2',
+        title: '3 Memórias Especiais',
+        description: 'Capture 3 momentos especiais com fotos',
+        icon: 'memory-keeper',
+        progress: 3,
+        target: 3,
+        reward: 'Atividade personalizada para o bebê',
+        isCompleted: true
+      },
+      {
+        id: '3',
+        title: '7 Dias Consecutivos',
+        description: 'Use o app por 7 dias seguidos',
+        icon: 'consistency-queen',
+        progress: 7,
+        target: 7,
+        reward: 'Badge exclusivo + Dica de autocuidado',
+        isCompleted: true
+      }
+    ],
+    recentAchievements: [
+      {
+        id: '1',
+        title: 'Primeira Memória',
+        description: 'Registrou a primeira memória do bebê',
+        icon: 'first-memory',
+        earnedAt: '2024-01-15',
+        reward: '10 pontos + Dica de fotografia'
+      },
+      {
+        id: '2',
+        title: 'Semana Consistente',
+        description: 'Usou o app por 7 dias seguidos',
+        icon: 'week-streak',
+        earnedAt: '2024-01-14',
+        reward: '25 pontos + Atividade sensorial'
+      }
+    ],
+    aiRewards: [
+      {
+        id: '1',
+        title: 'Dica Personalizada de Sono',
+        description: 'Baseada no padrão do seu bebê',
+        type: 'tip' as const,
+        isUnlocked: true
+      },
+      {
+        id: '2',
+        title: 'Atividade de Desenvolvimento',
+        description: 'Exercício específico para a idade',
+        type: 'activity' as const,
+        isUnlocked: true
+      },
+      {
+        id: '3',
+        title: 'Previsão de Marcos',
+        description: 'Próximos marcos esperados',
+        type: 'milestone' as const,
+        isUnlocked: false
+      },
+      {
+        id: '4',
+        title: 'Mensagem de Incentivo',
+        description: 'Palavras de apoio personalizadas',
+        type: 'encouragement' as const,
+        isUnlocked: true
+      }
+    ]
+  };
+
+  const mockReminders = [
+    {
+      id: '1',
+      title: 'Hora da Mamada',
+      description: 'Lembrete para alimentar o bebê',
+      type: 'feeding' as const,
+      time: '14:00',
+      isActive: true,
+      isRecurring: true,
+      frequency: 'daily' as const,
+      priority: 'high' as const
+    },
+    {
+      id: '2',
+      title: 'Hora da Soneca',
+      description: 'Tempo de descanso para o bebê',
+      type: 'sleep' as const,
+      time: '15:30',
+      isActive: true,
+      isRecurring: true,
+      frequency: 'daily' as const,
+      priority: 'medium' as const
+    },
+    {
+      id: '3',
+      title: 'Consulta Pediátrica',
+      description: 'Check-up mensal',
+      type: 'appointment' as const,
+      time: '09:00',
+      isActive: true,
+      isRecurring: false,
+      priority: 'high' as const
+    }
+  ];
+
+  const mockRecentActivities = [
+    {
+      id: '1',
+      title: 'Primeiro Sorriso',
+      type: 'milestone',
+      date: '2024-01-15',
+      description: 'O bebê sorriu pela primeira vez!'
+    },
+    {
+      id: '2',
+      title: 'Mamada Completa',
+      type: 'feeding',
+      date: '2024-01-15',
+      description: '120ml de leite materno'
+    },
+    {
+      id: '3',
+      title: 'Soneca da Manhã',
+      type: 'sleep',
+      date: '2024-01-15',
+      description: '2 horas de sono tranquilo'
+    }
+  ];
+
+  // Dados mock detalhados para recompensas de IA
+  const mockAIRewards = [
+    {
+      id: '1',
+      title: 'Dica Personalizada de Sono',
+      description: 'Baseada no padrão do seu bebê',
+      type: 'tip' as const,
+      content: 'Baseado nos dados do seu bebê, ele está desenvolvendo um padrão de sono muito saudável! Recomendo manter a rotina atual e adicionar um banho relaxante antes da soneca da noite. A temperatura ideal da água deve ser entre 36-37°C.',
+      tips: [
+        'Mantenha o quarto escuro e silencioso durante a noite',
+        'Estabeleça uma rotina consistente de 20-30 minutos antes de dormir',
+        'Evite telas 1 hora antes do sono',
+        'Use um ruído branco suave se o bebê acordar facilmente'
+      ],
+      isUnlocked: true,
+      unlockedAt: '2024-01-15'
+    },
+    {
+      id: '2',
+      title: 'Atividade de Desenvolvimento',
+      description: 'Exercício específico para a idade',
+      type: 'activity' as const,
+      content: 'Para estimular o desenvolvimento motor do seu bebê de 4 meses, sugiro a atividade "Explorador de Texturas". Esta atividade ajuda no desenvolvimento sensorial e coordenação motora.',
+      activities: [
+        'Coloque diferentes texturas em uma bandeja (algodão, papel, tecido)',
+        'Deixe o bebê tocar e explorar cada textura',
+        'Nomeie cada sensação: "macio", "áspero", "suave"',
+        'Faça por 10-15 minutos, 2 vezes ao dia'
+      ],
+      isUnlocked: true,
+      unlockedAt: '2024-01-14'
+    },
+    {
+      id: '3',
+      title: 'Previsão de Marcos',
+      description: 'Próximos marcos esperados',
+      type: 'milestone' as const,
+      content: 'Nos próximos 2-3 meses, seu bebê provavelmente alcançará estes marcos importantes. Lembre-se: cada bebê se desenvolve no seu próprio ritmo!',
+      activities: [
+        'Rolar de barriga para costas (4-6 meses)',
+        'Sentar com apoio (4-7 meses)',
+        'Balbuciar sílabas repetitivas (4-6 meses)',
+        'Alcançar e pegar objetos (4-5 meses)',
+        'Reconhecer o próprio nome (4-7 meses)'
+      ],
+      isUnlocked: false
+    },
+    {
+      id: '4',
+      title: 'Mensagem de Incentivo',
+      description: 'Palavras de apoio personalizadas',
+      type: 'encouragement' as const,
+      content: 'Você está fazendo um trabalho incrível! Seu bebê está se desenvolvendo perfeitamente e isso é graças ao seu amor e dedicação. Lembre-se de cuidar de si mesma também - uma mãe feliz é a melhor mãe!',
+      tips: [
+        'Tire 10 minutos por dia para respirar fundo e relaxar',
+        'Peça ajuda quando precisar - não há problema em pedir apoio',
+        'Celebre as pequenas conquistas do dia a dia',
+        'Conecte-se com outras mães - vocês estão na mesma jornada'
+      ],
+      isUnlocked: true,
+      unlockedAt: '2024-01-13'
+    }
+  ];
 
   return (
     <div className={`min-h-screen bg-gradient-to-br ${getBgClass()}`}>
@@ -801,6 +1034,63 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Feed de Atividades Recentes */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-800">Atividades Recentes</h2>
+              <Button variant="outline" size="sm" onClick={() => setShowShareModal(true)}>
+                <Share2 className="w-4 h-4 mr-2" />
+                Compartilhar
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {recentActivities.map((activity, index) => (
+                <Card key={index} className="hover:shadow-lg transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-start space-x-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${getActivityColor(activity.type)}`}>
+                        {getActivityIcon(activity.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm">{activity.title}</p>
+                        <p className="text-xs text-muted-foreground">{formatDate(activity.date)}</p>
+                        {activity.description && (
+                          <p className="text-xs text-gray-600 mt-1">{activity.description}</p>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleShareActivity(activity)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Share2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* Gamificação e Lembretes */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <GamificationCard data={mockGamificationData} />
+            <SmartReminders
+              reminders={mockReminders}
+              onToggleReminder={(id, isActive) => {
+                console.log('Toggle reminder:', id, isActive);
+              }}
+              onEditReminder={(reminder) => {
+                console.log('Edit reminder:', reminder);
+              }}
+              onAddReminder={() => {
+                console.log('Add reminder');
+              }}
+            />
+          </div>
         </div>
       </div>
       {/* Botão flutuante do chat assistente virtual */}
@@ -813,6 +1103,13 @@ const Dashboard = () => {
         <span className="hidden md:inline font-semibold">Assistente</span>
       </button>
       <AIChatModal open={chatOpen} onClose={() => setChatOpen(false)} />
+
+      {/* Modal de Compartilhamento */}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        type="activity"
+      />
     </div>
   );
 };

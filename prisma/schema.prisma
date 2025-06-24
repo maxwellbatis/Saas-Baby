@@ -54,6 +54,13 @@ model User {
   appointmentRecords AppointmentRecord[]
   prenatalRecords PrenatalRecord[]
   userChallenges UserChallenge[]
+  // Novas relações para gamificação avançada
+  userAIRewards UserAIReward[]
+  gamificationRankings GamificationRanking[]
+  // Novas relações para sistema de resgate manual
+  purchases     UserPurchase[]
+  missions      UserMission[]
+  events        UserEvent[]
 }
 
 // MODELOS DE ADMINISTRAÇÃO
@@ -141,7 +148,7 @@ model GamificationRule {
   points      Int      // Pontos ou recompensa
   condition   String   // Lógica da condição (ex: "login_streak_5")
   badgeIcon   String?
-  category    String   // daily, milestone, special
+  category    String   // daily, milestone, special, weekly_challenge
   isActive    Boolean  @default(true)
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
@@ -155,8 +162,17 @@ model Gamification {
   points  Int      @default(0)
   level   Int      @default(1)
   badges  Json     @default("[]") // Lista de badges conquistados
-  streaks Json     @default("{}") // {"login": 0, "activities": 0}
+  streaks Json     @default("{}") // {"login": 0, "activities": 0, "memories": 0}
   achievements Json @default("[]") // Conquistas especiais
+  // Novos campos para gamificação avançada
+  totalActivities Int @default(0)
+  totalMemories Int @default(0)
+  totalMilestones Int @default(0)
+  lastLoginDate DateTime?
+  dailyGoal Int @default(50)
+  dailyProgress Int @default(0)
+  weeklyChallenges Json @default("[]") // Desafios semanais ativos
+  aiRewards Json @default("[]") // Recompensas de IA desbloqueadas
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -569,4 +585,146 @@ model UserChallenge {
   status      String   @default("in_progress") // in_progress, completed
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+// Novos modelos para gamificação avançada
+model WeeklyChallenge {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  icon        String   // Ícone do desafio
+  category    String   // sleep, memory, activity, consistency
+  goal        Int      // Meta numérica
+  reward      String   // Descrição da recompensa
+  points      Int      // Pontos ganhos
+  isActive    Boolean  @default(true)
+  weekStart   DateTime // Início da semana
+  weekEnd     DateTime // Fim da semana
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AIReward {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  type        String   // tip, activity, milestone, encouragement
+  isActive    Boolean  @default(true)
+  unlockCondition String // Condição para desbloquear
+  sortOrder   Int      @default(0)
+  content     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userRewards UserAIReward[]
+}
+
+model UserAIReward {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  rewardId    String
+  reward      AIReward @relation(fields: [rewardId], references: [id])
+  isUnlocked  Boolean  @default(false)
+  unlockedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model GamificationRanking {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  week        Int      // Número da semana do ano
+  year        Int      // Ano
+  points      Int      @default(0)
+  rank        Int?     // Posição no ranking
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, week, year])
+}
+
+// SISTEMA DE RESGATE MANUAL - LOJA DE RECOMPENSAS
+model ShopItem {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  type        String   // theme, feature, bonus, cosmetic
+  category    String   // premium, basic, seasonal
+  price       Int      // Pontos necessários
+  imageUrl    String?
+  isActive    Boolean  @default(true)
+  isLimited   Boolean  @default(false)
+  stock       Int?     // Quantidade limitada (null = ilimitado)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  purchases   UserPurchase[]
+}
+
+model UserPurchase {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  itemId      String
+  item        ShopItem @relation(fields: [itemId], references: [id])
+  pointsSpent Int
+  purchasedAt DateTime @default(now())
+}
+
+// SISTEMA DE MISSÕES DIÁRIAS
+model DailyMission {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  type        String   // login, memory, activity, milestone, streak
+  goal        Int      // Meta numérica
+  points      Int      // Pontos de recompensa
+  icon        String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userMissions UserMission[]
+}
+
+model UserMission {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  missionId   String
+  mission     DailyMission @relation(fields: [missionId], references: [id])
+  progress    Int      @default(0)
+  isCompleted Boolean  @default(false)
+  completedAt DateTime?
+  assignedAt  DateTime @default(now())
+  expiresAt   DateTime // Fim do dia
+}
+
+// SISTEMA DE EVENTOS ESPECIAIS
+model SpecialEvent {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  type        String   // seasonal, challenge, celebration
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean  @default(true)
+  rewards     Json     @default("[]") // Recompensas especiais
+  challenges  Json     @default("[]") // Desafios do evento
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userEvents  UserEvent[]
+}
+
+model UserEvent {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  eventId     String
+  event       SpecialEvent @relation(fields: [eventId], references: [id])
+  progress    Json     @default("{}") // Progresso nos desafios
+  rewards     Json     @default("[]") // Recompensas conquistadas
+  joinedAt    DateTime @default(now())
+  completedAt DateTime?
 }

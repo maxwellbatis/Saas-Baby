@@ -404,279 +404,329 @@ async function main() {
 
   console.log('✅ Conteúdo da landing page criado');
 
-  // Criar regras de gamificação padrão
-  const gamificationRules = await Promise.all([
-    prisma.gamificationRule.upsert({
-      where: { id: 'first_signup' },
-      update: {},
-      create: {
-        id: 'first_signup',
-        name: 'Primeiro Cadastro',
-        description: 'Parabéns por começar sua jornada!',
-        points: 100,
-        condition: 'first_signup',
-        badgeIcon: 'star',
-        category: 'milestone',
-        isActive: true,
-      },
-    }),
-    prisma.gamificationRule.upsert({
-      where: { id: 'daily_login' },
-      update: {},
-      create: {
-        id: 'daily_login',
-        name: 'Login Diário',
-        description: 'Mantendo a consistência!',
-        points: 10,
-        condition: 'daily_login',
-        badgeIcon: 'calendar-check',
-        category: 'daily',
-        isActive: true,
-      },
-    }),
-    prisma.gamificationRule.upsert({
-      where: { id: 'first_activity' },
-      update: {},
-      create: {
-        id: 'first_activity',
-        name: 'Primeira Atividade',
-        description: 'Começou a registrar!',
-        points: 50,
-        condition: 'first_activity',
-        badgeIcon: 'plus-circle',
-        category: 'milestone',
-        isActive: true,
-      },
-    }),
-    prisma.gamificationRule.upsert({
-      where: { id: 'milestone_recorded' },
-      update: {},
-      create: {
-        id: 'milestone_recorded',
-        name: 'Marco Importante',
-        description: 'Registrou um marco de desenvolvimento!',
-        points: 200,
-        condition: 'milestone_recorded',
-        badgeIcon: 'trophy',
-        category: 'milestone',
-        isActive: true,
-      },
-    }),
-    prisma.gamificationRule.upsert({
-      where: { id: 'memory_created' },
-      update: {},
-      create: {
-        id: 'memory_created',
-        name: 'Memória Especial',
-        description: 'Preservou um momento único!',
-        points: 150,
-        condition: 'memory_created',
-        badgeIcon: 'heart',
-        category: 'milestone',
-        isActive: true,
-      },
-    }),
-  ]);
+  // Criar regras de gamificação
+  const gamificationRules = [
+    {
+      id: 'daily_login',
+      name: 'Login Diário',
+      description: 'Faça login todos os dias',
+      points: 5,
+      condition: 'daily_login',
+      badgeIcon: 'calendar',
+      category: 'engagement',
+      isActive: true,
+      sortOrder: 1,
+    },
+    {
+      id: 'first_memory',
+      name: 'Primeira Memória',
+      description: 'Crie sua primeira memória',
+      points: 10,
+      condition: 'first_memory',
+      badgeIcon: 'heart',
+      category: 'content',
+      isActive: true,
+      sortOrder: 2,
+    },
+    {
+      id: 'milestone',
+      name: 'Marco Importante',
+      description: 'Registre um marco do desenvolvimento',
+      points: 30,
+      condition: 'milestone',
+      badgeIcon: 'star',
+      category: 'milestone',
+      isActive: true,
+      sortOrder: 3,
+    },
+    {
+      id: 'streak_7',
+      name: 'Streak de 7 Dias',
+      description: 'Mantenha atividade por 7 dias consecutivos',
+      points: 50,
+      condition: 'streak_7',
+      badgeIcon: 'flame',
+      category: 'streak',
+      isActive: true,
+      sortOrder: 4,
+    },
+  ];
 
-  console.log('✅ Regras de gamificação criadas:', gamificationRules.length);
+  for (const rule of gamificationRules) {
+    await prisma.gamificationRule.upsert({
+      where: { id: rule.id },
+      update: rule,
+      create: rule,
+    });
+  }
 
-  // Criar templates de notificação padrão
-  const notificationTemplates = await Promise.all([
-    prisma.notificationTemplate.upsert({
-      where: { name: 'welcome_email' },
-      update: {},
-      create: {
-        name: 'welcome_email',
-        type: 'email',
-        subject: 'Bem-vindo ao Baby Diary!',
-        body: `
-          <h1>Olá {{name}}!</h1>
-          <p>Seja bem-vindo ao Baby Diary! Estamos muito felizes em ter você conosco.</p>
-          <p>Com o Baby Diary, você pode:</p>
-          <ul>
-            <li>Registrar todas as atividades do seu bebê</li>
-            <li>Acompanhar marcos de desenvolvimento</li>
-            <li>Preservar memórias especiais</li>
-            <li>Receber insights personalizados</li>
-          </ul>
-          <p>Comece agora mesmo registrando seu primeiro bebê!</p>
-          <p>Atenciosamente,<br>Equipe Baby Diary</p>
-        `,
-        isActive: true,
-      },
-    }),
-    prisma.notificationTemplate.upsert({
-      where: { name: 'subscription_canceled' },
-      update: {},
-      create: {
-        name: 'subscription_canceled',
-        type: 'email',
-        subject: 'Sua assinatura foi cancelada',
-        body: `
-          <h1>Olá {{name}},</h1>
-          <p>Sua assinatura do Baby Diary foi cancelada conforme solicitado.</p>
-          <p>Você ainda tem acesso aos seus dados até o final do período de faturamento.</p>
-          <p>Se mudou de ideia, você pode reativar sua assinatura a qualquer momento.</p>
-          <p>Obrigado por ter escolhido o Baby Diary!</p>
-          <p>Atenciosamente,<br>Equipe Baby Diary</p>
-        `,
-        isActive: true,
-      },
-    }),
-    prisma.notificationTemplate.upsert({
-      where: { name: 'new_badge' },
-      update: {},
-      create: {
-        name: 'new_badge',
-        type: 'push',
-        subject: 'Novo Badge Conquistado!',
-        body: 'Parabéns! Você conquistou o badge "{{badgeName}}"! Continue assim!',
-        isActive: true,
-      },
-    }),
-  ]);
+  // SISTEMA DE RESGATE MANUAL - DADOS DE SEED
 
-  console.log('✅ Templates de notificação criados:', notificationTemplates.length);
+  // Criar itens da loja
+  const shopItems = [
+    {
+      id: 'pink_theme',
+      name: 'Tema Rosa Especial',
+      description: 'Tema personalizado em tons de rosa para o app',
+      type: 'theme',
+      category: 'premium',
+      price: 100,
+      imageUrl: '/themes/pink-theme.png',
+      isActive: true,
+      isLimited: false,
+      sortOrder: 1,
+    },
+    {
+      id: 'blue_theme',
+      name: 'Tema Azul Especial',
+      description: 'Tema personalizado em tons de azul para o app',
+      type: 'theme',
+      category: 'premium',
+      price: 100,
+      imageUrl: '/themes/blue-theme.png',
+      isActive: true,
+      isLimited: false,
+      sortOrder: 2,
+    },
+    {
+      id: 'export_feature',
+      name: 'Exportar Memórias',
+      description: 'Desbloqueia a funcionalidade de exportar memórias em PDF',
+      type: 'feature',
+      category: 'premium',
+      price: 200,
+      imageUrl: '/features/export.png',
+      isActive: true,
+      isLimited: false,
+      sortOrder: 3,
+    },
+    {
+      id: 'backup_feature',
+      name: 'Backup na Nuvem',
+      description: 'Backup automático de todas as suas memórias na nuvem',
+      type: 'feature',
+      category: 'premium',
+      price: 300,
+      imageUrl: '/features/backup.png',
+      isActive: true,
+      isLimited: false,
+      sortOrder: 4,
+    },
+    {
+      id: 'points_bonus',
+      name: 'Pacote de 50 Pontos',
+      description: 'Receba 50 pontos extras para usar na loja',
+      type: 'bonus',
+      category: 'basic',
+      price: 0, // Grátis para usuários ativos
+      imageUrl: '/bonuses/points.png',
+      isActive: true,
+      isLimited: true,
+      stock: 100,
+      sortOrder: 5,
+    },
+    {
+      id: 'gold_badge',
+      name: 'Emblema Dourado',
+      description: 'Emblema especial dourado para seu perfil',
+      type: 'cosmetic',
+      category: 'seasonal',
+      price: 150,
+      imageUrl: '/cosmetics/gold-badge.png',
+      isActive: true,
+      isLimited: true,
+      stock: 50,
+      sortOrder: 6,
+    },
+  ];
 
-  // Criar marcos sugeridos (SuggestedMilestone)
-  const suggestedMilestones = await Promise.all([
-    prisma.suggestedMilestone.upsert({
-      where: { title: 'Descoberta da gravidez' },
-      update: {},
-      create: { title: 'Descoberta da gravidez', category: 'gravidez', sortOrder: 1, icon: 'pregnant' },
-    }),
-    prisma.suggestedMilestone.upsert({
-      where: { title: 'Primeiro ultrassom' },
-      update: {},
-      create: { title: 'Primeiro ultrassom', category: 'gravidez', sortOrder: 2, icon: 'ultrasound' },
-    }),
-    prisma.suggestedMilestone.upsert({
-      where: { title: 'Chá revelação' },
-      update: {},
-      create: { title: 'Chá revelação', category: 'gravidez', sortOrder: 3, icon: 'party' },
-    }),
-    prisma.suggestedMilestone.upsert({
-      where: { title: 'Primeiro chute' },
-      update: {},
-      create: { title: 'Primeiro chute', category: 'gravidez', sortOrder: 4, icon: 'kick' },
-    }),
-    prisma.suggestedMilestone.upsert({
-      where: { title: 'Chá de bebê' },
-      update: {},
-      create: { title: 'Chá de bebê', category: 'gravidez', sortOrder: 5, icon: 'party' },
-    }),
-    prisma.suggestedMilestone.upsert({
-      where: { title: 'Nascimento' },
-      update: {},
-      create: { title: 'Nascimento', category: 'nascimento', sortOrder: 10, icon: 'baby' },
-    }),
-    prisma.suggestedMilestone.upsert({
-      where: { title: 'Primeira foto' },
-      update: {},
-      create: { title: 'Primeira foto', category: 'nascimento', sortOrder: 11, icon: 'camera' },
-    }),
-    prisma.suggestedMilestone.upsert({
-      where: { title: 'Primeira visita' },
-      update: {},
-      create: { title: 'Primeira visita', category: 'nascimento', sortOrder: 12, icon: 'users' },
-    }),
-    prisma.suggestedMilestone.upsert({
-      where: { title: 'Saída da maternidade' },
-      update: {},
-      create: { title: 'Saída da maternidade', category: 'nascimento', sortOrder: 13, icon: 'home' },
-    }),
-    prisma.suggestedMilestone.upsert({
-      where: { title: 'Primeiro sorriso' },
-      update: {},
-      create: { title: 'Primeiro sorriso', category: 'primeiro_ano', sortOrder: 20, icon: 'smile' },
-    }),
-    prisma.suggestedMilestone.upsert({
-      where: { title: 'Rolar' },
-      update: {},
-      create: { title: 'Rolar', category: 'primeiro_ano', sortOrder: 21, icon: 'roll' },
-    }),
-    prisma.suggestedMilestone.upsert({
-      where: { title: 'Sentar' },
-      update: {},
-      create: { title: 'Sentar', category: 'primeiro_ano', sortOrder: 22, icon: 'sit' },
-    }),
-    prisma.suggestedMilestone.upsert({
-      where: { title: 'Engatinhar' },
-      update: {},
-      create: { title: 'Engatinhar', category: 'primeiro_ano', sortOrder: 23, icon: 'crawl' },
-    }),
-    prisma.suggestedMilestone.upsert({
-      where: { title: 'Primeiros passos' },
-      update: {},
-      create: { title: 'Primeiros passos', category: 'primeiro_ano', sortOrder: 24, icon: 'walk' },
-    }),
-    prisma.suggestedMilestone.upsert({
-      where: { title: 'Primeira palavra' },
-      update: {},
-      create: { title: 'Primeira palavra', category: 'primeiro_ano', sortOrder: 25, icon: 'chat' },
-    }),
-    prisma.suggestedMilestone.upsert({
-      where: { title: 'Primeira papinha' },
-      update: {},
-      create: { title: 'Primeira papinha', category: 'primeiro_ano', sortOrder: 26, icon: 'food' },
-    }),
-    prisma.suggestedMilestone.upsert({
-      where: { title: 'Primeira viagem' },
-      update: {},
-      create: { title: 'Primeira viagem', category: 'primeiro_ano', sortOrder: 27, icon: 'plane' },
-    }),
-  ]);
-  console.log('✅ Marcos sugeridos criados:', suggestedMilestones.length);
+  for (const item of shopItems) {
+    await prisma.shopItem.upsert({
+      where: { id: item.id },
+      update: item,
+      create: item,
+    });
+  }
 
-  // Criar desafios semanais fixos
-  const weeklyChallenges = await Promise.all([
-    prisma.challenge.upsert({
-      where: { code: 'weekly_activities_5' },
-      update: {},
-      create: {
-        code: 'weekly_activities_5',
-        name: 'Registrar 5 atividades na semana',
-        description: 'Registre pelo menos 5 atividades do bebê nesta semana.',
-        type: 'weekly',
-        goal: 5,
-        progressType: 'activities',
-        points: 100,
-        badge: 'Ativo da Semana',
-        isActive: true,
-      },
-    }),
-    prisma.challenge.upsert({
-      where: { code: 'weekly_memories_3' },
-      update: {},
-      create: {
-        code: 'weekly_memories_3',
-        name: 'Registrar 3 memórias na semana',
-        description: 'Registre pelo menos 3 memórias nesta semana.',
-        type: 'weekly',
-        goal: 3,
-        progressType: 'memories',
-        points: 120,
-        badge: 'Memorável',
-        isActive: true,
-      },
-    }),
-    prisma.challenge.upsert({
-      where: { code: 'weekly_badges_2' },
-      update: {},
-      create: {
-        code: 'weekly_badges_2',
-        name: 'Conquistar 2 medalhas',
-        description: 'Conquiste 2 medalhas diferentes nesta semana.',
-        type: 'weekly',
-        goal: 2,
-        progressType: 'badges',
-        points: 200,
-        badge: 'Colecionador',
-        isActive: true,
-      },
-    }),
-  ]);
-  console.log('✅ Desafios semanais fixos criados:', weeklyChallenges.length);
+  // Criar missões diárias
+  const dailyMissions = [
+    {
+      id: 'morning_login',
+      title: 'Login Matinal',
+      description: 'Faça login antes das 9h da manhã',
+      type: 'login',
+      goal: 1,
+      points: 10,
+      icon: 'sun',
+      isActive: true,
+      sortOrder: 1,
+    },
+    {
+      id: 'daily_memory',
+      title: 'Memória do Dia',
+      description: 'Crie uma nova memória hoje',
+      type: 'memory',
+      goal: 1,
+      points: 15,
+      icon: 'heart',
+      isActive: true,
+      sortOrder: 2,
+    },
+    {
+      id: 'complete_activity',
+      title: 'Atividade Completa',
+      description: 'Registre pelo menos 3 atividades hoje',
+      type: 'activity',
+      goal: 3,
+      points: 20,
+      icon: 'activity',
+      isActive: true,
+      sortOrder: 3,
+    },
+    {
+      id: 'special_milestone',
+      title: 'Marco Especial',
+      description: 'Registre um marco do desenvolvimento',
+      type: 'milestone',
+      goal: 1,
+      points: 25,
+      icon: 'star',
+      isActive: true,
+      sortOrder: 4,
+    },
+    {
+      id: 'daily_streak',
+      title: 'Streak Diário',
+      description: 'Mantenha seu streak por mais um dia',
+      type: 'streak',
+      goal: 1,
+      points: 5,
+      icon: 'flame',
+      isActive: true,
+      sortOrder: 5,
+    },
+    {
+      id: 'photo_dedicated',
+      title: 'Fotógrafa Dedicada',
+      description: 'Faça upload de 2 fotos hoje',
+      type: 'activity',
+      goal: 2,
+      points: 15,
+      icon: 'camera',
+      isActive: true,
+      sortOrder: 6,
+    },
+  ];
+
+  for (const mission of dailyMissions) {
+    await prisma.dailyMission.upsert({
+      where: { id: mission.id },
+      update: mission,
+      create: mission,
+    });
+  }
+
+  // Criar eventos especiais
+  const specialEvents = [
+    {
+      id: 'mothers_week',
+      name: 'Semana da Mamãe',
+      description: 'Celebre a semana da mamãe com desafios especiais e recompensas únicas',
+      type: 'seasonal',
+      startDate: new Date('2024-05-12'),
+      endDate: new Date('2024-05-18'),
+      isActive: true,
+      rewards: [
+        { type: 'badge', name: 'Mamãe Especial', icon: 'crown' },
+        { type: 'points', amount: 100 },
+        { type: 'theme', name: 'Tema Mamãe' },
+      ],
+      challenges: [
+        { id: 'memory_week', title: '7 Memórias em 7 Dias', goal: 7, points: 50 },
+        { id: 'activity_week', title: 'Atividades Diárias', goal: 7, points: 30 },
+        { id: 'photo_week', title: 'Fotos Especiais', goal: 5, points: 25 },
+      ],
+    },
+    {
+      id: 'growth_challenge',
+      name: 'Desafio do Crescimento',
+      description: 'Acompanhe o crescimento do seu bebê com desafios especiais',
+      type: 'challenge',
+      startDate: new Date('2024-06-01'),
+      endDate: new Date('2024-06-30'),
+      isActive: true,
+      rewards: [
+        { type: 'badge', name: 'Crescimento Saudável', icon: 'trending-up' },
+        { type: 'points', amount: 200 },
+        { type: 'feature', name: 'Gráficos Avançados' },
+      ],
+      challenges: [
+        { id: 'growth_month', title: 'Medições Mensais', goal: 4, points: 100 },
+        { id: 'milestone_month', title: 'Marcos do Mês', goal: 3, points: 75 },
+        { id: 'photo_month', title: 'Fotos do Crescimento', goal: 10, points: 50 },
+      ],
+    },
+  ];
+
+  for (const event of specialEvents) {
+    await prisma.specialEvent.upsert({
+      where: { id: event.id },
+      update: event,
+      create: event,
+    });
+  }
+
+  // Criar recompensas de IA
+  const aiRewards = [
+    {
+      id: 'ai_tip_1',
+      title: 'Presente da Inteligência Mãe-AI',
+      description: 'Dica personalizada baseada no padrão do seu bebê',
+      type: 'tip',
+      content: 'Com base no padrão do seu bebê, aqui está uma dica personalizada para melhorar sua rotina diária.',
+      unlockCondition: 'Ter pelo menos 200 pontos',
+      isActive: true,
+      sortOrder: 1,
+    },
+    {
+      id: 'ai_activity_1',
+      title: 'Atividade Especial da IA',
+      description: 'Exercício específico para a idade do seu bebê',
+      type: 'activity',
+      content: 'Aqui está uma atividade especial desenvolvida pela IA para estimular o desenvolvimento do seu bebê.',
+      unlockCondition: 'Ter pelo menos 200 pontos',
+      isActive: true,
+      sortOrder: 2,
+    },
+    {
+      id: 'ai_milestone_1',
+      title: 'Previsão dos Próximos Marcos',
+      description: 'Descubra o que esperar nos próximos meses',
+      type: 'milestone',
+      content: 'Com base no desenvolvimento atual do seu bebê, aqui estão os próximos marcos que você pode esperar.',
+      unlockCondition: 'Ter pelo menos 200 pontos',
+      isActive: true,
+      sortOrder: 3,
+    },
+    {
+      id: 'ai_encouragement_1',
+      title: 'Mensagem de Apoio Personalizada',
+      description: 'Palavras especiais para você, mamãe',
+      type: 'encouragement',
+      content: 'Uma mensagem especial da IA para apoiar você nesta jornada incrível de ser mãe.',
+      unlockCondition: 'Ter pelo menos 200 pontos',
+      isActive: true,
+      sortOrder: 4,
+    },
+  ];
+
+  for (const reward of aiRewards) {
+    await prisma.aIReward.upsert({
+      where: { id: reward.id },
+      update: reward,
+      create: reward,
+    });
+  }
 
   console.log('🎉 Seed concluído com sucesso!');
 }

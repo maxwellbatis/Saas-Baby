@@ -77,8 +77,31 @@ export const GamificationCard: React.FC<GamificationCardProps> = ({
 }) => {
   const navigate = useNavigate();
   
-  const progressToNextLevel = ((data.points - data.currentLevelPoints) / (data.nextLevelPoints - data.currentLevelPoints)) * 100;
-  const dailyProgressPercent = (data.dailyProgress / data.dailyGoal) * 100;
+  if (!data) {
+    return (
+      <Card>
+        <CardContent>
+          <p className="text-center text-gray-500">Carregando gamificação...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Checagem defensiva para arrays
+  const badges = data.badges || [];
+  const weeklyChallenges = data.weeklyChallenges || [];
+  const aiRewards = data.aiRewards || [];
+  const recentAchievements = data.recentAchievements || [];
+  const streak = typeof data.streak === 'number' ? data.streak : 0;
+  const points = typeof data.points === 'number' ? data.points : 0;
+  const level = typeof data.level === 'number' ? data.level : 1;
+  const nextLevelPoints = typeof data.nextLevelPoints === 'number' ? data.nextLevelPoints : 0;
+  const currentLevelPoints = typeof data.currentLevelPoints === 'number' ? data.currentLevelPoints : 0;
+  const dailyGoal = typeof data.dailyGoal === 'number' ? data.dailyGoal : 1;
+  const dailyProgress = typeof data.dailyProgress === 'number' ? data.dailyProgress : 0;
+
+  const progressToNextLevel = ((points - currentLevelPoints) / (nextLevelPoints - currentLevelPoints || 1)) * 100;
+  const dailyProgressPercent = (dailyProgress / (dailyGoal || 1)) * 100;
 
   const getLevelTitle = (level: number) => {
     if (level <= 3) return "Mamãe Iniciante";
@@ -87,9 +110,9 @@ export const GamificationCard: React.FC<GamificationCardProps> = ({
     return "Mamãe Mestre";
   };
 
-  const completedChallenges = data.weeklyChallenges.filter(c => c.isCompleted).length;
-  const totalChallenges = data.weeklyChallenges.length;
-  const unlockedAIRewards = data.aiRewards.filter(r => r.isUnlocked).length;
+  const completedChallenges = weeklyChallenges.filter(c => c.isCompleted).length;
+  const totalChallenges = weeklyChallenges.length;
+  const unlockedAIRewards = aiRewards.filter(r => r.isUnlocked).length;
 
   return (
     <Card className="bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 border-pink-200 hover:shadow-xl transition-all duration-300 cursor-pointer" onClick={() => navigate('/rewards')}>
@@ -107,11 +130,11 @@ export const GamificationCard: React.FC<GamificationCardProps> = ({
         {/* Resumo do Nível */}
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-purple-600">{getLevelTitle(data.level)}</p>
-            <p className="text-2xl font-bold text-purple-700">Nível {data.level}</p>
+            <p className="text-sm text-purple-600">{getLevelTitle(level)}</p>
+            <p className="text-2xl font-bold text-purple-700">Nível {level}</p>
           </div>
           <div className="w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
-            {data.level}
+            {level}
           </div>
         </div>
 
@@ -122,7 +145,7 @@ export const GamificationCard: React.FC<GamificationCardProps> = ({
             <span className="text-purple-700 font-medium">{progressToNextLevel.toFixed(1)}%</span>
           </div>
           <Progress value={progressToNextLevel} className="h-2 bg-purple-100" />
-          <p className="text-xs text-purple-600">{data.points} pontos • Próximo: {data.nextLevelPoints - data.points} pts</p>
+          <p className="text-xs text-purple-600">{points} pontos • Próximo: {nextLevelPoints - points} pts</p>
         </div>
 
         {/* Streak Diário */}
@@ -131,7 +154,7 @@ export const GamificationCard: React.FC<GamificationCardProps> = ({
             <Star className="w-5 h-5 text-white" />
           </div>
           <div className="flex-1">
-            <p className="font-medium text-yellow-800">{data.streak} dias seguidos</p>
+            <p className="font-medium text-yellow-800">{streak} dias seguidos</p>
             <p className="text-sm text-yellow-700">Mantendo a consistência! 🌟</p>
           </div>
         </div>
@@ -139,7 +162,7 @@ export const GamificationCard: React.FC<GamificationCardProps> = ({
         {/* Resumo de Conquistas */}
         <div className="grid grid-cols-3 gap-3 text-center">
           <div className="p-2 bg-white rounded-lg border border-purple-200">
-            <p className="text-lg font-bold text-purple-700">{data.badges.length}</p>
+            <p className="text-lg font-bold text-purple-700">{badges.length}</p>
             <p className="text-xs text-purple-600">Badges</p>
           </div>
           <div className="p-2 bg-white rounded-lg border border-green-200">
@@ -153,19 +176,19 @@ export const GamificationCard: React.FC<GamificationCardProps> = ({
         </div>
 
         {/* Badges Recentes */}
-        {data.badges.length > 0 && (
+        {badges.length > 0 && (
           <div className="space-y-2">
             <p className="text-sm font-medium text-gray-700">Badges Recentes</p>
             <div className="flex flex-wrap gap-2">
-              {data.badges.slice(0, 3).map((badge) => (
+              {badges.slice(0, 3).map((badge) => (
                 <Badge key={badge} variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200">
                   {badgeIcons[badge] || <Star className="w-3 h-3" />}
                   <span className="ml-1">{badgeNames[badge] || badge}</span>
                 </Badge>
               ))}
-              {data.badges.length > 3 && (
+              {badges.length > 3 && (
                 <Badge variant="outline" className="text-gray-500">
-                  +{data.badges.length - 3} mais
+                  +{badges.length - 3} mais
                 </Badge>
               )}
             </div>

@@ -4,8 +4,11 @@ import prisma from '@/config/database';
 import { checkBabyLimit, verifyBabyOwnership, checkMemoryLimit, checkMilestoneLimit, checkActivityLimit } from '@/middlewares/auth';
 import { GamificationService } from '@/services/gamification';
 import { NotificationService } from '../services/notification.service';
+import { Prisma } from '@prisma/client';
 
 const router = Router();
+
+const notificationService = new NotificationService();
 
 /**
  * @swagger
@@ -243,41 +246,17 @@ router.post('/babies', babyValidation, checkBabyLimit, async (req: Request, res:
       },
     });
 
-    // === Gamificação automática (adição de bebê) ===
-    let newBadges: string[] = [];
-    let newPoints = 0;
-    let newLevel = 0;
-    let updatedGamification = null;
+    // === Gamificação centralizada ===
+    let gamificationResult: any = null;
     try {
-      const gamification = await prisma.gamification.findUnique({ where: { userId: req.user.userId } });
-      if (gamification) {
-        const rules = await prisma.gamificationRule.findMany({ where: { isActive: true } });
-        let result = {
-          points: gamification.points,
-          level: gamification.level,
-          badges: Array.isArray(gamification.badges) ? gamification.badges : [],
-          newBadges: [] as string[],
-        };
-        for (const rule of rules) {
-          if (rule.condition === 'baby_added' || rule.condition === 'any') {
-            result = GamificationService.applyRule(result as any, rule as any);
-          }
-        }
-        const oldBadges = Array.isArray(gamification.badges) ? gamification.badges : [];
-        const newBadgesArr = Array.isArray(result.badges) ? result.badges : [];
-        if (result.points !== gamification.points || newBadgesArr.length > oldBadges.length) {
-          updatedGamification = await prisma.gamification.update({
-            where: { userId: req.user.userId },
-            data: {
-              points: result.points,
-              level: result.level,
-              badges: newBadgesArr,
-            },
-          });
-          newBadges = result.newBadges;
-          newPoints = result.points;
-          newLevel = result.level;
-        }
+      gamificationResult = await GamificationService.applyAction(req.user.userId, 'baby_added');
+      if (gamificationResult && Array.isArray(gamificationResult.newBadges) && gamificationResult.newBadges.length > 0 && notificationService) {
+        await notificationService.sendPushNotification({
+          userId: req.user.userId,
+          title: 'Parabéns! Novo badge conquistado!',
+          body: `Você se tornou um Guardião de Memórias! Badge: ${gamificationResult.newBadges.join(', ')}`,
+          data: { badges: gamificationResult.newBadges, screen: 'Rewards' },
+        });
       }
     } catch (err) {
       console.error('Erro na gamificação automática (bebê):', err);
@@ -288,10 +267,7 @@ router.post('/babies', babyValidation, checkBabyLimit, async (req: Request, res:
       success: true,
       message: 'Bebê adicionado com sucesso',
       data: baby,
-      gamification: updatedGamification,
-      newBadges,
-      newPoints,
-      newLevel,
+      gamification: gamificationResult
     });
   } catch (error) {
     console.error('Erro ao criar bebê:', error);
@@ -608,15 +584,6 @@ router.get('/babies/:babyId/activities', verifyBabyOwnership, async (req: Reques
 // Criar nova atividade
 router.post('/activities', activityValidation, checkActivityLimit, async (req: Request, res: Response) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: 'Dados inválidos',
-        details: errors.array(),
-      });
-    }
-
     if (!req.user) {
       return res.status(401).json({
         success: false,
@@ -624,16 +591,14 @@ router.post('/activities', activityValidation, checkActivityLimit, async (req: R
       });
     }
 
-    const {
-      type,
-      title,
-      description,
-      babyId,
-      date,
-      duration,
-      notes,
-      photoUrl,
-    } = req.body;
+    const { type, title, description, babyId, date, duration, notes } = req.body;
+
+    if (!type || !title || !babyId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Tipo, título e ID do bebê são obrigatórios',
+      });
+    }
 
     const activity = await prisma.activity.create({
       data: {
@@ -644,63 +609,75 @@ router.post('/activities', activityValidation, checkActivityLimit, async (req: R
         date: date ? new Date(date) : new Date(),
         duration,
         notes,
-        photoUrl,
         userId: req.user.userId,
+      },
+      include: {
+        baby: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
-    // === Gamificação automática ===
-    let newBadges: string[] = [];
-    let newPoints = 0;
-    let newLevel = 0;
-    let updatedGamification = null;
+    // === Gamificação automática (criação de atividade) ===
+    let gamificationResult: any = null;
     try {
-      // Buscar gamification do usuário
       const gamification = await prisma.gamification.findUnique({ where: { userId: req.user.userId } });
       if (gamification) {
-        // Buscar regras ativas
         const rules = await prisma.gamificationRule.findMany({ where: { isActive: true } });
-        let result = {
+        const oldBadges = Array.isArray(gamification.badges) ? gamification.badges.map(String) : [];
+        let processedData: any = {
           points: gamification.points,
           level: gamification.level,
-          badges: Array.isArray(gamification.badges) ? gamification.badges : [],
-          newBadges: [] as string[],
+          badges: Array.isArray(gamification.badges) ? [...gamification.badges] : [],
+          streaks: typeof gamification.streaks === 'object' && gamification.streaks !== null && !Array.isArray(gamification.streaks) ? { ...gamification.streaks } : {},
+          achievements: Array.isArray(gamification.achievements) ? [...gamification.achievements] : [],
+          dailyProgress: gamification.dailyProgress,
+          totalActivities: (gamification.totalActivities || 0) + 1,
+          totalMemories: gamification.totalMemories || 0,
+          totalMilestones: gamification.totalMilestones || 0,
         };
         for (const rule of rules) {
-          // Exemplo: se a condição da regra for igual ao tipo da atividade ou 'any'
           if (rule.condition === type || rule.condition === 'any') {
-            result = GamificationService.applyRule(result as any, rule as any);
+            processedData = GamificationService.applyRule(processedData, rule as any);
           }
         }
-        // Atualizar gamification se mudou
-        const oldBadges = Array.isArray(gamification.badges) ? gamification.badges : [];
-        const newBadgesArr = Array.isArray(result.badges) ? result.badges : [];
-        if (result.points !== gamification.points || newBadgesArr.length > oldBadges.length) {
-          updatedGamification = await prisma.gamification.update({
-            where: { userId: req.user.userId },
-            data: {
-              points: result.points,
-              level: result.level,
-              badges: newBadgesArr,
-            },
+        const currentBadges = Array.isArray(processedData.badges) ? processedData.badges.map(String) : [];
+        const newBadges = currentBadges.filter((b: string) => !oldBadges.includes(b));
+        const updateData: Prisma.GamificationUpdateInput = {
+          points: processedData.points,
+          level: processedData.level,
+          badges: Array.isArray(processedData.badges) && processedData.badges.length > 0 ? processedData.badges : Prisma.JsonNull,
+          streaks: processedData.streaks && Object.keys(processedData.streaks).length > 0 ? processedData.streaks : Prisma.JsonNull,
+          achievements: Array.isArray(processedData.achievements) && processedData.achievements.length > 0 ? processedData.achievements : Prisma.JsonNull,
+          dailyProgress: processedData.dailyProgress,
+          totalActivities: processedData.totalActivities,
+        };
+        gamificationResult = await prisma.gamification.update({
+          where: { userId: req.user.userId },
+          data: updateData,
+        });
+        if (newBadges.length > 0 && notificationService) {
+          await notificationService.sendPushNotification({
+            userId: req.user.userId,
+            title: 'Parabéns! Novo badge conquistado!',
+            body: `Você desbloqueou o badge: ${newBadges.join(', ')}`,
+            data: { badges: newBadges, screen: 'Rewards' },
           });
-          newBadges = result.newBadges;
-          newPoints = result.points;
-          newLevel = result.level;
         }
+        gamificationResult.newBadges = newBadges;
       }
     } catch (err) {
-      console.error('Erro na gamificação automática:', err);
+      console.error('Erro na gamificação automática (atividade):', err);
     }
 
     return res.status(201).json({
       success: true,
       message: 'Atividade criada com sucesso',
       data: activity,
-      gamification: updatedGamification,
-      newBadges,
-      newPoints,
-      newLevel,
+      gamification: gamificationResult,
     });
   } catch (error) {
     console.error('Erro ao criar atividade:', error);
@@ -947,82 +924,18 @@ router.post('/memories', checkMemoryLimit, async (req: Request, res: Response) =
       },
     });
 
-    // === Gamificação automática (criação de memória) ===
-    let newBadges: string[] = [];
-    let newPoints = 0;
-    let newLevel = 0;
-    let updatedGamification = null;
-    let memoryStreak = 1;
+    // === Gamificação centralizada ===
+    let gamificationResult: any = null;
     try {
-      const gamification = await prisma.gamification.findUnique({ where: { userId: req.user.userId } });
-      if (gamification) {
-        // Garantir que streaks é um objeto
-        const streaksObj: Record<string, number> = (typeof gamification.streaks === 'object' && gamification.streaks !== null && !Array.isArray(gamification.streaks)) ? gamification.streaks as Record<string, number> : {};
-        // Calcular streak de memória (dias consecutivos)
-        const lastMemory = await prisma.memory.findFirst({
-          where: { userId: req.user.userId },
-          orderBy: { date: 'desc' },
+      gamificationResult = await GamificationService.applyAction(req.user.userId, 'memory_created');
+      // Notificação de badge (se houver)
+      if (gamificationResult && Array.isArray(gamificationResult.newBadges) && gamificationResult.newBadges.length > 0 && notificationService) {
+        await notificationService.sendPushNotification({
+          userId: req.user.userId,
+          title: 'Parabéns! Novo badge conquistado!',
+          body: `Você desbloqueou o badge: ${gamificationResult.newBadges.join(', ')}`,
+          data: { badges: gamificationResult.newBadges, screen: 'Rewards' },
         });
-        const today = new Date();
-        let lastDate = lastMemory ? new Date(lastMemory.date) : today;
-        const diffTime = today.getTime() - lastDate.getTime();
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        if (diffDays === 1) {
-          memoryStreak = (streaksObj.memory || 1) + 1;
-        } else if (diffDays > 1) {
-          memoryStreak = 1;
-        } else {
-          memoryStreak = streaksObj.memory || 1;
-        }
-        const newStreaks = { ...streaksObj, memory: memoryStreak };
-        // Buscar regras ativas
-        const rules = await prisma.gamificationRule.findMany({ where: { isActive: true } });
-        let result = {
-          points: gamification.points,
-          level: gamification.level,
-          badges: Array.isArray(gamification.badges) ? gamification.badges : [],
-          newBadges: [] as string[],
-        };
-        for (const rule of rules) {
-          if (rule.condition === 'memory_created' || rule.condition === 'any') {
-            result = GamificationService.applyRule(result as any, rule as any);
-          }
-          if (rule.condition === 'memory_streak_7' && memoryStreak >= 7) {
-            result = GamificationService.applyRule(result as any, rule as any);
-          }
-        }
-        const oldBadges = Array.isArray(gamification.badges) ? gamification.badges : [];
-        const newBadgesArr = Array.isArray(result.badges) ? result.badges : [];
-        if (
-          result.points !== gamification.points ||
-          newBadgesArr.length > oldBadges.length ||
-          (streaksObj.memory !== memoryStreak)
-        ) {
-          updatedGamification = await prisma.gamification.update({
-            where: { userId: req.user.userId },
-            data: {
-              points: result.points,
-              level: result.level,
-              badges: newBadgesArr,
-              streaks: newStreaks,
-            },
-          });
-          newBadges = result.newBadges;
-          newPoints = result.points;
-          newLevel = result.level;
-          // Notificação automática de badge
-          if (newBadges.length > 0) {
-            const notificationService = new NotificationService();
-            for (const badge of newBadges) {
-              await notificationService.sendPushNotification({
-                userId: req.user.userId,
-                title: 'Parabéns! Novo badge conquistado',
-                body: `Você conquistou o badge: ${badge}`,
-                data: { badge },
-              });
-            }
-          }
-        }
       }
     } catch (err) {
       console.error('Erro na gamificação automática (memória):', err);
@@ -1032,10 +945,7 @@ router.post('/memories', checkMemoryLimit, async (req: Request, res: Response) =
       success: true,
       message: 'Memória criada com sucesso',
       data: memory,
-      gamification: updatedGamification,
-      newBadges,
-      newPoints,
-      newLevel,
+      gamification: gamificationResult,
     });
   } catch (error) {
     console.error('Erro ao criar memória:', error);
@@ -1483,40 +1393,52 @@ router.post('/milestones', checkMilestoneLimit, async (req: Request, res: Respon
     });
 
     // === Gamificação automática (criação de marco) ===
-    let newBadges: string[] = [];
-    let newPoints = 0;
-    let newLevel = 0;
-    let updatedGamification = null;
+    let gamificationResult: any = null;
     try {
       const gamification = await prisma.gamification.findUnique({ where: { userId: req.user.userId } });
       if (gamification) {
         const rules = await prisma.gamificationRule.findMany({ where: { isActive: true } });
-        let result = {
+        const oldBadges = Array.isArray(gamification.badges) ? gamification.badges.map(String) : [];
+        let processedData: any = {
           points: gamification.points,
           level: gamification.level,
-          badges: Array.isArray(gamification.badges) ? gamification.badges : [],
-          newBadges: [] as string[],
+          badges: Array.isArray(gamification.badges) ? [...gamification.badges] : [],
+          streaks: typeof gamification.streaks === 'object' && gamification.streaks !== null && !Array.isArray(gamification.streaks) ? { ...gamification.streaks } : {},
+          achievements: Array.isArray(gamification.achievements) ? [...gamification.achievements] : [],
+          dailyProgress: gamification.dailyProgress,
+          totalActivities: gamification.totalActivities || 0,
+          totalMemories: gamification.totalMemories || 0,
+          totalMilestones: (gamification.totalMilestones || 0) + 1,
         };
         for (const rule of rules) {
           if (rule.condition === 'milestone_recorded' || rule.condition === 'any') {
-            result = GamificationService.applyRule(result as any, rule as any);
+            processedData = GamificationService.applyRule(processedData, rule as any);
           }
         }
-        const oldBadges = Array.isArray(gamification.badges) ? gamification.badges : [];
-        const newBadgesArr = Array.isArray(result.badges) ? result.badges : [];
-        if (result.points !== gamification.points || newBadgesArr.length > oldBadges.length) {
-          updatedGamification = await prisma.gamification.update({
-            where: { userId: req.user.userId },
-            data: {
-              points: result.points,
-              level: result.level,
-              badges: newBadgesArr,
-            },
+        const currentBadges = Array.isArray(processedData.badges) ? processedData.badges.map(String) : [];
+        const newBadges = currentBadges.filter((b: string) => !oldBadges.includes(b));
+        const updateData: Prisma.GamificationUpdateInput = {
+          points: processedData.points,
+          level: processedData.level,
+          badges: Array.isArray(processedData.badges) && processedData.badges.length > 0 ? processedData.badges : Prisma.JsonNull,
+          streaks: processedData.streaks && Object.keys(processedData.streaks).length > 0 ? processedData.streaks : Prisma.JsonNull,
+          achievements: Array.isArray(processedData.achievements) && processedData.achievements.length > 0 ? processedData.achievements : Prisma.JsonNull,
+          dailyProgress: processedData.dailyProgress,
+          totalMilestones: processedData.totalMilestones,
+        };
+        gamificationResult = await prisma.gamification.update({
+          where: { userId: req.user.userId },
+          data: updateData,
+        });
+        if (newBadges.length > 0 && notificationService) {
+          await notificationService.sendPushNotification({
+            userId: req.user.userId,
+            title: 'Parabéns! Novo badge conquistado!',
+            body: `Você desbloqueou o badge: ${newBadges.join(', ')}`,
+            data: { badges: newBadges, screen: 'Rewards' },
           });
-          newBadges = result.newBadges;
-          newPoints = result.points;
-          newLevel = result.level;
         }
+        gamificationResult.newBadges = newBadges;
       }
     } catch (err) {
       console.error('Erro na gamificação automática (marco):', err);
@@ -1526,10 +1448,7 @@ router.post('/milestones', checkMilestoneLimit, async (req: Request, res: Respon
       success: true,
       message: 'Marco criado com sucesso',
       data: milestone,
-      gamification: updatedGamification,
-      newBadges,
-      newPoints,
-      newLevel,
+      gamification: gamificationResult,
     });
   } catch (error) {
     console.error('Erro ao criar marco:', error);
@@ -1826,46 +1745,58 @@ router.post('/milestones/from-suggested', async (req, res) => {
     });
 
     // === Gamificação automática (criação de marco) ===
-    let newBadges: string[] = [];
-    let newPoints = 0;
-    let newLevel = 0;
-    let updatedGamification = null;
+    let gamificationResult: any = null;
     try {
       const gamification = await prisma.gamification.findUnique({ where: { userId: req.user.userId } });
       if (gamification) {
         const rules = await prisma.gamificationRule.findMany({ where: { isActive: true } });
-        let result = {
+        const oldBadges = Array.isArray(gamification.badges) ? gamification.badges.map(String) : [];
+        let processedData: any = {
           points: gamification.points,
           level: gamification.level,
-          badges: Array.isArray(gamification.badges) ? gamification.badges : [],
-          newBadges: [] as string[],
+          badges: Array.isArray(gamification.badges) ? [...gamification.badges] : [],
+          streaks: typeof gamification.streaks === 'object' && gamification.streaks !== null && !Array.isArray(gamification.streaks) ? { ...gamification.streaks } : {},
+          achievements: Array.isArray(gamification.achievements) ? [...gamification.achievements] : [],
+          dailyProgress: gamification.dailyProgress,
+          totalActivities: gamification.totalActivities || 0,
+          totalMemories: gamification.totalMemories || 0,
+          totalMilestones: (gamification.totalMilestones || 0) + 1,
         };
         for (const rule of rules) {
           if (rule.condition === 'milestone_recorded' || rule.condition === 'any') {
-            result = GamificationService.applyRule(result as any, rule as any);
+            processedData = GamificationService.applyRule(processedData, rule as any);
           }
         }
-        const oldBadges = Array.isArray(gamification.badges) ? gamification.badges : [];
-        const newBadgesArr = Array.isArray(result.badges) ? result.badges : [];
-        if (result.points !== gamification.points || newBadgesArr.length > oldBadges.length) {
-          updatedGamification = await prisma.gamification.update({
-            where: { userId: req.user.userId },
-            data: {
-              points: result.points,
-              level: result.level,
-              badges: newBadgesArr,
-            },
+        const currentBadges = Array.isArray(processedData.badges) ? processedData.badges.map(String) : [];
+        const newBadges = currentBadges.filter((b: string) => !oldBadges.includes(b));
+        const updateData: Prisma.GamificationUpdateInput = {
+          points: processedData.points,
+          level: processedData.level,
+          badges: currentBadges.length > 0 ? currentBadges : Prisma.JsonNull,
+          streaks: processedData.streaks,
+          achievements: Array.isArray(processedData.achievements) && processedData.achievements.length > 0 ? processedData.achievements : Prisma.JsonNull,
+          dailyProgress: processedData.dailyProgress,
+          totalMilestones: processedData.totalMilestones,
+        };
+        gamificationResult = await prisma.gamification.update({
+          where: { userId: req.user.userId },
+          data: updateData,
+        });
+        if (newBadges.length > 0 && notificationService) {
+          await notificationService.sendPushNotification({
+            userId: req.user.userId,
+            title: 'Parabéns! Novo badge conquistado!',
+            body: `Você desbloqueou o badge: ${newBadges.join(', ')}`,
+            data: { badges: newBadges, screen: 'Rewards' },
           });
-          newBadges = result.newBadges;
-          newPoints = result.points;
-          newLevel = result.level;
         }
+        gamificationResult.newBadges = newBadges;
       }
     } catch (err) {
       console.error('Erro na gamificação automática (marco):', err);
     }
 
-    return res.status(201).json({ success: true, message: 'Marco criado com sucesso', data: milestone });
+    return res.status(201).json({ success: true, message: 'Marco criado com sucesso', data: milestone, gamification: gamificationResult });
   } catch (error) {
     console.error('Erro ao criar marco a partir de sugerido:', error);
     return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
@@ -1884,29 +1815,62 @@ router.get('/gamification', async (req: Request, res: Response) => {
       });
     }
 
-    const gamification = await prisma.gamification.findUnique({
+    // Buscar gamification do usuário
+    let gamification = await prisma.gamification.findUnique({
       where: { userId: req.user.userId },
     });
-
     if (!gamification) {
-      // Criar registro de gamificação se não existir
-      const newGamification = await prisma.gamification.create({
+      gamification = await prisma.gamification.create({
         data: {
           userId: req.user.userId,
           points: 0,
+          level: 1,
           badges: [],
+          streaks: {},
+          achievements: [],
         },
       });
+    }
 
-      return res.json({
-        success: true,
-        data: { ...newGamification, userId: req.user.userId },
-      });
+    // Buscar dados complementares em paralelo (com fallback)
+    let weeklyChallenges: any[] = [];
+    let aiRewards: any[] = [];
+    let ranking: any[] = [];
+    let shopItems: any[] = [];
+    let dailyMissions: any[] = [];
+    let activeEvents: any[] = [];
+    let userPurchases: any[] = [];
+    try {
+      const results = await Promise.all([
+        GamificationService.generateWeeklyChallenges().catch(() => []),
+        GamificationService.generateAIRewards(req.user.userId).catch(() => []),
+        GamificationService.getWeeklyRanking(10).catch(() => []),
+        GamificationService.getShopItems().catch(() => []),
+        GamificationService.getUserMissions(req.user.userId).catch(() => []),
+        GamificationService.getActiveEvents().catch(() => []),
+        GamificationService.getUserPurchases(req.user.userId).catch(() => []),
+      ]);
+      weeklyChallenges = results[0];
+      aiRewards = results[1];
+      ranking = results[2];
+      shopItems = results[3];
+      dailyMissions = results[4];
+      activeEvents = results[5];
+      userPurchases = results[6];
+    } catch (err) {
+      // fallback para arrays vazios
     }
 
     return res.json({
       success: true,
-      data: { ...gamification, userId: req.user.userId },
+      gamification,
+      weeklyChallenges,
+      aiRewards,
+      ranking,
+      shopItems,
+      dailyMissions,
+      activeEvents,
+      userPurchases
     });
   } catch (error) {
     console.error('Erro ao buscar dados de gamificação:', error);
@@ -2315,27 +2279,82 @@ router.get('/babies/:babyId/growth', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/GrowthRecord'
  */
-router.post('/babies/:babyId/growth', async (req, res) => {
+router.post('/babies/:babyId/growth', async (req: Request, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ success: false, error: 'Usuário não autenticado.' });
     const { babyId } = req.params;
-    const { date, weight, height, headCircumference, notes } = req.body;
-    const baby = await prisma.baby.findFirst({ where: { id: babyId, userId: req.user.userId } });
-    if (!baby) return res.status(404).json({ success: false, error: 'Bebê não encontrado.' });
+    const { height, weight, headCircumference, date, notes } = req.body;
+
+    if (!babyId) {
+      return res.status(400).json({ success: false, error: 'babyId é obrigatório.' });
+    }
+
     const growth = await prisma.growthRecord.create({
       data: {
-        babyId,
+        height,
+        weight,
+        headCircumference,
+        babyId: babyId as string, // Garantido não undefined
         userId: req.user.userId,
         date: date ? new Date(date) : new Date(),
-        weight,
-        height,
-        headCircumference,
         notes,
       },
     });
-    return res.json({ success: true, data: growth });
+
+    // === Gamificação automática (crescimento) ===
+    let gamificationResult: any = null;
+    try {
+      const gamification = await prisma.gamification.findUnique({ where: { userId: req.user.userId } });
+      if (gamification) {
+        const rules = await prisma.gamificationRule.findMany({ where: { isActive: true } });
+        const oldBadges = Array.isArray(gamification.badges) ? gamification.badges.map(String) : [];
+        let processedData: any = {
+          points: gamification.points,
+          level: gamification.level,
+          badges: Array.isArray(gamification.badges) ? [...gamification.badges] : [],
+          streaks: typeof gamification.streaks === 'object' && gamification.streaks !== null ? gamification.streaks : {},
+          achievements: Array.isArray(gamification.achievements) ? [...gamification.achievements] : [],
+          dailyProgress: gamification.dailyProgress,
+          totalGrowthRecords: (gamification.totalGrowthRecords || 0) + 1,
+        };
+        for (const rule of rules) {
+          if (rule.condition === 'growth_recorded' || rule.condition === 'any') {
+            processedData = GamificationService.applyRule(processedData, rule as any);
+          }
+        }
+        const currentBadges = Array.isArray(processedData.badges) ? processedData.badges.map(String) : [];
+        const newBadges = currentBadges.filter((b: string) => !oldBadges.includes(b));
+        const updateData: Prisma.GamificationUpdateInput = {
+          points: processedData.points,
+          level: processedData.level,
+          badges: Array.isArray(processedData.badges) && processedData.badges.length > 0 ? processedData.badges : Prisma.JsonNull,
+          streaks: processedData.streaks && Object.keys(processedData.streaks).length > 0 ? processedData.streaks : Prisma.JsonNull,
+          achievements: Array.isArray(processedData.achievements) && processedData.achievements.length > 0 ? processedData.achievements : Prisma.JsonNull,
+          dailyProgress: processedData.dailyProgress,
+          totalGrowthRecords: processedData.totalGrowthRecords,
+        };
+        gamificationResult = await prisma.gamification.update({
+          where: { userId: req.user.userId },
+          data: updateData,
+        });
+        if (newBadges.length > 0 && notificationService) {
+          await notificationService.sendPushNotification({
+            userId: req.user.userId,
+            title: 'Nova conquista!',
+            body: `Você desbloqueou a badge: ${newBadges.join(', ')}`,
+            data: { badges: newBadges, screen: 'Rewards' },
+          });
+        }
+        gamificationResult.newBadges = newBadges;
+      }
+    } catch (error) {
+      console.error('Erro na gamificação (crescimento):', error);
+    }
+
+    return res.status(201).json({ success: true, message: 'Registro de crescimento adicionado com sucesso', data: growth, gamification: gamificationResult });
   } catch (error) {
-    return res.status(500).json({ success: false, error: 'Erro ao criar medida.' });
+    console.error('Erro ao criar registro de crescimento:', error);
+    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 
@@ -2648,6 +2667,84 @@ router.get('/ai-usage', async (req: Request, res: Response) => {
       success: false,
       error: 'Erro interno do servidor'
     });
+  }
+});
+
+router.post('/babies/:babyId/vaccines', async (req: Request, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ success: false, error: 'Usuário não autenticado.' });
+    const { babyId } = req.params;
+    const { name, date, nextDueDate, notes } = req.body;
+
+    if (!babyId) {
+      return res.status(400).json({ success: false, error: 'babyId é obrigatório.' });
+    }
+
+    const vaccine = await prisma.vaccinationRecord.create({
+      data: {
+        name,
+        date: date ? new Date(date) : new Date(),
+        nextDueDate: nextDueDate ? new Date(nextDueDate) : undefined,
+        babyId: babyId as string,
+        userId: req.user.userId,
+        notes,
+      },
+    });
+
+    // === Gamificação automática (vacina) ===
+    let gamificationResult: any = null;
+    try {
+      const gamification = await prisma.gamification.findUnique({ where: { userId: req.user.userId } });
+      if (gamification) {
+        const rules = await prisma.gamificationRule.findMany({ where: { isActive: true } });
+        const oldBadges = Array.isArray(gamification.badges) ? gamification.badges.map(String) : [];
+        let processedData: any = {
+          points: gamification.points,
+          level: gamification.level,
+          badges: Array.isArray(gamification.badges) ? [...gamification.badges] : [],
+          streaks: typeof gamification.streaks === 'object' && gamification.streaks !== null && !Array.isArray(gamification.streaks) ? { ...gamification.streaks } : {},
+          achievements: Array.isArray(gamification.achievements) ? [...gamification.achievements] : [],
+          dailyProgress: gamification.dailyProgress,
+          totalVaccineRecords: (gamification.totalVaccineRecords || 0) + 1,
+        };
+        for (const rule of rules) {
+          if (rule.condition === 'vaccine_recorded' || rule.condition === 'any') {
+            processedData = GamificationService.applyRule(processedData, rule as any);
+          }
+        }
+        const currentBadges = Array.isArray(processedData.badges) ? processedData.badges.map(String) : [];
+        const newBadges = currentBadges.filter((b: string) => !oldBadges.includes(b));
+        const updateData: Prisma.GamificationUpdateInput = {
+          points: processedData.points,
+          level: processedData.level,
+          badges: Array.isArray(processedData.badges) && processedData.badges.length > 0 ? processedData.badges : Prisma.JsonNull,
+          streaks: processedData.streaks && Object.keys(processedData.streaks).length > 0 ? processedData.streaks : Prisma.JsonNull,
+          achievements: Array.isArray(processedData.achievements) && processedData.achievements.length > 0 ? processedData.achievements : Prisma.JsonNull,
+          dailyProgress: processedData.dailyProgress,
+          totalVaccineRecords: processedData.totalVaccineRecords,
+        };
+        gamificationResult = await prisma.gamification.update({
+          where: { userId: req.user.userId },
+          data: updateData,
+        });
+        if (newBadges.length > 0 && notificationService) {
+          await notificationService.sendPushNotification({
+            userId: req.user.userId,
+            title: 'Nova conquista!',
+            body: `Você desbloqueou a badge: ${newBadges.join(', ')}`,
+            data: { badges: newBadges, screen: 'Rewards' },
+          });
+        }
+        gamificationResult.newBadges = newBadges;
+      }
+    } catch (error) {
+      console.error('Erro na gamificação (vacina):', error);
+    }
+
+    return res.status(201).json({ success: true, message: 'Vacina registrada com sucesso', data: vaccine, gamification: gamificationResult });
+  } catch (error) {
+    console.error('Erro ao registrar vacina:', error);
+    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 

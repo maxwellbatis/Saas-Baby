@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
+import { GamificationService } from '../services/gamification';
+import { NotificationService } from '../services/notification.service';
 
 export const getAllSymptoms = async (req: Request, res: Response) => {
   try {
@@ -27,25 +29,85 @@ export const getSymptomById = async (req: Request, res: Response) => {
 
 export const createSymptom = async (req: Request, res: Response) => {
   try {
-    const { description, intensity, startDate, endDate, babyId, notes, photoUrl } = req.body;
-    const userId = req.user?.userId || req.body.userId;
-    if (!babyId) {
-      return res.status(400).json({ success: false, message: 'babyId é obrigatório' });
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Usuário não autenticado',
+      });
     }
-    const data: any = {
-      description,
-      intensity,
-      startDate: new Date(startDate),
-      endDate: endDate ? new Date(endDate) : undefined,
-      userId,
-      notes,
-      photoUrl,
-      babyId,
-    };
-    const symptom = await prisma.symptomRecord.create({ data });
-    return res.status(201).json({ success: true, data: symptom });
+
+    const { description, intensity, startDate, endDate, babyId, notes, photoUrl } = req.body;
+
+    if (!description || !babyId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Descrição e ID do bebê são obrigatórios',
+      });
+    }
+
+    const symptom = await prisma.symptomRecord.create({
+      data: {
+        description,
+        intensity,
+        startDate: new Date(startDate),
+        endDate: endDate ? new Date(endDate) : null,
+        babyId,
+        notes,
+        photoUrl,
+        userId: req.user.userId,
+      },
+    });
+
+    // Gatilho de Gamificação
+    try {
+      const notificationService = new NotificationService();
+      let gamification = await prisma.gamification.findUnique({ where: { userId: req.user.userId } });
+
+      if (gamification) {
+        gamification = await prisma.gamification.update({
+          where: { userId: req.user.userId },
+          data: { totalSymptomRecords: { increment: 1 } },
+        });
+
+        const rules = await prisma.gamificationRule.findMany({ where: { isActive: true } });
+        const result = GamificationService.applyRule(gamification as any, { condition: 'symptom_recorded' } as any);
+
+        const oldBadges = Array.isArray(gamification.badges) ? gamification.badges : [];
+        const newBadges = result.badges.filter((b: any) => !oldBadges.includes(b));
+
+        if (newBadges.length > 0) {
+          await notificationService.sendPushNotification({
+            userId: req.user.userId,
+            title: 'Nova Conquista!',
+            body: `Você desbloqueou a badge: ${newBadges.join(', ')}`,
+          });
+        }
+
+        await prisma.gamification.update({
+          where: { userId: req.user.userId },
+          data: {
+            points: result.points,
+            level: result.level,
+            badges: result.badges,
+            streaks: result.streaks,
+            achievements: result.achievements,
+            dailyProgress: result.dailyProgress,
+          },
+        });
+      }
+    } catch (err) {
+      console.error('Erro na gamificação (sintoma):', err);
+    }
+
+    return res.status(201).json({
+      success: true,
+      data: symptom,
+    });
   } catch (error) {
-    return res.status(500).json({ success: false, message: 'Erro ao criar sintoma', error });
+    return res.status(500).json({
+      success: false,
+      error: 'Erro ao criar registro de sintoma',
+    });
   }
 };
 
@@ -100,26 +162,85 @@ export const getMedicationById = async (req: Request, res: Response) => {
 
 export const createMedication = async (req: Request, res: Response) => {
   try {
-    const { name, dosage, frequency, startDate, endDate, reason, babyId, notes } = req.body;
-    const userId = req.user?.userId || req.body.userId;
-    if (!babyId) {
-      return res.status(400).json({ success: false, message: 'babyId é obrigatório' });
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Usuário não autenticado',
+      });
     }
-    const data: any = {
-      name,
-      dosage,
-      frequency,
-      startDate: new Date(startDate),
-      endDate: endDate ? new Date(endDate) : undefined,
-      reason,
-      userId,
-      notes,
-      babyId,
-    };
-    const medication = await prisma.medicationRecord.create({ data });
-    return res.status(201).json({ success: true, data: medication });
+
+    const { name, dosage, frequency, startDate, endDate, babyId, notes } = req.body;
+
+    if (!name || !babyId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Nome do medicamento e ID do bebê são obrigatórios',
+      });
+    }
+
+    const medication = await prisma.medicationRecord.create({
+      data: {
+        name,
+        dosage,
+        frequency,
+        startDate: new Date(startDate),
+        endDate: endDate ? new Date(endDate) : null,
+        babyId,
+        notes,
+        userId: req.user.userId,
+      },
+    });
+
+    // Gatilho de Gamificação
+    try {
+      const notificationService = new NotificationService();
+      let gamification = await prisma.gamification.findUnique({ where: { userId: req.user.userId } });
+
+      if (gamification) {
+        gamification = await prisma.gamification.update({
+          where: { userId: req.user.userId },
+          data: { totalMedicationRecords: { increment: 1 } },
+        });
+
+        const rules = await prisma.gamificationRule.findMany({ where: { isActive: true } });
+        const result = GamificationService.applyRule(gamification as any, { condition: 'medication_recorded' } as any);
+
+        const oldBadges = Array.isArray(gamification.badges) ? gamification.badges : [];
+        const newBadges = result.badges.filter((b: any) => !oldBadges.includes(b));
+
+        if (newBadges.length > 0) {
+          await notificationService.sendPushNotification({
+            userId: req.user.userId,
+            title: 'Nova Conquista!',
+            body: `Você desbloqueou a badge: ${newBadges.join(', ')}`,
+          });
+        }
+
+        await prisma.gamification.update({
+          where: { userId: req.user.userId },
+          data: {
+            points: result.points,
+            level: result.level,
+            badges: result.badges,
+            streaks: result.streaks,
+            achievements: result.achievements,
+            dailyProgress: result.dailyProgress,
+          },
+        });
+      }
+    } catch (err) {
+      console.error('Erro na gamificação (medicamento):', err);
+    }
+
+    return res.status(201).json({
+      success: true,
+      data: medication,
+    });
   } catch (error) {
-    return res.status(500).json({ success: false, message: 'Erro ao criar medicamento', error });
+    return res.status(500).json({
+      success: false,
+      error: 'Erro ao criar registro de medicamento',
+    });
   }
 };
 
@@ -174,25 +295,83 @@ export const getAppointmentById = async (req: Request, res: Response) => {
 
 export const createAppointment = async (req: Request, res: Response) => {
   try {
-    const { date, specialty, doctor, location, reason, babyId, notes } = req.body;
-    const userId = req.user?.userId || req.body.userId;
-    if (!babyId) {
-      return res.status(400).json({ success: false, message: 'babyId é obrigatório' });
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Usuário não autenticado',
+      });
     }
-    const data: any = {
-      date: new Date(date),
-      specialty,
-      doctor,
-      location,
-      reason,
-      userId,
-      notes,
-      babyId,
-    };
-    const appointment = await prisma.appointmentRecord.create({ data });
-    return res.status(201).json({ success: true, data: appointment });
+
+    const { specialty, doctor, date, babyId, notes } = req.body;
+
+    if (!specialty || !date || !babyId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Especialidade, data e ID do bebê são obrigatórios',
+      });
+    }
+
+    const appointment = await prisma.appointmentRecord.create({
+      data: {
+        specialty,
+        doctor,
+        date: new Date(date),
+        babyId,
+        notes,
+        userId: req.user.userId,
+      },
+    });
+
+    // Gatilho de Gamificação
+    try {
+      const notificationService = new NotificationService();
+      let gamification = await prisma.gamification.findUnique({ where: { userId: req.user.userId } });
+
+      if (gamification) {
+        gamification = await prisma.gamification.update({
+          where: { userId: req.user.userId },
+          data: { totalAppointmentRecords: { increment: 1 } },
+        });
+
+        const rules = await prisma.gamificationRule.findMany({ where: { isActive: true } });
+        const result = GamificationService.applyRule(gamification as any, { condition: 'appointment_recorded' } as any);
+
+        const oldBadges = Array.isArray(gamification.badges) ? gamification.badges : [];
+        const newBadges = result.badges.filter((b: any) => !oldBadges.includes(b));
+
+        if (newBadges.length > 0) {
+          await notificationService.sendPushNotification({
+            userId: req.user.userId,
+            title: 'Nova Conquista!',
+            body: `Você desbloqueou a badge: ${newBadges.join(', ')}`,
+          });
+        }
+
+        await prisma.gamification.update({
+          where: { userId: req.user.userId },
+          data: {
+            points: result.points,
+            level: result.level,
+            badges: result.badges,
+            streaks: result.streaks,
+            achievements: result.achievements,
+            dailyProgress: result.dailyProgress,
+          },
+        });
+      }
+    } catch (err) {
+      console.error('Erro na gamificação (consulta):', err);
+    }
+
+    return res.status(201).json({
+      success: true,
+      data: appointment,
+    });
   } catch (error) {
-    return res.status(500).json({ success: false, message: 'Erro ao criar consulta', error });
+    return res.status(500).json({
+      success: false,
+      error: 'Erro ao criar registro de consulta',
+    });
   }
 };
 

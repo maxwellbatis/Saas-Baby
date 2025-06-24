@@ -5,14 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Award, Star, TrendingUp, Flame, Trophy, Users, Share2, ArrowLeft, Info, Lock, Sparkles, Heart, Target, Zap, Baby, Coffee, Flower, Crown, Gift, CheckCircle } from 'lucide-react';
+import { Award, Star, TrendingUp, Flame, Trophy, Users, Share2, ArrowLeft, Info, Lock, Sparkles, Heart, Target, Zap, Baby, Coffee, Flower, Crown, Gift, CheckCircle, BarChart3 } from 'lucide-react';
 import Header from '@/components/Header';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import Confetti from 'react-confetti';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader } from '@/components/ui/dialog';
 import { BadgeCollection } from '@/components/BadgeCollection';
 import { getGamificationData, updateDailyProgress, claimChallengeReward, unlockAIReward, getWeeklyRanking } from '@/lib/api';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, useGamification } from '@/contexts/AuthContext';
 import { RewardsTabs } from "@/components/RewardsTabs";
 import { AIRewardModal, type AIReward } from '@/components/AIRewardModal';
 
@@ -31,6 +31,8 @@ interface Gamification {
   totalMemories: number;
   totalMilestones: number;
   progressToNextLevel: number;
+  totalGrowthRecords: number;
+  totalVaccineRecords: number;
 }
 
 interface WeeklyChallenge {
@@ -68,12 +70,11 @@ const Rewards = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { gamification, loading, fetchGamificationData } = useGamification();
   
-  const [gamification, setGamification] = useState<Gamification | null>(null);
   const [weeklyChallenges, setWeeklyChallenges] = useState<WeeklyChallenge[]>([]);
   const [aiRewards, setAiRewards] = useState<AIReward[]>([]);
   const [ranking, setRanking] = useState<RankingEntry[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showBadgeModal, setShowBadgeModal] = useState(false);
   const [showLevelModal, setShowLevelModal] = useState(false);
@@ -86,52 +87,15 @@ const Rewards = () => {
 
   useEffect(() => {
     fetchGamificationData();
-  }, []);
-
-  const fetchGamificationData = async () => {
-    try {
-      setLoading(true);
-      const data = await getGamificationData();
-      
-      setGamification(data.gamification);
-      setWeeklyChallenges(data.weeklyChallenges);
-      setAiRewards(data.aiRewards);
-      setRanking(data.ranking);
-      setNewBadges(data.newBadges || []);
-      setLevelUp(data.levelUp || false);
-
-      // Mostrar confetti se subiu de nível
-      if (data.levelUp) {
-        setShowConfetti(true);
-        setShowLevelModal(true);
-        setTimeout(() => setShowConfetti(false), 5000);
-      }
-
-      // Mostrar confetti se conquistou novos badges
-      if (data.newBadges && data.newBadges.length > 0) {
-        setShowConfetti(true);
-        setShowBadgeModal(true);
-        setTimeout(() => setShowConfetti(false), 5000);
-      }
-    } catch (error) {
-      console.error('Erro ao buscar dados de gamificação:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [fetchGamificationData]);
 
   const handleClaimReward = async (challengeId: string) => {
     try {
-      const result = await claimChallengeReward(challengeId);
-      
-      // Atualizar dados locais
-      setGamification(result.gamification);
-      
+      await claimChallengeReward(challengeId);
       // Mostrar confetti
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 3000);
-      
-      // Recarregar dados
+      // Recarregar dados globais
       fetchGamificationData();
     } catch (error) {
       console.error('Erro ao reivindicar recompensa:', error);
@@ -332,6 +296,36 @@ const Rewards = () => {
               ) : (
                 <span className="text-xs text-muted-foreground">Nenhum streak ainda</span>
               )}
+            </div>
+          </div>
+
+          {/* Resumo de Atividades */}
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-2">
+              <BarChart3 className="w-5 h-5 text-green-500" />
+              <span className="font-semibold">Resumo de Atividades</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+              <div className="bg-white/50 p-3 rounded-lg text-center">
+                <div className="font-bold text-xl text-green-700">{gamification.totalActivities || 0}</div>
+                <div className="text-xs text-muted-foreground">Atividades</div>
+              </div>
+              <div className="bg-white/50 p-3 rounded-lg text-center">
+                <div className="font-bold text-xl text-green-700">{gamification.totalMemories || 0}</div>
+                <div className="text-xs text-muted-foreground">Memórias</div>
+              </div>
+              <div className="bg-white/50 p-3 rounded-lg text-center">
+                <div className="font-bold text-xl text-green-700">{gamification.totalMilestones || 0}</div>
+                <div className="text-xs text-muted-foreground">Marcos</div>
+              </div>
+              <div className="bg-white/50 p-3 rounded-lg text-center">
+                <div className="font-bold text-xl text-green-700">{gamification.totalGrowthRecords || 0}</div>
+                <div className="text-xs text-muted-foreground">Crescimento</div>
+              </div>
+              <div className="bg-white/50 p-3 rounded-lg text-center">
+                <div className="font-bold text-xl text-green-700">{gamification.totalVaccineRecords || 0}</div>
+                <div className="text-xs text-muted-foreground">Vacinas</div>
+              </div>
             </div>
           </div>
 

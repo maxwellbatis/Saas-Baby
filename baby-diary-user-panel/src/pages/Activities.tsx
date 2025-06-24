@@ -11,7 +11,7 @@ import ActivityModal from "@/components/ActivityModal";
 import { Baby, MoreHorizontal, Edit, Eye, Trash2, PlusCircle, Activity as ActivityIcon, Clock, Utensils, Bath, Puzzle, Pill, Moon, Sparkles } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, useGamification } from "@/contexts/AuthContext";
 import SleepAnalysisModal from '@/components/SleepAnalysisModal';
 import SuggestedActivitiesModal from '@/components/SuggestedActivitiesModal';
 import { API_CONFIG } from '../config/api';
@@ -30,7 +30,8 @@ const Activities = () => {
   const navigate = useNavigate();
   const { theme, getBgClass, getGradientClass } = useTheme();
   const { toast } = useToast();
-  const { babies, isLoading: isAuthLoading } = useAuth();
+  const { babies, isLoading: isAuthLoading, refetch } = useAuth();
+  const { fetchGamificationData } = useGamification();
   
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,6 +64,12 @@ const Activities = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSuccess = () => {
+    fetchActivities();
+    refetch();
+    fetchGamificationData();
   };
 
   useEffect(() => {
@@ -309,7 +316,7 @@ const Activities = () => {
       <ActivityModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSuccess={fetchActivities}
+        onSuccess={handleSuccess}
         activity={selectedActivity}
         mode={modalMode}
         babyId={baby?.id}

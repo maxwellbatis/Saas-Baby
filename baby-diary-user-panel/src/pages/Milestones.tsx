@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, useGamification } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,9 +39,10 @@ interface SuggestedMilestone {
 }
 
 const Milestones = () => {
-  const { currentBaby, isLoading: isAuthLoading } = useAuth();
+  const { currentBaby, isLoading: isAuthLoading, refetch } = useAuth();
   const { getGradientClass, theme } = useTheme();
   const { toast } = useToast();
+  const { fetchGamificationData } = useGamification();
 
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [suggestedMilestones, setSuggestedMilestones] = useState<SuggestedMilestone[]>([]);
@@ -109,6 +110,13 @@ const Milestones = () => {
       fetchSuggestedMilestones();
     }
   }, [fetchMilestones, fetchSuggestedMilestones, isAuthLoading]);
+
+  const handleSuccess = () => {
+    fetchMilestones();
+    fetchSuggestedMilestones();
+    refetch();
+    fetchGamificationData();
+  };
 
   const handleCreateMilestone = () => {
     setSelectedMilestone(undefined);
@@ -362,7 +370,7 @@ const Milestones = () => {
           <MilestoneModal
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
-            onSuccess={fetchMilestones}
+            onSuccess={handleSuccess}
             milestone={selectedMilestone}
             mode={modalMode as 'create' | 'edit' | 'view'}
             babyId={currentBaby?.id}

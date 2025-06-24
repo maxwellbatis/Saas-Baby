@@ -24,16 +24,16 @@
     "exactOptionalPropertyTypes": false,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "baseUrl": "./",
+    "baseUrl": "./src",
     "paths": {
-      "@/*": ["src/*"],
-      "@/types/*": ["src/types/*"],
-      "@/utils/*": ["src/utils/*"],
-      "@/config/*": ["src/config/*"],
-      "@/middlewares/*": ["src/middlewares/*"],
-      "@/controllers/*": ["src/controllers/*"],
-      "@/services/*": ["src/services/*"],
-      "@/routes/*": ["src/routes/*"]
+      "@/*": ["*"],
+      "@/types/*": ["types/*"],
+      "@/utils/*": ["utils/*"],
+      "@/config/*": ["config/*"],
+      "@/middlewares/*": ["middlewares/*"],
+      "@/controllers/*": ["controllers/*"],
+      "@/services/*": ["services/*"],
+      "@/routes/*": ["routes/*"]
     }
   },
   "include": [

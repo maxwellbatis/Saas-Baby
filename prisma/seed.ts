@@ -460,6 +460,28 @@ async function main() {
     });
   }
 
+  // Garantir regra 'any' para gamificação
+  const anyRule = await prisma.gamificationRule.findFirst({
+    where: { name: 'any' }
+  });
+  if (!anyRule) {
+    await prisma.gamificationRule.create({
+      data: {
+        name: 'any',
+        description: 'Pontuação padrão para qualquer ação',
+        points: 5,
+        condition: 'any',
+        badgeIcon: '',
+        category: 'general',
+        isActive: true,
+        sortOrder: 999
+      }
+    });
+    console.log('Regra "any" criada!');
+  } else {
+    console.log('Regra "any" já existe.');
+  }
+
   // SISTEMA DE RESGATE MANUAL - DADOS DE SEED
 
   // Criar itens da loja

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from "react";
-import { getMe } from "@/lib/api";
+import { getMe, getGamificationData } from "@/lib/api";
 
 interface AuthContextType {
   user: any;
@@ -143,4 +143,63 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       {children}
     </AuthContext.Provider>
   );
+};
+
+interface Gamification {
+  level: number;
+  points: number;
+  badges: string[];
+  streaks: Record<string, number>;
+  achievements: string[];
+  userId?: string;
+  nextLevelPoints: number;
+  currentLevelPoints: number;
+  dailyGoal: number;
+  dailyProgress: number;
+  totalActivities: number;
+  totalMemories: number;
+  totalMilestones: number;
+  progressToNextLevel: number;
+  totalGrowthRecords: number;
+  totalVaccineRecords: number;
+}
+
+interface GamificationContextType {
+  gamification: Gamification | null;
+  loading: boolean;
+  fetchGamificationData: () => Promise<void>;
+}
+
+const GamificationContext = createContext<GamificationContextType | undefined>(undefined);
+
+export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [gamification, setGamification] = useState<Gamification | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const fetchGamificationData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await getGamificationData();
+      setGamification(data.gamification);
+    } catch (error) {
+      setGamification(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Opcional: buscar ao montar
+  // useEffect(() => { fetchGamificationData(); }, []);
+
+  return (
+    <GamificationContext.Provider value={{ gamification, loading, fetchGamificationData }}>
+      {children}
+    </GamificationContext.Provider>
+  );
+};
+
+export const useGamification = () => {
+  const ctx = useContext(GamificationContext);
+  if (!ctx) throw new Error('useGamification deve ser usado dentro de GamificationProvider');
+  return ctx;
 }; 

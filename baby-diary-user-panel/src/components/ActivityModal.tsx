@@ -21,7 +21,7 @@ interface Activity {
   date: string;
   duration: number; // in minutes
   notes?: string;
-  babyId: string;
+  babyId?: string;
 }
 
 interface ActivityModalProps {

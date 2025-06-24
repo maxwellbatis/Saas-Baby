@@ -6,16 +6,6 @@
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
   },
-  "_moduleAliases": {
-    "@": "dist",
-    "@/types": "dist/types",
-    "@/utils": "dist/utils",
-    "@/config": "dist/config",
-    "@/middlewares": "dist/middlewares",
-    "@/controllers": "dist/controllers",
-    "@/services": "dist/services",
-    "@/routes": "dist/routes"
-  },
   "scripts": {
     "dev": "nodemon src/index.ts",
     "start": "node dist/index.js",

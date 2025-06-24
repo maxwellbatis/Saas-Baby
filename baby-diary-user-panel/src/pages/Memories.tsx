@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, useGamification } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import MemoryModal from '@/components/MemoryModal';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,7 @@ const Memories = () => {
   const { currentBaby, isLoading: isAuthLoading, isPregnancyMode, refetch } = useAuth();
   const { getGradientClass } = useTheme();
   const { toast } = useToast();
+  const { fetchGamificationData } = useGamification();
 
   const [memories, setMemories] = useState<Memory[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -68,6 +69,12 @@ const Memories = () => {
       setIsLoading(false);
     }
   }, [currentBaby, toast]);
+
+  const handleSuccess = () => {
+    fetchMemories();
+    refetch();
+    fetchGamificationData();
+  };
 
   useEffect(() => {
     // We wait for auth to finish before fetching
@@ -238,7 +245,7 @@ const Memories = () => {
         <MemoryModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          onSuccess={fetchMemories}
+          onSuccess={handleSuccess}
           memory={selectedMemory}
           mode={modalMode}
           babyId={currentBaby?.id}

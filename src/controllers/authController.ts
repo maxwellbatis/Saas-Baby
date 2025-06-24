@@ -125,6 +125,13 @@ export const register = async (req: Request, res: Response) => {
       },
     });
 
+    // Opcional: aplicar gamificação de registro
+    try {
+      await GamificationService.applyAction(user.id, 'register');
+    } catch (err) {
+      console.error('Erro na gamificação automática (registro):', err);
+    }
+
     // Gerar token JWT
     const token = generateUserToken(user.id, user.email);
 
@@ -214,82 +221,19 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // === Gamificação automática (login) ===
-    let newBadges: string[] = [];
-    let newPoints = 0;
-    let newLevel = 0;
-    let updatedGamification = null;
-    let loginStreak = 1;
+    // === Gamificação centralizada (login) ===
+    let gamificationResult: any = null;
     try {
-      const gamification = await prisma.gamification.findUnique({ where: { userId: user.id } });
-      if (gamification) {
-        // Garantir que streaks é um objeto
-        const streaksObj: Record<string, number> = (typeof gamification.streaks === 'object' && gamification.streaks !== null && !Array.isArray(gamification.streaks)) ? gamification.streaks as Record<string, number> : {};
-        // Calcular streak de login
-        const lastLoginAt = user.lastLoginAt || new Date();
-        const today = new Date();
-        const diffTime = today.getTime() - (lastLoginAt ? new Date(lastLoginAt).getTime() : today.getTime());
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        if (diffDays === 1) {
-          loginStreak = (streaksObj.login || 1) + 1;
-        } else if (diffDays > 1) {
-          loginStreak = 1;
-        } else {
-          loginStreak = streaksObj.login || 1;
-        }
-        // Atualizar streaks
-        const newStreaks = { ...streaksObj, login: loginStreak };
-        // Buscar regras ativas
-        const rules = await prisma.gamificationRule.findMany({ where: { isActive: true } });
-        let result = {
-          points: gamification.points,
-          level: gamification.level,
-          badges: Array.isArray(gamification.badges) ? gamification.badges : [],
-          newBadges: [] as string[],
-        };
-        for (const rule of rules) {
-          if (rule.condition === 'login' || rule.condition === 'any') {
-            result = GamificationService.applyRule(result as any, rule as any);
-          }
-          // Badge de streak de login
-          if (rule.condition === 'login_streak_7' && loginStreak >= 7) {
-            result = GamificationService.applyRule(result as any, rule as any);
-          }
-          if (rule.condition === 'login_streak_30' && loginStreak >= 30) {
-            result = GamificationService.applyRule(result as any, rule as any);
-          }
-        }
-        const oldBadges = Array.isArray(gamification.badges) ? gamification.badges : [];
-        const newBadgesArr = Array.isArray(result.badges) ? result.badges : [];
-        if (
-          result.points !== gamification.points ||
-          newBadgesArr.length > oldBadges.length ||
-          (streaksObj.login !== loginStreak)
-        ) {
-          updatedGamification = await prisma.gamification.update({
-            where: { userId: user.id },
-            data: {
-              points: result.points,
-              level: result.level,
-              badges: newBadgesArr,
-              streaks: newStreaks,
-            },
+      gamificationResult = await GamificationService.applyAction(user.id, 'login');
+      if (gamificationResult && Array.isArray(gamificationResult.newBadges) && gamificationResult.newBadges.length > 0) {
+        const notificationService = new NotificationService();
+        for (const badge of gamificationResult.newBadges) {
+          await notificationService.sendPushNotification({
+            userId: user.id,
+            title: 'Parabéns! Novo badge conquistado',
+            body: `Você conquistou o badge: ${badge}`,
+            data: { badge },
           });
-          newBadges = result.newBadges;
-          newPoints = result.points;
-          newLevel = result.level;
-          // === Notificação automática de badge ===
-          if (newBadges.length > 0) {
-            const notificationService = new NotificationService();
-            for (const badge of newBadges) {
-              await notificationService.sendPushNotification({
-                userId: user.id,
-                title: 'Parabéns! Novo badge conquistado',
-                body: `Você conquistou o badge: ${badge}`,
-                data: { badge },
-              });
-            }
-          }
         }
       }
     } catch (err) {
@@ -311,10 +255,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       success: true,
       message: 'Login realizado com sucesso',
       data: response,
-      gamification: updatedGamification,
-      newBadges,
-      newPoints,
-      newLevel,
+      gamification: gamificationResult,
     });
   } catch (error) {
     console.error('Erro no login:', error);

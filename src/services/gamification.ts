@@ -849,4 +849,92 @@ export class GamificationService {
       orderBy: { joinedAt: 'desc' },
     });
   }
+
+  /**
+   * Aplica uma ação de gamificação centralizada
+   */
+  static async applyAction(userId: string, actionType: string, extraData?: any) {
+    // 1. Buscar gamification do usuário
+    let gamification = await prisma.gamification.findUnique({ where: { userId } });
+    if (!gamification) {
+      gamification = await prisma.gamification.create({
+        data: {
+          userId,
+          points: 0,
+          level: 1,
+          badges: [],
+          streaks: {},
+          achievements: [],
+        }
+      });
+    }
+
+    // Garantir consistência dos campos JSON
+    let streaks: Record<string, number> = {};
+    if (gamification.streaks && typeof gamification.streaks === 'object' && !Array.isArray(gamification.streaks)) {
+      streaks = gamification.streaks as Record<string, number>;
+    }
+    let badges: string[] = [];
+    if (Array.isArray(gamification.badges)) {
+      badges = gamification.badges as string[];
+    } else if (typeof gamification.badges === 'string') {
+      try { badges = JSON.parse(gamification.badges); } catch { badges = []; }
+    }
+    let achievements: string[] = [];
+    if (Array.isArray(gamification.achievements)) {
+      achievements = gamification.achievements as string[];
+    } else if (typeof gamification.achievements === 'string') {
+      try { achievements = JSON.parse(gamification.achievements); } catch { achievements = []; }
+    }
+
+    // 2. Buscar regra específica ou 'any'
+    let rule = await prisma.gamificationRule.findFirst({
+      where: { condition: actionType, isActive: true }
+    });
+    if (!rule) {
+      rule = await prisma.gamificationRule.findFirst({
+        where: { name: 'any', isActive: true }
+      });
+    }
+    if (!rule) throw new Error('Nenhuma regra de gamificação encontrada');
+
+    // 3. Atualizar streaks
+    const lastActivityDate = gamification.lastLoginDate === null ? undefined : gamification.lastLoginDate;
+    const newStreaks = this.updateStreaks(streaks, actionType, lastActivityDate);
+
+    // 4. Aplicar regra (pontos, badges, achievements, etc.)
+    const ruleForApply = { ...rule, badgeIcon: rule.badgeIcon ?? undefined };
+    const gamificationForRule = {
+      ...gamification,
+      streaks: newStreaks,
+      badges,
+      achievements,
+      user: (gamification as any).user || null, // Adiciona user: null se não existir
+    };
+    const result = this.applyRule(
+      gamificationForRule as any, // Tipagem forçada para evitar erro de propriedade user
+      ruleForApply as any
+    );
+
+    // 5. Atualizar gamification no banco
+    const updated = await prisma.gamification.update({
+      where: { userId },
+      data: {
+        points: result.points,
+        level: result.level,
+        badges: result.badges,
+        achievements: result.achievements,
+        streaks: result.streaks,
+        dailyProgress: result.dailyProgress,
+        lastLoginDate: actionType === 'login' ? new Date() : gamification.lastLoginDate,
+        // Atualize outros campos conforme necessário
+      }
+    });
+
+    // 6. Atualizar ranking semanal
+    await this.updateWeeklyRanking(userId, result.points);
+
+    // 7. Retornar gamification atualizado
+    return updated;
+  }
 } 

@@ -165,16 +165,21 @@ model Gamification {
   streaks Json     @default("{}") // {"login": 0, "activities": 0, "memories": 0}
   achievements Json @default("[]") // Conquistas especiais
   // Novos campos para gamificação avançada
-  totalActivities Int @default(0)
-  totalMemories Int @default(0)
-  totalMilestones Int @default(0)
-  lastLoginDate DateTime?
-  dailyGoal Int @default(50)
-  dailyProgress Int @default(0)
-  weeklyChallenges Json @default("[]") // Desafios semanais ativos
-  aiRewards Json @default("[]") // Recompensas de IA desbloqueadas
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  totalActivities   Int       @default(0)
+  totalMemories     Int       @default(0)
+  totalMilestones   Int       @default(0)
+  totalGrowthRecords Int       @default(0)
+  totalVaccineRecords Int       @default(0)
+  totalSymptomRecords Int       @default(0)
+  totalMedicationRecords Int       @default(0)
+  totalAppointmentRecords Int       @default(0)
+  lastLoginDate     DateTime?
+  dailyGoal         Int       @default(100)
+  dailyProgress     Int       @default(0)
+  weeklyChallenges  Json      @default("[]") // Desafios semanais ativos
+  aiRewards         Json      @default("[]") // Recompensas de IA desbloqueadas
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 }
 
 model NotificationTemplate {

@@ -6,7 +6,7 @@ import { Baby, Image, User, Calendar, Trophy, TrendingUp, Clock, Heart, Utensils
 import { useTheme } from "@/contexts/ThemeContext";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, BarChart, Bar } from "recharts";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, useGamification } from "@/contexts/AuthContext";
 import { useEffect, useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import Confetti from "react-confetti";
@@ -57,6 +57,7 @@ const Dashboard = () => {
   const { getBgClass, getGradientClass } = useTheme();
   const { user, babies, isLoading, isAuthenticated, hasBaby, isPregnancyMode, refetch } = useAuth();
   const { toast } = useToast();
+  const { gamification, loading: gamificationLoading, fetchGamificationData } = useGamification();
 
   const baby = babies?.[0];
 
@@ -466,98 +467,6 @@ const Dashboard = () => {
   const handleShareActivity = (activity: any) => {
     // Implemente a lógica para compartilhar uma atividade
     console.log("Compartilhando atividade:", activity);
-  };
-
-  // Dados mock para demonstração
-  const mockGamificationData = {
-    points: 1250,
-    level: 8,
-    badges: ['first-memory', 'week-streak', 'milestone-master', 'consistency-queen'],
-    streak: 7,
-    nextLevelPoints: 1500,
-    currentLevelPoints: 1000,
-    dailyGoal: 50,
-    dailyProgress: 35,
-    weeklyChallenges: [
-      {
-        id: '1',
-        title: 'Registre 7 Atividades',
-        description: 'Complete 7 registros de atividades esta semana',
-        icon: 'activity-champion',
-        progress: 5,
-        target: 7,
-        reward: 'Dica especial da IA sobre desenvolvimento',
-        isCompleted: false
-      },
-      {
-        id: '2',
-        title: '3 Memórias Especiais',
-        description: 'Capture 3 momentos especiais com fotos',
-        icon: 'memory-keeper',
-        progress: 3,
-        target: 3,
-        reward: 'Atividade personalizada para o bebê',
-        isCompleted: true
-      },
-      {
-        id: '3',
-        title: '7 Dias Consecutivos',
-        description: 'Use o app por 7 dias seguidos',
-        icon: 'consistency-queen',
-        progress: 7,
-        target: 7,
-        reward: 'Badge exclusivo + Dica de autocuidado',
-        isCompleted: true
-      }
-    ],
-    recentAchievements: [
-      {
-        id: '1',
-        title: 'Primeira Memória',
-        description: 'Registrou a primeira memória do bebê',
-        icon: 'first-memory',
-        earnedAt: '2024-01-15',
-        reward: '10 pontos + Dica de fotografia'
-      },
-      {
-        id: '2',
-        title: 'Semana Consistente',
-        description: 'Usou o app por 7 dias seguidos',
-        icon: 'week-streak',
-        earnedAt: '2024-01-14',
-        reward: '25 pontos + Atividade sensorial'
-      }
-    ],
-    aiRewards: [
-      {
-        id: '1',
-        title: 'Dica Personalizada de Sono',
-        description: 'Baseada no padrão do seu bebê',
-        type: 'tip' as const,
-        isUnlocked: true
-      },
-      {
-        id: '2',
-        title: 'Atividade de Desenvolvimento',
-        description: 'Exercício específico para a idade',
-        type: 'activity' as const,
-        isUnlocked: true
-      },
-      {
-        id: '3',
-        title: 'Previsão de Marcos',
-        description: 'Próximos marcos esperados',
-        type: 'milestone' as const,
-        isUnlocked: false
-      },
-      {
-        id: '4',
-        title: 'Mensagem de Incentivo',
-        description: 'Palavras de apoio personalizadas',
-        type: 'encouragement' as const,
-        isUnlocked: true
-      }
-    ]
   };
 
   const mockReminders = [
@@ -1077,7 +986,7 @@ const Dashboard = () => {
 
           {/* Gamificação e Lembretes */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <GamificationCard data={mockGamificationData} />
+            <GamificationCard data={gamification} />
             <SmartReminders
               reminders={mockReminders}
               onToggleReminder={(id, isActive) => {

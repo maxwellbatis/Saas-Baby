@@ -1,4 +1,4 @@
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, useGamification } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import Header from '@/components/Header';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -28,6 +28,7 @@ const Growth = () => {
   const [growthData, setGrowthData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { fetchGamificationData } = useGamification();
 
   useEffect(() => {
     const fetchGrowth = async () => {

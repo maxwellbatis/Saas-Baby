@@ -5,10 +5,11 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button';
 import { ChartContainer } from '@/components/ui/chart';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import GrowthMeasurements from '@/components/GrowthMeasurements';
 import { useNavigate } from 'react-router-dom';
 import { API_CONFIG } from '../config/api';
+import { AchievementNotification } from '@/components/AchievementNotification';
 
 const chartConfig = {
   peso: {
@@ -28,7 +29,13 @@ const Growth = () => {
   const [growthData, setGrowthData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { fetchGamificationData } = useGamification();
+  const { fetchGamificationData, gamification } = useGamification();
+  
+  // Estados para notificação de conquista
+  const [showAchievement, setShowAchievement] = useState(false);
+  const [achievementData, setAchievementData] = useState(null);
+  const prevLevelRef = useRef<number | null>(null);
+  const prevBadgesRef = useRef<string[]>([]);
 
   useEffect(() => {
     const fetchGrowth = async () => {
@@ -52,6 +59,51 @@ const Growth = () => {
     };
     fetchGrowth();
   }, [baby]);
+
+  // Detecta novos badges ou level up após atualização da gamificação
+  useEffect(() => {
+    if (!gamification) return;
+    
+    // Detecta level up
+    if (
+      prevLevelRef.current !== null &&
+      gamification.level > prevLevelRef.current
+    ) {
+      setAchievementData({
+        id: `level-${gamification.level}`,
+        title: `Nível ${gamification.level}`,
+        description: `Parabéns! Você subiu para o nível ${gamification.level}!`,
+        icon: 'level-up',
+        points: 0,
+        type: 'level',
+      });
+      setShowAchievement(true);
+    }
+    
+    // Detecta novos badges
+    if (
+      prevBadgesRef.current.length > 0 &&
+      gamification.badges.length > prevBadgesRef.current.length
+    ) {
+      const newBadge = gamification.badges.find(
+        (b) => !prevBadgesRef.current.includes(b)
+      );
+      if (newBadge) {
+        setAchievementData({
+          id: `badge-${newBadge}`,
+          title: `Novo Badge: ${newBadge}`,
+          description: 'Você conquistou um novo badge!',
+          icon: 'growth-tracker',
+          points: 0,
+          type: 'badge',
+        });
+        setShowAchievement(true);
+      }
+    }
+    
+    prevLevelRef.current = gamification.level;
+    prevBadgesRef.current = gamification.badges;
+  }, [gamification]);
 
   if (isLoading || loading) {
     return (
@@ -81,6 +133,12 @@ const Growth = () => {
 
   return (
     <div className={`min-h-screen bg-gradient-to-br ${getBgClass()}`}>
+      {/* Notificação de conquista */}
+      <AchievementNotification
+        achievement={achievementData}
+        isVisible={showAchievement}
+        onClose={() => setShowAchievement(false)}
+      />
       <Header />
       <div className="w-full max-w-full px-2 sm:px-4 py-4 mx-auto">
         <div className="flex items-center gap-4 mb-8">

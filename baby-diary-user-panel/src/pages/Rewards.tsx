@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ import { getGamificationData, updateDailyProgress, claimChallengeReward, unlockA
 import { useAuth, useGamification } from '@/contexts/AuthContext';
 import { RewardsTabs } from "@/components/RewardsTabs";
 import { AIRewardModal, type AIReward } from '@/components/AIRewardModal';
+import { AchievementNotification } from '@/components/AchievementNotification';
 
 interface Gamification {
   level: number;
@@ -84,10 +85,56 @@ const Rewards = () => {
   const [selectedAIReward, setSelectedAIReward] = useState<AIReward | null>(null);
   const [newBadges, setNewBadges] = useState<string[]>([]);
   const [levelUp, setLevelUp] = useState(false);
+  const [showAchievement, setShowAchievement] = useState(false);
+  const [achievementData, setAchievementData] = useState(null);
+  const prevLevelRef = useRef<number | null>(null);
+  const prevBadgesRef = useRef<string[]>([]);
 
   useEffect(() => {
     fetchGamificationData();
   }, [fetchGamificationData]);
+
+  // Detecta novos badges ou level up após atualização da gamificação
+  useEffect(() => {
+    if (!gamification) return;
+    // Detecta level up
+    if (
+      prevLevelRef.current !== null &&
+      gamification.level > prevLevelRef.current
+    ) {
+      setAchievementData({
+        id: `level-${gamification.level}`,
+        title: `Nível ${gamification.level}`,
+        description: getLevelMessage(gamification.level),
+        icon: 'level-up',
+        points: 0,
+        type: 'level',
+      });
+      setShowAchievement(true);
+    }
+    // Detecta novos badges
+    if (
+      prevBadgesRef.current.length > 0 &&
+      gamification.badges.length > prevBadgesRef.current.length
+    ) {
+      const newBadge = gamification.badges.find(
+        (b) => !prevBadgesRef.current.includes(b)
+      );
+      if (newBadge) {
+        setAchievementData({
+          id: `badge-${newBadge}`,
+          title: `Novo Badge: ${newBadge}`,
+          description: 'Você conquistou um novo badge!',
+          icon: 'first-memory', // ou outro ícone se tiver mapeamento
+          points: 0,
+          type: 'badge',
+        });
+        setShowAchievement(true);
+      }
+    }
+    prevLevelRef.current = gamification.level;
+    prevBadgesRef.current = gamification.badges;
+  }, [gamification]);
 
   const handleClaimReward = async (challengeId: string) => {
     try {
@@ -239,6 +286,12 @@ const Rewards = () => {
         </Button>
       </div>
       <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
+        {/* Notificação de conquista */}
+        <AchievementNotification
+          achievement={achievementData}
+          isVisible={showAchievement}
+          onClose={() => setShowAchievement(false)}
+        />
         {/* PAINEL DE GAMIFICAÇÃO */}
         <div className="mb-10">
           {/* Nível e barra de progresso */}

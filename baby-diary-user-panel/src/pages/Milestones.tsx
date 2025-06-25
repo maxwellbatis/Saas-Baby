@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth, useGamification } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import ImageUpload from '@/components/ImageUpload';
 import PredictedMilestonesCard from '../components/PredictedMilestonesCard';
 import { API_CONFIG } from '../config/api';
+import { AchievementNotification } from '@/components/AchievementNotification';
 
 interface Milestone {
   id: string;
@@ -42,7 +43,7 @@ const Milestones = () => {
   const { currentBaby, isLoading: isAuthLoading, refetch } = useAuth();
   const { getGradientClass, theme } = useTheme();
   const { toast } = useToast();
-  const { fetchGamificationData } = useGamification();
+  const { fetchGamificationData, gamification } = useGamification();
 
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [suggestedMilestones, setSuggestedMilestones] = useState<SuggestedMilestone[]>([]);
@@ -55,6 +56,10 @@ const Milestones = () => {
   const [viewingImage, setViewingImage] = useState<string | null>(null);
   const [suggestedImageFile, setSuggestedImageFile] = useState<File | null>(null);
   const [suggestedPhotoUrl, setSuggestedPhotoUrl] = useState<string | undefined>();
+  const [showAchievement, setShowAchievement] = useState(false);
+  const [achievementData, setAchievementData] = useState(null);
+  const prevLevelRef = useRef<number | null>(null);
+  const prevBadgesRef = useRef<string[]>([]);
 
   const fetchMilestones = useCallback(async () => {
     if (!currentBaby) {
@@ -84,18 +89,34 @@ const Milestones = () => {
 
   const fetchSuggestedMilestones = useCallback(async () => {
     if (!currentBaby) {
+      console.log('❌ Nenhum bebê selecionado para buscar marcos sugeridos');
       setSuggestedMilestones([]);
       return;
     }
     try {
+      console.log('🔍 Buscando marcos sugeridos para bebê:', currentBaby.id);
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_CONFIG.BASE_URL}/user/milestones/suggested?babyId=${currentBaby.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!response.ok) throw new Error('Falha ao buscar marcos sugeridos');
+      console.log('📡 Resposta da API:', response.status, response.statusText);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Erro na resposta:', errorText);
+        throw new Error('Falha ao buscar marcos sugeridos');
+      }
+      
       const data = await response.json();
-      setSuggestedMilestones(Array.isArray(data.data) ? data.data : []);
+      console.log('📋 Dados recebidos:', data);
+      
+      const milestones = Array.isArray(data.data) ? data.data : [];
+      console.log('🎯 Marcos sugeridos processados:', milestones.length);
+      console.log('📝 Títulos:', milestones.map(m => m.title));
+      
+      setSuggestedMilestones(milestones);
     } catch (error: any) {
+      console.error('❌ Erro ao buscar marcos sugeridos:', error);
       toast({
         title: 'Erro',
         description: error.message || 'Não foi possível buscar os marcos sugeridos.',
@@ -226,6 +247,51 @@ const Milestones = () => {
     }
   };
 
+  // Detecta novos badges ou level up após atualização da gamificação
+  useEffect(() => {
+    if (!gamification) return;
+    
+    // Detecta level up
+    if (
+      prevLevelRef.current !== null &&
+      gamification.level > prevLevelRef.current
+    ) {
+      setAchievementData({
+        id: `level-${gamification.level}`,
+        title: `Nível ${gamification.level}`,
+        description: `Parabéns! Você subiu para o nível ${gamification.level}!`,
+        icon: 'level-up',
+        points: 0,
+        type: 'level',
+      });
+      setShowAchievement(true);
+    }
+    
+    // Detecta novos badges
+    if (
+      prevBadgesRef.current.length > 0 &&
+      gamification.badges.length > prevBadgesRef.current.length
+    ) {
+      const newBadge = gamification.badges.find(
+        (b) => !prevBadgesRef.current.includes(b)
+      );
+      if (newBadge) {
+        setAchievementData({
+          id: `badge-${newBadge}`,
+          title: `Novo Badge: ${newBadge}`,
+          description: 'Você conquistou um novo badge!',
+          icon: 'first-milestone',
+          points: 0,
+          type: 'badge',
+        });
+        setShowAchievement(true);
+      }
+    }
+    
+    prevLevelRef.current = gamification.level;
+    prevBadgesRef.current = gamification.badges;
+  }, [gamification]);
+
   if (isLoading || isAuthLoading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -278,6 +344,12 @@ const Milestones = () => {
 
   return (
     <div className={`min-h-screen bg-gradient-to-br ${theme === 'blue' ? 'from-baby-blue via-baby-lavender to-baby-mint' : 'from-baby-pink via-baby-peach to-baby-lavender'}`}>
+      {/* Notificação de conquista */}
+      <AchievementNotification
+        achievement={achievementData}
+        isVisible={showAchievement}
+        onClose={() => setShowAchievement(false)}
+      />
       <Header />
       <div className="w-full max-w-full px-2 sm:px-4 py-4 mx-auto">
         <div className="flex items-center gap-4 mb-8">

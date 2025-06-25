@@ -7,7 +7,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { useAuth, useGamification } from "@/contexts/AuthContext";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import Confetti from "react-confetti";
 import MilestoneModal from '@/components/MilestoneModal';
@@ -30,6 +30,7 @@ import FeedingTipsModal from '@/components/FeedingTipsModal';
 import SleepAnalysisModal from '@/components/SleepAnalysisModal';
 import PredictedMilestonesCard from '@/components/PredictedMilestonesCard';
 import AIUsageStatsCard from '@/components/AIUsageStatsCard';
+import { AchievementNotification } from '@/components/AchievementNotification';
 
 const chartConfig = {
   peso: {
@@ -84,6 +85,16 @@ const Dashboard = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [selectedAIReward, setSelectedAIReward] = useState<any>(null);
   const [showAIRewardModal, setShowAIRewardModal] = useState(false);
+  const [showAchievement, setShowAchievement] = useState(false);
+  const [achievementData, setAchievementData] = useState(null);
+  const prevLevelRef = useRef<number | null>(null);
+  const prevBadgesRef = useRef<string[]>([]);
+  const prevPointsRef = useRef<number | null>(null);
+
+  // Estados para controlar animações do GamificationCard
+  const [levelUp, setLevelUp] = useState(false);
+  const [newBadge, setNewBadge] = useState<string | null>(null);
+  const [pointsGained, setPointsGained] = useState(0);
 
   const handleBabyAdded = async () => {
     await refetch();
@@ -298,6 +309,87 @@ const Dashboard = () => {
       navigate('/dashboard', { replace: true });
     }
   }, [location, navigate, toast, refetch]);
+
+  // Detecta novos badges ou level up após atualização da gamificação
+  useEffect(() => {
+    if (!gamification) return;
+    
+    // Detecta level up
+    if (
+      prevLevelRef.current !== null &&
+      gamification.level > prevLevelRef.current
+    ) {
+      setLevelUp(true);
+      setAchievementData({
+        id: `level-${gamification.level}`,
+        title: `Nível ${gamification.level}`,
+        description: `Parabéns! Você subiu para o nível ${gamification.level}!`,
+        icon: 'level-up',
+        points: 0,
+        type: 'level',
+      });
+      setShowAchievement(true);
+      
+      // Reset level up animation after 3 seconds
+      setTimeout(() => setLevelUp(false), 3000);
+    }
+    
+    // Detecta novos badges
+    if (
+      prevBadgesRef.current.length > 0 &&
+      gamification.badges.length > prevBadgesRef.current.length
+    ) {
+      const newBadgeFound = gamification.badges.find(
+        (b) => !prevBadgesRef.current.includes(b)
+      );
+      if (newBadgeFound) {
+        setNewBadge(newBadgeFound);
+        setAchievementData({
+          id: `badge-${newBadgeFound}`,
+          title: `Novo Badge: ${newBadgeFound}`,
+          description: 'Você conquistou um novo badge!',
+          icon: 'first-memory',
+          points: 0,
+          type: 'badge',
+        });
+        setShowAchievement(true);
+        
+        // Reset new badge animation after 2 seconds
+        setTimeout(() => setNewBadge(null), 2000);
+      }
+    }
+    
+    // Detecta ganho de pontos
+    if (
+      prevPointsRef.current !== null &&
+      gamification.points > prevPointsRef.current
+    ) {
+      const gained = gamification.points - prevPointsRef.current;
+      setPointsGained(gained);
+      
+      // Reset points gained after 2 seconds
+      setTimeout(() => setPointsGained(0), 2000);
+    }
+    
+    prevLevelRef.current = gamification.level;
+    prevBadgesRef.current = gamification.badges;
+    prevPointsRef.current = gamification.points;
+  }, [gamification]);
+
+  // Adaptador para converter Gamification para GamificationData
+  const gamificationData = gamification ? {
+    points: gamification.points,
+    level: gamification.level,
+    badges: gamification.badges,
+    streak: gamification.streaks?.daily || 0,
+    nextLevelPoints: gamification.nextLevelPoints,
+    currentLevelPoints: gamification.currentLevelPoints,
+    dailyGoal: gamification.dailyGoal,
+    dailyProgress: gamification.dailyProgress,
+    weeklyChallenges: [],
+    recentAchievements: [],
+    aiRewards: [],
+  } : null;
 
   // Mostra loading enquanto carrega os dados
   if (isLoadingSuggested || loadingStats) {
@@ -595,6 +687,11 @@ const Dashboard = () => {
   return (
     <div className={`min-h-screen bg-gradient-to-br ${getBgClass()}`}>
       {showSuccessConfetti && <Confetti recycle={false} width={window.innerWidth} height={window.innerHeight} />}
+      <AchievementNotification
+        achievement={achievementData}
+        isVisible={showAchievement}
+        onClose={() => setShowAchievement(false)}
+      />
       <Header />
       
       <div className="container max-w-7xl mx-auto px-4 py-8">
@@ -986,7 +1083,16 @@ const Dashboard = () => {
 
           {/* Gamificação e Lembretes */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <GamificationCard data={gamification} />
+            {gamification && (
+              <div className="mb-6">
+                <GamificationCard 
+                  data={gamificationData} 
+                  levelUp={levelUp}
+                  newBadge={newBadge || undefined}
+                  pointsGained={pointsGained}
+                />
+              </div>
+            )}
             <SmartReminders
               reminders={mockReminders}
               onToggleReminder={(id, isActive) => {

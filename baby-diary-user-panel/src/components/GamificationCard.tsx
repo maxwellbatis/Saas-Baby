@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Trophy, Star, Target, Zap, Heart, Calendar, Camera, BookOpen, Sparkles, Gift, Crown, Baby, Coffee, Flower, Rainbow, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 interface GamificationData {
   points: number;
@@ -44,6 +45,15 @@ interface GamificationData {
 
 interface GamificationCardProps {
   data: GamificationData;
+  newAchievement?: {
+    type: 'badge' | 'level' | 'streak' | 'points';
+    title: string;
+    description: string;
+    icon?: string;
+  };
+  levelUp?: boolean;
+  newBadge?: string;
+  pointsGained?: number;
 }
 
 const badgeIcons: Record<string, React.ReactNode> = {
@@ -73,9 +83,25 @@ const badgeNames: Record<string, string> = {
 };
 
 export const GamificationCard: React.FC<GamificationCardProps> = ({
-  data
+  data,
+  newAchievement,
+  levelUp = false,
+  newBadge,
+  pointsGained = 0
 }) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  
+  // Estados para animações
+  const [showLevelUpAnimation, setShowLevelUpAnimation] = useState(false);
+  const [showPointsAnimation, setShowPointsAnimation] = useState(false);
+  const [showBadgeAnimation, setShowBadgeAnimation] = useState(false);
+  const [isGlowing, setIsGlowing] = useState(false);
+  
+  // Refs para comparar mudanças
+  const prevLevelRef = useRef<number>(0);
+  const prevPointsRef = useRef<number>(0);
+  const prevBadgesRef = useRef<string[]>([]);
   
   if (!data) {
     return (
@@ -103,6 +129,60 @@ export const GamificationCard: React.FC<GamificationCardProps> = ({
   const progressToNextLevel = ((points - currentLevelPoints) / (nextLevelPoints - currentLevelPoints || 1)) * 100;
   const dailyProgressPercent = (dailyProgress / (dailyGoal || 1)) * 100;
 
+  // Detectar mudanças e disparar animações
+  useEffect(() => {
+    // Detectar level up
+    if (level > prevLevelRef.current && prevLevelRef.current > 0) {
+      setShowLevelUpAnimation(true);
+      setIsGlowing(true);
+      
+      toast({
+        title: `🎉 Nível ${level} Alcançado!`,
+        description: `Parabéns! Você subiu para o nível ${level}!`,
+      });
+      
+      setTimeout(() => {
+        setShowLevelUpAnimation(false);
+        setIsGlowing(false);
+      }, 3000);
+    }
+    
+    // Detectar ganho de pontos
+    if (points > prevPointsRef.current && prevPointsRef.current > 0) {
+      const pointsDiff = points - prevPointsRef.current;
+      setShowPointsAnimation(true);
+      
+      if (pointsDiff > 0) {
+        toast({
+          title: `+${pointsDiff} pontos!`,
+          description: "Continue assim! 🌟",
+        });
+      }
+      
+      setTimeout(() => setShowPointsAnimation(false), 2000);
+    }
+    
+    // Detectar novo badge
+    if (badges.length > prevBadgesRef.current.length && prevBadgesRef.current.length > 0) {
+      const newBadge = badges.find(b => !prevBadgesRef.current.includes(b));
+      if (newBadge) {
+        setShowBadgeAnimation(true);
+        
+        toast({
+          title: `🏆 Novo Badge: ${badgeNames[newBadge] || newBadge}`,
+          description: "Você conquistou uma nova conquista!",
+        });
+        
+        setTimeout(() => setShowBadgeAnimation(false), 2000);
+      }
+    }
+    
+    // Atualizar refs
+    prevLevelRef.current = level;
+    prevPointsRef.current = points;
+    prevBadgesRef.current = [...badges];
+  }, [level, points, badges, toast]);
+
   const getLevelTitle = (level: number) => {
     if (level <= 3) return "Mamãe Iniciante";
     if (level <= 6) return "Mamãe Experiente";
@@ -115,11 +195,19 @@ export const GamificationCard: React.FC<GamificationCardProps> = ({
   const unlockedAIRewards = aiRewards.filter(r => r.isUnlocked).length;
 
   return (
-    <Card className="bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 border-pink-200 hover:shadow-xl transition-all duration-300 cursor-pointer" onClick={() => navigate('/rewards')}>
+    <Card 
+      className={`
+        bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 border-pink-200 
+        hover:shadow-xl transition-all duration-300 cursor-pointer
+        ${isGlowing ? 'animate-glow shadow-2xl' : ''}
+        ${showLevelUpAnimation ? 'animate-bounce-gentle' : ''}
+      `} 
+      onClick={() => navigate('/rewards')}
+    >
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center justify-between text-purple-800">
           <div className="flex items-center gap-2">
-            <Crown className="w-5 h-5" />
+            <Crown className={`w-5 h-5 ${showLevelUpAnimation ? 'animate-pulse-slow' : ''}`} />
             Recompensas & Gamificação
           </div>
           <ArrowRight className="w-4 h-4 text-purple-600" />
@@ -131,10 +219,20 @@ export const GamificationCard: React.FC<GamificationCardProps> = ({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-purple-600">{getLevelTitle(level)}</p>
-            <p className="text-2xl font-bold text-purple-700">Nível {level}</p>
+            <p className={`text-2xl font-bold text-purple-700 ${showLevelUpAnimation ? 'animate-scale-in' : ''}`}>
+              Nível {level}
+            </p>
           </div>
-          <div className="w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+          <div className={`
+            w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full 
+            flex items-center justify-center text-white font-bold text-lg
+            ${showLevelUpAnimation ? 'animate-bounce-gentle shadow-lg' : ''}
+            ${isGlowing ? 'animate-glow' : ''}
+          `}>
             {level}
+            {showLevelUpAnimation && (
+              <div className="absolute inset-0 rounded-full bg-yellow-400 animate-ping opacity-75"></div>
+            )}
           </div>
         </div>
 
@@ -142,10 +240,22 @@ export const GamificationCard: React.FC<GamificationCardProps> = ({
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-purple-600">Progresso</span>
-            <span className="text-purple-700 font-medium">{progressToNextLevel.toFixed(1)}%</span>
+            <span className={`text-purple-700 font-medium ${showPointsAnimation ? 'animate-pulse-slow' : ''}`}>
+              {progressToNextLevel.toFixed(1)}%
+            </span>
           </div>
-          <Progress value={progressToNextLevel} className="h-2 bg-purple-100" />
-          <p className="text-xs text-purple-600">{points} pontos • Próximo: {nextLevelPoints - points} pts</p>
+          <Progress 
+            value={progressToNextLevel} 
+            className={`h-2 bg-purple-100 ${showPointsAnimation ? 'animate-pulse-slow' : ''}`} 
+          />
+          <p className={`text-xs text-purple-600 ${showPointsAnimation ? 'animate-pulse-slow' : ''}`}>
+            {points} pontos • Próximo: {nextLevelPoints - points} pts
+            {pointsGained > 0 && (
+              <span className="ml-2 text-green-600 font-bold animate-fade-in">
+                +{pointsGained}
+              </span>
+            )}
+          </p>
         </div>
 
         {/* Streak Diário */}
@@ -161,7 +271,7 @@ export const GamificationCard: React.FC<GamificationCardProps> = ({
 
         {/* Resumo de Conquistas */}
         <div className="grid grid-cols-3 gap-3 text-center">
-          <div className="p-2 bg-white rounded-lg border border-purple-200">
+          <div className={`p-2 bg-white rounded-lg border border-purple-200 ${showBadgeAnimation ? 'animate-bounce-gentle' : ''}`}>
             <p className="text-lg font-bold text-purple-700">{badges.length}</p>
             <p className="text-xs text-purple-600">Badges</p>
           </div>
@@ -181,7 +291,14 @@ export const GamificationCard: React.FC<GamificationCardProps> = ({
             <p className="text-sm font-medium text-gray-700">Badges Recentes</p>
             <div className="flex flex-wrap gap-2">
               {badges.slice(0, 3).map((badge) => (
-                <Badge key={badge} variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200">
+                <Badge 
+                  key={badge} 
+                  variant="secondary" 
+                  className={`
+                    bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200
+                    ${badge === newBadge ? 'animate-bounce-gentle shadow-lg' : ''}
+                  `}
+                >
                   {badgeIcons[badge] || <Star className="w-3 h-3" />}
                   <span className="ml-1">{badgeNames[badge] || badge}</span>
                 </Badge>

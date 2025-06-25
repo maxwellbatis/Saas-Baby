@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth, useGamification } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import MemoryModal from '@/components/MemoryModal';
@@ -14,6 +14,7 @@ import Header from '@/components/Header';
 import BackButton from '@/components/BackButton';
 import AddBabyModal from '@/components/AddBabyModal';
 import { API_CONFIG } from '../config/api';
+import { AchievementNotification } from '@/components/AchievementNotification';
 
 interface Memory {
   id: string;
@@ -28,7 +29,7 @@ const Memories = () => {
   const { currentBaby, isLoading: isAuthLoading, isPregnancyMode, refetch } = useAuth();
   const { getGradientClass } = useTheme();
   const { toast } = useToast();
-  const { fetchGamificationData } = useGamification();
+  const { fetchGamificationData, gamification } = useGamification();
 
   const [memories, setMemories] = useState<Memory[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,6 +38,10 @@ const Memories = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [viewingImage, setViewingImage] = useState<string | null>(null);
   const [showAddBabyModal, setShowAddBabyModal] = useState(false);
+  const [showAchievement, setShowAchievement] = useState(false);
+  const [achievementData, setAchievementData] = useState(null);
+  const prevLevelRef = useRef<number | null>(null);
+  const prevBadgesRef = useRef<string[]>([]);
 
   const handleBabyAdded = async () => {
     await refetch();
@@ -82,6 +87,50 @@ const Memories = () => {
       fetchMemories();
     }
   }, [fetchMemories, isAuthLoading]);
+
+  useEffect(() => {
+    if (!gamification) return;
+    
+    // Detecta level up
+    if (
+      prevLevelRef.current !== null &&
+      gamification.level > prevLevelRef.current
+    ) {
+      setAchievementData({
+        id: `level-${gamification.level}`,
+        title: `Nível ${gamification.level}`,
+        description: `Parabéns! Você subiu para o nível ${gamification.level}!`,
+        icon: 'level-up',
+        points: 0,
+        type: 'level',
+      });
+      setShowAchievement(true);
+    }
+    
+    // Detecta novos badges
+    if (
+      prevBadgesRef.current.length > 0 &&
+      gamification.badges.length > prevBadgesRef.current.length
+    ) {
+      const newBadge = gamification.badges.find(
+        (b) => !prevBadgesRef.current.includes(b)
+      );
+      if (newBadge) {
+        setAchievementData({
+          id: `badge-${newBadge}`,
+          title: `Novo Badge: ${newBadge}`,
+          description: 'Você conquistou um novo badge!',
+          icon: 'first-memory',
+          points: 0,
+          type: 'badge',
+        });
+        setShowAchievement(true);
+      }
+    }
+    
+    prevLevelRef.current = gamification.level;
+    prevBadgesRef.current = gamification.badges;
+  }, [gamification]);
 
   const handleCreateMemory = () => {
     setSelectedMemory(undefined);
@@ -178,6 +227,11 @@ const Memories = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-baby-pink via-baby-peach to-baby-lavender">
+      <AchievementNotification
+        achievement={achievementData}
+        isVisible={showAchievement}
+        onClose={() => setShowAchievement(false)}
+      />
       <Header />
       <div className="w-full max-w-full px-2 sm:px-4 py-4 mx-auto">
         <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 mb-8">

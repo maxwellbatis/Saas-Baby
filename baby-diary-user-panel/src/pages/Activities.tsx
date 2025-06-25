@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { useAuth, useGamification } from "@/contexts/AuthContext";
 import SleepAnalysisModal from '@/components/SleepAnalysisModal';
 import SuggestedActivitiesModal from '@/components/SuggestedActivitiesModal';
 import { API_CONFIG } from '../config/api';
+import { AchievementNotification } from '@/components/AchievementNotification';
 
 interface Activity {
   id: string;
@@ -31,7 +32,7 @@ const Activities = () => {
   const { theme, getBgClass, getGradientClass } = useTheme();
   const { toast } = useToast();
   const { babies, isLoading: isAuthLoading, refetch } = useAuth();
-  const { fetchGamificationData } = useGamification();
+  const { fetchGamificationData, gamification } = useGamification();
   
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,6 +42,10 @@ const Activities = () => {
   const [selectedActivity, setSelectedActivity] = useState<Activity | undefined>();
   const [sleepModalOpen, setSleepModalOpen] = useState(false);
   const [suggestedModalOpen, setSuggestedModalOpen] = useState(false);
+  const [showAchievement, setShowAchievement] = useState(false);
+  const [achievementData, setAchievementData] = useState(null);
+  const prevLevelRef = useRef<number | null>(null);
+  const prevBadgesRef = useRef<string[]>([]);
 
   const baby = babies?.[0];
 
@@ -156,6 +161,51 @@ const Activities = () => {
     return `${h > 0 ? `${h}h ` : ''}${m > 0 ? `${m}min` : ''}`.trim();
   };
   
+  // Detecta novos badges ou level up após atualização da gamificação
+  useEffect(() => {
+    if (!gamification) return;
+    
+    // Detecta level up
+    if (
+      prevLevelRef.current !== null &&
+      gamification.level > prevLevelRef.current
+    ) {
+      setAchievementData({
+        id: `level-${gamification.level}`,
+        title: `Nível ${gamification.level}`,
+        description: `Parabéns! Você subiu para o nível ${gamification.level}!`,
+        icon: 'level-up',
+        points: 0,
+        type: 'level',
+      });
+      setShowAchievement(true);
+    }
+    
+    // Detecta novos badges
+    if (
+      prevBadgesRef.current.length > 0 &&
+      gamification.badges.length > prevBadgesRef.current.length
+    ) {
+      const newBadge = gamification.badges.find(
+        (b) => !prevBadgesRef.current.includes(b)
+      );
+      if (newBadge) {
+        setAchievementData({
+          id: `badge-${newBadge}`,
+          title: `Novo Badge: ${newBadge}`,
+          description: 'Você conquistou um novo badge!',
+          icon: 'first-memory',
+          points: 0,
+          type: 'badge',
+        });
+        setShowAchievement(true);
+      }
+    }
+    
+    prevLevelRef.current = gamification.level;
+    prevBadgesRef.current = gamification.badges;
+  }, [gamification]);
+
   if (isAuthLoading || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -188,6 +238,12 @@ const Activities = () => {
   
   return (
     <div className={`min-h-screen bg-gradient-to-br ${getBgClass()}`}>
+      {/* Notificação de conquista */}
+      <AchievementNotification
+        achievement={achievementData}
+        isVisible={showAchievement}
+        onClose={() => setShowAchievement(false)}
+      />
       <Header />
       <div className="w-full max-w-full px-2 sm:px-4 py-4 mx-auto">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4 mb-8">
@@ -207,13 +263,19 @@ const Activities = () => {
             >
               <Moon className="w-4 h-4" /> Análise do Sono
             </Button>
+            <Button
+              onClick={() => setSuggestedModalOpen(true)}
+              className="bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg flex items-center gap-2 px-3 py-2 text-sm sm:px-6 sm:py-2 sm:text-base"
+            >
+              <Sparkles className="w-4 h-4" /> Sugestões
+            </Button>
+            <Button
+              onClick={() => openModal('create')}
+              className={`${getGradientClass()} text-white border-0 shadow-lg flex items-center gap-2 px-3 py-2 text-sm sm:px-6 sm:py-2 sm:text-base ml-2`}
+            >
+              <PlusCircle className="w-4 h-4 mr-2" /> Nova Atividade
+            </Button>
           </div>
-          <Button
-            onClick={() => setSuggestedModalOpen(true)}
-            className="bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg flex items-center gap-2 px-3 py-2 text-sm sm:px-6 sm:py-2 sm:text-base"
-          >
-            <Sparkles className="w-4 h-4" /> Sugestões
-          </Button>
         </div>
 
         {/* Activities List */}

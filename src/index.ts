@@ -36,8 +36,8 @@ const PORT = process.env.PORT || 3000;
 
 // Configurar rate limiting
 const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutos
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'), // limite por IP
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '90000'), // 15 minutos
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '1000'), // limite por IP
   message: {
     success: false,
     error: 'Muitas requisições. Tente novamente mais tarde.',

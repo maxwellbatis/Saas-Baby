@@ -1302,19 +1302,31 @@ router.get('/milestones', async (req: Request, res: Response) => {
  */
 router.get('/milestones/suggested', async (req, res) => {
   try {
+    console.log('🔍 Buscando marcos sugeridos...');
+    console.log('Query params:', req.query);
+    console.log('User:', req.user?.userId);
+    
     if (!req.user) {
+      console.log('❌ Usuário não autenticado');
       return res.status(401).json({ success: false, error: 'Usuário não autenticado' });
     }
     const { babyId } = req.query;
     if (!babyId || typeof babyId !== 'string') {
+      console.log('❌ babyId inválido:', babyId);
       return res.status(400).json({ success: false, error: 'babyId é obrigatório' });
     }
+    
+    console.log('👶 Buscando marcos para babyId:', babyId);
+    
     // Buscar títulos dos marcos já registrados para este bebê
     const registeredTitles = await prisma.milestone.findMany({
       where: { babyId },
       select: { title: true },
     });
+    console.log('📝 Marcos já registrados:', registeredTitles.map(m => m.title));
+    
     const registeredTitlesSet = new Set(registeredTitles.map(m => m.title));
+    
     // Buscar marcos sugeridos ativos que ainda não foram registrados
     const suggested = await prisma.suggestedMilestone.findMany({
       where: {
@@ -1323,10 +1335,14 @@ router.get('/milestones/suggested', async (req, res) => {
       },
       orderBy: { sortOrder: 'asc' },
     });
-    // Sempre retorna array (mesmo vazio)
-    return res.json({ success: true, data: suggested });
+    
+    console.log('🎯 Marcos sugeridos encontrados:', suggested.length);
+    console.log('📋 Títulos sugeridos:', suggested.map(s => s.title));
+    
+    // Sempre retorna array (mesmo vazio), limitado a 11 marcos
+    return res.json({ success: true, data: suggested.slice(0, 11) });
   } catch (error) {
-    console.error('Erro ao listar marcos sugeridos:', error);
+    console.error('❌ Erro ao listar marcos sugeridos:', error);
     return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });

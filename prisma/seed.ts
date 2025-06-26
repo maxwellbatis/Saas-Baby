@@ -750,6 +750,311 @@ async function main() {
     });
   }
 
+  // BIBLIOTECA DE MARKETING DIGITAL - DADOS DE SEED
+
+  // Posts para Redes Sociais
+  const socialMediaPosts = [
+    {
+      id: 'post_emocional_1',
+      title: 'Primeiro Sorriso',
+      description: 'Post emocional sobre capturar o primeiro sorriso do bebê',
+      category: 'emocional',
+      platform: 'instagram',
+      contentType: 'post',
+      caption: `👶✨ O primeiro sorriso do seu bebê é um momento mágico que merece ser guardado para sempre!
+
+Com o Baby Diary, você pode registrar cada sorriso, cada marco, cada memória especial do desenvolvimento do seu pequeno.
+
+📱 Baixe agora e comece a criar seu diário digital de memórias!
+
+#babyapp #diariodobebe #primeirosorriso #gestante #maedemenino #maedemenina #maternidade #bebe #memorias`,
+      hashtags: '#babyapp #diariodobebe #primeirosorriso #gestante #maedemenino #maedemenina #maternidade #bebe #memorias',
+      cta: 'Baixe agora e comece a criar seu diário digital!',
+      targetAudience: 'gestantes',
+      isActive: true,
+      sortOrder: 1,
+      createdBy: 'admin'
+    },
+    {
+      id: 'post_funcionalidade_1',
+      title: 'Chat IA para Mães',
+      description: 'Post destacando o chat com IA para dúvidas sobre maternidade',
+      category: 'funcionalidade',
+      platform: 'instagram',
+      contentType: 'post',
+      caption: `🤖💡 Dúvidas sobre o desenvolvimento do seu bebê? O Baby Diary tem um assistente IA 24h por dia!
+
+Pergunte sobre sono, alimentação, marcos de desenvolvimento e receba respostas personalizadas baseadas na idade do seu bebê.
+
+✨ Tecnologia que entende a maternidade real!
+
+#babyapp #ia #maternidade #desenvolvimento #bebe #gestante #mae #tecnologia`,
+      hashtags: '#babyapp #ia #maternidade #desenvolvimento #bebe #gestante #mae #tecnologia',
+      cta: 'Experimente o chat IA gratuitamente!',
+      targetAudience: 'maes_bebes',
+      isActive: true,
+      sortOrder: 2,
+      createdBy: 'admin'
+    },
+    {
+      id: 'post_beneficio_1',
+      title: 'Centralize Tudo',
+      description: 'Post sobre centralizar todas as informações do bebê em um só lugar',
+      category: 'beneficio',
+      platform: 'facebook',
+      contentType: 'post',
+      caption: `📱💝 Chega de ter informações do bebê espalhadas em vários lugares!
+
+Com o Baby Diary, você centraliza:
+✅ Registro de sono
+✅ Alimentação
+✅ Marcos de desenvolvimento
+✅ Vacinas
+✅ Consultas médicas
+✅ Memórias especiais
+
+Tudo em um só app, com backup automático na nuvem!
+
+#babyapp #organizacao #maternidade #bebe #gestante #mae #facilidade`,
+      hashtags: '#babyapp #organizacao #maternidade #bebe #gestante #mae #facilidade',
+      cta: 'Organize a vida do seu bebê em um só lugar!',
+      targetAudience: 'maes_bebes',
+      isActive: true,
+      sortOrder: 3,
+      createdBy: 'admin'
+    }
+  ];
+
+  for (const post of socialMediaPosts) {
+    await prisma.socialMediaPost.upsert({
+      where: { id: post.id },
+      update: post,
+      create: post,
+    });
+  }
+
+  // Anúncios
+  const advertisements = [
+    {
+      id: 'ad_facebook_1',
+      title: 'Plano Premium - Gestantes',
+      platform: 'facebook',
+      adType: 'image',
+      copyShort: 'Registre cada momento especial do seu bebê com qualidade premium!',
+      copyLong: 'O Baby Diary Premium oferece recursos avançados para registrar cada momento especial do desenvolvimento do seu bebê. Com IA personalizada, backup automático e funcionalidades ilimitadas, você nunca mais perderá um marco importante.',
+      headline: 'Baby Diary Premium - Seu Diário Digital Completo',
+      description: 'Registre memórias, marcos e atividades com IA personalizada. Backup automático e recursos ilimitados.',
+      cta: 'Começar Gratuitamente',
+      targetAudience: 'gestantes',
+      interests: ['maternidade', 'amamentação', 'pediatria', 'desenvolvimento infantil'],
+      budget: 50.0,
+      isActive: true,
+      createdBy: 'admin'
+    },
+    {
+      id: 'ad_instagram_1',
+      title: 'App Gratuito - Mães de Bebês',
+      platform: 'instagram',
+      adType: 'story',
+      copyShort: 'App gratuito para registrar o desenvolvimento do seu bebê!',
+      copyLong: 'Comece a registrar o desenvolvimento do seu bebê gratuitamente! O Baby Diary oferece funcionalidades essenciais sem custo, incluindo registro de atividades, memórias e marcos importantes.',
+      headline: 'Baby Diary - Gratuito para Começar',
+      description: 'Registre o desenvolvimento do seu bebê gratuitamente. Funcionalidades essenciais sem custo.',
+      cta: 'Baixar Grátis',
+      targetAudience: 'maes_bebes',
+      interests: ['maternidade', 'bebês', 'desenvolvimento'],
+      budget: 30.0,
+      isActive: true,
+      createdBy: 'admin'
+    }
+  ];
+
+  for (const ad of advertisements) {
+    await prisma.advertisement.upsert({
+      where: { id: ad.id },
+      update: ad,
+      create: ad,
+    });
+  }
+
+  // Vídeos
+  const videoContents = [
+    {
+      id: 'video_reel_1',
+      title: 'Como o Baby Diary Salvou Meu Puerpério',
+      description: 'Reel emocional mostrando como o app ajudou uma mãe no puerpério',
+      platform: 'instagram',
+      videoType: 'reel',
+      duration: 30,
+      script: `Cena 1 (0-5s): Mãe exausta à noite com bebê chorando
+Texto: "3h da manhã e seu bebê chorando?"
+
+Cena 2 (6-15s): Ela abre o app Baby Diary
+Texto: "Você não está sozinha"
+
+Cena 3 (16-25s): Ela recebe dica personalizada da IA
+Texto: "Receba apoio 24h com IA"
+
+Cena 4 (26-30s): Mãe sorrindo com bebê dormindo
+Texto: "Baby Diary - sua jornada com amor e apoio"`,
+      music: 'Música suave e emocional',
+      hashtags: '#babyapp #puerperio #mae #bebe #ia #apoio #maternidade',
+      targetAudience: 'maes_bebes',
+      isActive: true,
+      createdBy: 'admin'
+    },
+    {
+      id: 'video_tutorial_1',
+      title: 'Como Registrar o Primeiro Marco',
+      description: 'Tutorial rápido sobre como registrar marcos no app',
+      platform: 'tiktok',
+      videoType: 'tutorial',
+      duration: 45,
+      script: `Cena 1 (0-10s): Abrir app e mostrar tela inicial
+Texto: "Como registrar marcos no Baby Diary"
+
+Cena 2 (11-25s): Clicar em "Marcos" e mostrar formulário
+Texto: "É super fácil! Só clicar em Marcos"
+
+Cena 3 (26-40s): Preencher dados e salvar
+Texto: "Preencher e salvar - pronto!"
+
+Cena 4 (41-45s): Mostrar marco salvo
+Texto: "Seu marco ficou registrado para sempre!"`,
+      music: 'Música animada e jovem',
+      hashtags: '#tutorial #babyapp #marcos #bebe #mae #facilidade',
+      targetAudience: 'gestantes',
+      isActive: true,
+      createdBy: 'admin'
+    }
+  ];
+
+  for (const video of videoContents) {
+    await prisma.videoContent.upsert({
+      where: { id: video.id },
+      update: video,
+      create: video,
+    });
+  }
+
+  // Argumentos de Venda
+  const salesArguments = [
+    {
+      id: 'arg_emocional_1',
+      title: 'Guarde o Primeiro Sorriso para Sempre',
+      category: 'emocional',
+      argument: 'O primeiro sorriso do seu bebê é um momento único que nunca mais se repete. Com o Baby Diary, você pode registrar esse momento especial com fotos, vídeos e descrições, criando um tesouro de memórias que durará para sempre.',
+      examples: [
+        'Registre o primeiro sorriso com foto e descrição',
+        'Adicione contexto emocional ao momento',
+        'Compartilhe com familiares automaticamente'
+      ],
+      targetAudience: 'gestantes',
+      conversionRate: 18.5,
+      isActive: true,
+      sortOrder: 1,
+      createdBy: 'admin'
+    },
+    {
+      id: 'arg_escassez_1',
+      title: 'Desconto por Tempo Limitado',
+      category: 'escassez',
+      argument: 'Oferta especial por tempo limitado! Assinatura Premium com 50% de desconto apenas para os primeiros 100 usuários. Não perca essa oportunidade de ter acesso a recursos avançados de IA e backup ilimitado.',
+      examples: [
+        'Desconto de 50% por tempo limitado',
+        'Apenas 100 vagas disponíveis',
+        'Recursos premium com IA avançada'
+      ],
+      targetAudience: 'maes_bebes',
+      conversionRate: 25.0,
+      isActive: true,
+      sortOrder: 2,
+      createdBy: 'admin'
+    },
+    {
+      id: 'arg_pertencimento_1',
+      title: 'Mais de 10.000 Mães Já Estão Usando',
+      category: 'pertencimento',
+      argument: 'Junte-se a mais de 10.000 mães que já confiam no Baby Diary para registrar o desenvolvimento dos seus bebês. Faça parte dessa comunidade que valoriza cada momento especial da maternidade.',
+      examples: [
+        '10.000+ mães já usam o app',
+        'Comunidade ativa de mães',
+        'Depoimentos reais de usuárias'
+      ],
+      targetAudience: 'maes_criancas',
+      conversionRate: 15.0,
+      isActive: true,
+      sortOrder: 3,
+      createdBy: 'admin'
+    },
+    {
+      id: 'arg_racional_1',
+      title: 'Centralize Tudo num Só Lugar',
+      category: 'racional',
+      argument: 'Elimine a confusão de ter informações do bebê espalhadas em vários lugares. O Baby Diary centraliza sono, alimentação, marcos, vacinas, consultas e memórias em uma única plataforma com backup automático.',
+      examples: [
+        'Todas as informações em um só lugar',
+        'Backup automático na nuvem',
+        'Interface intuitiva e organizada'
+      ],
+      targetAudience: 'maes_bebes',
+      conversionRate: 12.5,
+      isActive: true,
+      sortOrder: 4,
+      createdBy: 'admin'
+    }
+  ];
+
+  for (const arg of salesArguments) {
+    await prisma.salesArgument.upsert({
+      where: { id: arg.id },
+      update: arg,
+      create: arg,
+    });
+  }
+
+  // Links de Afiliados
+  const affiliateLinks = [
+    {
+      id: 'link_instagram_1',
+      name: 'Campanha Instagram - Plano Premium',
+      baseUrl: 'https://babydiary.shop',
+      utmSource: 'instagram',
+      utmMedium: 'social',
+      utmCampaign: 'plano_premium',
+      utmContent: 'post_emocional',
+      fullUrl: 'https://babydiary.shop?utm_source=instagram&utm_medium=social&utm_campaign=plano_premium&utm_content=post_emocional',
+      clicks: 0,
+      conversions: 0,
+      isActive: true,
+      createdBy: 'admin'
+    },
+    {
+      id: 'link_facebook_1',
+      name: 'Campanha Facebook - App Gratuito',
+      baseUrl: 'https://babydiary.shop',
+      utmSource: 'facebook',
+      utmMedium: 'social',
+      utmCampaign: 'app_gratuito',
+      utmContent: 'ad_story',
+      fullUrl: 'https://babydiary.shop?utm_source=facebook&utm_medium=social&utm_campaign=app_gratuito&utm_content=ad_story',
+      clicks: 0,
+      conversions: 0,
+      isActive: true,
+      createdBy: 'admin'
+    }
+  ];
+
+  for (const link of affiliateLinks) {
+    await prisma.affiliateLink.upsert({
+      where: { id: link.id },
+      update: link,
+      create: link,
+    });
+  }
+
+  console.log('✅ Biblioteca de Marketing Digital criada');
+
   console.log('🎉 Seed concluído com sucesso!');
 }
 

@@ -57,6 +57,7 @@ model User {
   // Novas relações para gamificação avançada
   userAIRewards UserAIReward[]
   gamificationRankings GamificationRanking[]
+  marketingInteractions MarketingInteraction[]
   // Novas relações para sistema de resgate manual
   purchases     UserPurchase[]
   missions      UserMission[]
@@ -732,4 +733,143 @@ model UserEvent {
   rewards     Json     @default("[]") // Recompensas conquistadas
   joinedAt    DateTime @default(now())
   completedAt DateTime?
+}
+
+model MarketingCampaign {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // email, push, sms, inapp
+  content     String   // Texto da campanha (pode ser gerado pela IA)
+  subject     String?  // Para email
+  segment     String   // Ex: "novas_mamaes", "premium", "inativas"
+  status      String   @default("draft") // draft, scheduled, sent, failed
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  createdBy   String   // Admin que criou
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  aiPrompt    String?  // Prompt enviado para Gemini
+  aiResponse  String?  // Resposta da Gemini
+  
+  // Segmentação avançada
+  babyAgeMin  Int?     // Idade mínima do bebê em meses
+  babyAgeMax  Int?     // Idade máxima do bebê em meses
+  motherType  String?  // primeira_vez, experiente, gestante, etc
+  planType    String?  // basic, premium, family
+  engagement  String?  // ativa, inativa, nova, retornando
+  daysInactive Int?    // Dias inativos para segmentação
+  hasMultipleBabies Boolean? // Famílias com mais de 1 bebê
+  isPremium   Boolean? // Usuários premium
+  isVerified  Boolean? // Email verificado
+  lastActivityDays Int? // Última atividade há X dias
+  totalMemories Int?   // Total de memórias (para segmentar por engajamento)
+  totalActivities Int? // Total de atividades
+  interactions MarketingInteraction[]
+}
+
+model MarketingInteraction {
+  id          String   @id @default(cuid())
+  campaignId  String
+  campaign    MarketingCampaign @relation(fields: [campaignId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  status      String   // sent, opened, clicked, failed
+  sentAt      DateTime?
+  openedAt    DateTime?
+  clickedAt   DateTime?
+  error       String?
+}
+
+// BIBLIOTECA DE MARKETING DIGITAL
+model SocialMediaPost {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  category    String   // motivacional, beneficio, funcionalidade, depoimento, comemorativo
+  platform    String   // instagram, facebook, tiktok, whatsapp, linkedin
+  contentType String   // post, story, reel, video, carousel
+  imageUrl    String?
+  videoUrl    String?
+  caption     String   // Legenda pronta para copiar
+  hashtags    String   // Hashtags sugeridas
+  cta         String?  // Call to action
+  targetAudience String // gestantes, maes_bebes, maes_criancas
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String   // Admin que criou
+}
+
+model Advertisement {
+  id          String   @id @default(cuid())
+  title       String
+  platform    String   // facebook, instagram, google_ads, tiktok
+  adType      String   // image, video, carousel, story
+  copyShort   String   // Copy curta (até 125 caracteres)
+  copyLong    String   // Copy longa
+  headline    String   // Título do anúncio
+  description String   // Descrição do anúncio
+  cta         String   // Call to action
+  imageUrl    String?
+  videoUrl    String?
+  targetAudience String // Segmentação sugerida
+  interests   Json     @default("[]") // Interesses para segmentação
+  budget      Float?   // Orçamento sugerido
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String   // Admin que criou
+}
+
+model VideoContent {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  platform    String   // instagram, tiktok, youtube, facebook
+  videoType   String   // reel, story, tutorial, testimonial, promotional
+  duration    Int      // Duração em segundos
+  videoUrl    String?
+  thumbnailUrl String?
+  script      String   // Roteiro completo
+  music       String?  // Sugestão de música
+  hashtags    String   // Hashtags para o vídeo
+  targetAudience String // Público alvo
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String   // Admin que criou
+}
+
+model SalesArgument {
+  id          String   @id @default(cuid())
+  title       String
+  category    String   // emocional, escassez, pertencimento, racional, urgencia
+  argument    String   // Argumento principal
+  examples    Json     @default("[]") // Exemplos de uso
+  targetAudience String // Público alvo
+  conversionRate Float? // Taxa de conversão estimada
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String   // Admin que criou
+}
+
+model AffiliateLink {
+  id          String   @id @default(cuid())
+  name        String   // Nome do afiliado ou campanha
+  baseUrl     String   // URL base
+  utmSource   String   // Fonte (ex: instagram, facebook)
+  utmMedium   String   // Meio (ex: social, email)
+  utmCampaign String   // Campanha
+  utmContent  String?  // Conteúdo específico
+  utmTerm     String?  // Termo de busca
+  fullUrl     String   // URL completa com parâmetros
+  clicks      Int      @default(0)
+  conversions Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String   // Admin que criou
 }

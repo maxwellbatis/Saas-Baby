@@ -924,18 +924,53 @@ router.post('/memories', checkMemoryLimit, async (req: Request, res: Response) =
       },
     });
 
-    // === Gamificação centralizada ===
+    // === Gamificação automática (memória criada) ===
     let gamificationResult: any = null;
     try {
-      gamificationResult = await GamificationService.applyAction(req.user.userId, 'memory_created');
-      // Notificação de badge (se houver)
-      if (gamificationResult && Array.isArray(gamificationResult.newBadges) && gamificationResult.newBadges.length > 0 && notificationService) {
-        await notificationService.sendPushNotification({
-          userId: req.user.userId,
-          title: 'Parabéns! Novo badge conquistado!',
-          body: `Você desbloqueou o badge: ${gamificationResult.newBadges.join(', ')}`,
-          data: { badges: gamificationResult.newBadges, screen: 'Rewards' },
+      const gamification = await prisma.gamification.findUnique({ where: { userId: req.user.userId } });
+      if (gamification) {
+        const rules = await prisma.gamificationRule.findMany({ where: { isActive: true } });
+        const oldBadges = Array.isArray(gamification.badges) ? gamification.badges.map(String) : [];
+        let processedData: any = {
+          points: gamification.points,
+          level: gamification.level,
+          badges: Array.isArray(gamification.badges) ? [...gamification.badges] : [],
+          streaks: typeof gamification.streaks === 'object' && gamification.streaks !== null && !Array.isArray(gamification.streaks) ? { ...gamification.streaks } : {},
+          achievements: Array.isArray(gamification.achievements) ? [...gamification.achievements] : [],
+          dailyProgress: gamification.dailyProgress,
+          totalActivities: gamification.totalActivities || 0,
+          totalMemories: (gamification.totalMemories || 0) + 1,
+          totalMilestones: gamification.totalMilestones || 0,
+        };
+        for (const rule of rules) {
+          if (rule.condition === 'memory_created' || rule.condition === 'any') {
+            processedData = GamificationService.applyRule(processedData, rule as any);
+          }
+        }
+        const currentBadges = Array.isArray(processedData.badges) ? processedData.badges.map(String) : [];
+        const newBadges = currentBadges.filter((b: string) => !oldBadges.includes(b));
+        const updateData: Prisma.GamificationUpdateInput = {
+          points: processedData.points,
+          level: processedData.level,
+          badges: Array.isArray(processedData.badges) && processedData.badges.length > 0 ? processedData.badges : Prisma.JsonNull,
+          streaks: processedData.streaks && Object.keys(processedData.streaks).length > 0 ? processedData.streaks : Prisma.JsonNull,
+          achievements: Array.isArray(processedData.achievements) && processedData.achievements.length > 0 ? processedData.achievements : Prisma.JsonNull,
+          dailyProgress: processedData.dailyProgress,
+          totalMemories: processedData.totalMemories,
+        };
+        gamificationResult = await prisma.gamification.update({
+          where: { userId: req.user.userId },
+          data: updateData,
         });
+        if (newBadges.length > 0 && notificationService) {
+          await notificationService.sendPushNotification({
+            userId: req.user.userId,
+            title: 'Parabéns! Novo badge conquistado!',
+            body: `Você desbloqueou o badge: ${newBadges.join(', ')}`,
+            data: { badges: newBadges, screen: 'Rewards' },
+          });
+        }
+        gamificationResult.newBadges = newBadges;
       }
     } catch (err) {
       console.error('Erro na gamificação automática (memória):', err);

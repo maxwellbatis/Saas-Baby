@@ -241,8 +241,11 @@ export const getUsers = async (req: Request, res: Response) => {
       where.isActive = status === 'active';
     }
     
-    // Buscar usuários com paginação
-    const [users, total] = await Promise.all([
+    // Calcular estatísticas
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const [users, total, stats] = await Promise.all([
       prisma.user.findMany({
         where,
         include: {
@@ -266,6 +269,19 @@ export const getUsers = async (req: Request, res: Response) => {
         take: Number(limit),
       }),
       prisma.user.count({ where }),
+      Promise.all([
+        prisma.user.count(),
+        prisma.user.count({ where: { isActive: true } }),
+        prisma.user.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+        prisma.user.count({ 
+          where: { 
+            subscription: { 
+              status: 'active',
+              plan: { name: { in: ['premium', 'Premium', 'FAMÍLIA', 'família'] } }
+            } 
+          } 
+        })
+      ])
     ]);
     
     const totalPages = Math.ceil(total / Number(limit));
@@ -280,6 +296,12 @@ export const getUsers = async (req: Request, res: Response) => {
           total,
           totalPages,
         },
+        stats: {
+          totalUsers: stats[0],
+          activeUsers: stats[1],
+          newUsers30Days: stats[2],
+          premiumUsers: stats[3]
+        }
       },
     });
   } catch (error) {

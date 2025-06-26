@@ -25,6 +25,7 @@ import aiRoutes from './routes/ai';
 import notificationRoutes from './routes/notifications';
 import healthRoutes from './routes/health';
 import gamificationRoutes from './routes/gamification';
+import marketingRoutes from './routes/marketing';
 
 // Importar middlewares
 import { authenticateUser, authenticateAdmin } from './middlewares/auth';
@@ -36,8 +37,8 @@ const PORT = process.env.PORT || 3000;
 
 // Configurar rate limiting
 const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '90000'), // 15 minutos
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '1000'), // limite por IP
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '9000'), // 15 minutos
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '10000'), // limite por IP
   message: {
     success: false,
     error: 'Muitas requisições. Tente novamente mais tarde.',
@@ -109,6 +110,7 @@ app.get('/health', async (req, res) => {
 // Rotas da API
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', authenticateAdmin, adminRoutes);
+app.use('/api/admin/marketing', authenticateAdmin, marketingRoutes);
 app.use('/api/user', authenticateUser, userRoutes);
 app.use('/api/public', publicRoutes);
 

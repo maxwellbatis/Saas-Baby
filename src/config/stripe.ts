@@ -13,6 +13,9 @@ const stripe = stripeSecretKey ? new Stripe(stripeSecretKey, {
   typescript: true,
 }) : null;
 
+// Exportar a instância do Stripe
+export default stripe;
+
 // Função para verificar se a chave Stripe é válida
 export const verifyStripeKey = async (): Promise<boolean> => {
   try {
@@ -232,6 +235,4 @@ export const handleStripeWebhook = async (event: Stripe.Event) => {
     default:
       return { status: 'ignored' };
   }
-};
-
-export default stripe; 
+}; 

@@ -18,8 +18,8 @@ if (cloudName && apiKey && apiSecret && cloudName.trim() !== '' && apiKey.trim()
   process.exit(1); // Para o servidor se não estiver configurado
 }
 
-// Função para fazer upload de imagem
-export const uploadImage = async (
+// Função para fazer upload de mídia (imagem ou vídeo)
+export const uploadMedia = async (
   file: Express.Multer.File,
   folder: string = 'baby-diary'
 ): Promise<{ url: string; publicId: string; secureUrl: string }> => {
@@ -28,15 +28,30 @@ export const uploadImage = async (
     const b64 = Buffer.from(file.buffer).toString('base64');
     const dataURI = `data:${file.mimetype};base64,${b64}`;
 
-    // Fazer upload para o Cloudinary
-    const result = await cloudinary.uploader.upload(dataURI, {
+    // Determinar se é vídeo ou imagem
+    const isVideo = file.mimetype.startsWith('video/');
+    const resourceType = isVideo ? 'video' : 'image';
+
+    // Configurações específicas para vídeo
+    const uploadOptions: any = {
       folder,
-      resource_type: 'auto',
-      transformation: [
+      resource_type: resourceType,
+    };
+
+    if (isVideo) {
+      uploadOptions.transformation = [
         { quality: 'auto' },
         { fetch_format: 'auto' }
-      ],
-    });
+      ];
+    } else {
+      uploadOptions.transformation = [
+        { quality: 'auto' },
+        { fetch_format: 'auto' }
+      ];
+    }
+
+    // Fazer upload para o Cloudinary
+    const result = await cloudinary.uploader.upload(dataURI, uploadOptions);
 
     return {
       url: result.secure_url,
@@ -44,9 +59,17 @@ export const uploadImage = async (
       secureUrl: result.secure_url,
     };
   } catch (error) {
-    console.error('Erro ao fazer upload de imagem para o Cloudinary:', error);
-    throw new Error('Falha ao fazer upload da imagem para o Cloudinary');
+    console.error('Erro ao fazer upload de mídia para o Cloudinary:', error);
+    throw new Error('Falha ao fazer upload da mídia para o Cloudinary');
   }
+};
+
+// Função para fazer upload de imagem (mantida para compatibilidade)
+export const uploadImage = async (
+  file: Express.Multer.File,
+  folder: string = 'baby-diary'
+): Promise<{ url: string; publicId: string; secureUrl: string }> => {
+  return uploadMedia(file, folder);
 };
 
 // Função para deletar imagem

@@ -216,7 +216,30 @@ export default function Business() {
           </a>
         </div>
         <div className="mt-6">
-          <Button className="text-lg px-8 py-4 bg-green-600 hover:bg-green-700 shadow-lg">Quero ser parceiro</Button>
+          <a href="https://w.app/babydiary" target="_blank" rel="noopener noreferrer">
+            <Button className="text-lg px-8 py-4 bg-green-600 hover:bg-green-700 shadow-lg">Quero ser parceiro</Button>
+          </a>
+        </div>
+      </section>
+
+      {/* Bloco para Influenciadoras Maternas */}
+      <section className="mb-12 py-10 bg-gradient-to-r from-pink-100 to-yellow-50 border-y-2 border-pink-200">
+        <div className="max-w-3xl mx-auto flex flex-col items-center text-center">
+          <div className="text-5xl mb-3">🤳</div>
+          <h3 className="text-2xl md:text-3xl font-bold mb-2 text-pink-700">PARA INFLUENCIADORAS DIGITAIS DO NICHO MATERNO</h3>
+          <ul className="list-disc text-lg text-gray-800 text-left mb-4 pl-6">
+            <li>Ganhe acesso vitalício ao app completo para mostrar no seu perfil</li>
+            <li>Indique outras mães e receba comissão recorrente com cada assinatura</li>
+            <li>Crie sua própria versão do app com seu nome e estilo <span className="font-semibold">(white-label)</span></li>
+            <li>Transforme sua audiência em uma fonte de renda recorrente com valor real</li>
+          </ul>
+          <div className="bg-yellow-100 rounded-lg p-4 mt-2 mb-2 shadow">
+            <span className="text-lg font-semibold text-pink-700">🎁 Oferta exclusiva para influenciadoras:</span> acesso VIP + bônus de lançamento.<br/>
+            <span className="text-gray-700">Entre em contato e receba sua versão personalizada em minutos.</span>
+          </div>
+          <a href="https://w.app/babydiary" target="_blank" rel="noopener noreferrer">
+            <Button className="mt-4 text-lg px-8 py-4 bg-gradient-to-r from-pink-500 to-yellow-400 text-white shadow-xl hover:scale-105 transition">Quero ser influenciadora parceira</Button>
+          </a>
         </div>
       </section>
 
@@ -317,8 +340,13 @@ export default function Business() {
           ))}
         </div>
         <p className="text-2xl text-center font-semibold my-8 text-pink-700 max-w-2xl mx-auto">O Baby Diary não vende um app. Vende a promessa de que nenhum momento especial será perdido. E essa promessa é irresistível para qualquer mãe.</p>
-        <div className="flex justify-center">
-          <Button className="text-lg px-8 py-4 bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-xl hover:scale-105 transition">Quero ser parceiro</Button>
+        <div className="flex flex-col items-center gap-4">
+          <a href="https://w.app/babydiary" target="_blank" rel="noopener noreferrer">
+            <Button className="text-lg px-8 py-4 bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-xl hover:scale-105 transition">Quero ser parceiro ou influenciadora</Button>
+          </a>
+          <a href="https://w.app/babydiary" target="_blank" rel="noopener noreferrer" className="text-gray-700 text-base underline hover:text-pink-700 transition">
+            Entre em contato e descubra como podemos crescer juntos!
+          </a>
         </div>
       </section>
 

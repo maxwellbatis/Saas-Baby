@@ -16,7 +16,8 @@ import {
   BarChart3,
   CreditCard,
   Bell,
-  Shield
+  Shield,
+  Megaphone
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { 
@@ -38,6 +39,7 @@ const navigation = [
   { name: 'Marcos', href: '/admin/milestones', icon: Trophy },
   { name: 'Planos', href: '/admin/plans', icon: CreditCard },
   { name: 'Gamificação', href: '/admin/gamification', icon: BarChart3 },
+  { name: 'Marketing', href: '/admin/marketing', icon: Megaphone },
   { name: 'Notificações', href: '/admin/notifications', icon: Bell },
   { name: 'Configurações', href: '/admin/settings', icon: Settings },
 ];

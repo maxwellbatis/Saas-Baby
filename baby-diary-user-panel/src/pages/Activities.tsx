@@ -246,56 +246,58 @@ const Activities = () => {
       />
       <Header />
       <div className="w-full max-w-full px-2 sm:px-4 py-4 mx-auto">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4 mb-8">
-          <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 w-full">
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 w-full">
             <BackButton to="/dashboard" />
-            <div>
-              <h1 className={`text-2xl sm:text-3xl font-bold bg-gradient-to-r ${theme === 'blue' ? 'from-blue-600 to-cyan-600' : 'from-pink-600 to-rose-600'} bg-clip-text text-transparent`}>
+            <div className="flex-1 w-full">
+              <h1 className={`text-xl sm:text-3xl font-bold bg-gradient-to-r ${theme === 'blue' ? 'from-blue-600 to-cyan-600' : 'from-pink-600 to-rose-600'} bg-clip-text text-transparent`}>
                 Atividades de {baby.name}
               </h1>
               <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
                 Registre a rotina diária e acompanhe os hábitos
               </p>
             </div>
-            <Button
-              onClick={() => setSleepModalOpen(true)}
-              className="ml-0 sm:ml-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg flex items-center gap-2 px-3 py-2 text-sm sm:px-6 sm:py-2 sm:text-base"
-            >
-              <Moon className="w-4 h-4" /> Análise do Sono
-            </Button>
-            <Button
-              onClick={() => setSuggestedModalOpen(true)}
-              className="bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg flex items-center gap-2 px-3 py-2 text-sm sm:px-6 sm:py-2 sm:text-base"
-            >
-              <Sparkles className="w-4 h-4" /> Sugestões
-            </Button>
-            <Button
-              onClick={() => openModal('create')}
-              className={`${getGradientClass()} text-white border-0 shadow-lg flex items-center gap-2 px-3 py-2 text-sm sm:px-6 sm:py-2 sm:text-base ml-2`}
-            >
-              <PlusCircle className="w-4 h-4 mr-2" /> Nova Atividade
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+              <Button
+                onClick={() => setSleepModalOpen(true)}
+                className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg flex items-center gap-2 px-3 py-2 text-sm sm:px-6 sm:py-2 sm:text-base"
+              >
+                <Moon className="w-4 h-4" /> Análise do Sono
+              </Button>
+              <Button
+                onClick={() => setSuggestedModalOpen(true)}
+                className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg flex items-center gap-2 px-3 py-2 text-sm sm:px-6 sm:py-2 sm:text-base"
+              >
+                <Sparkles className="w-4 h-4" /> Sugestões
+              </Button>
+              <Button
+                onClick={() => openModal('create')}
+                className={`w-full sm:w-auto ${getGradientClass()} text-white border-0 shadow-lg flex items-center gap-2 px-3 py-2 text-sm sm:px-6 sm:py-2 sm:text-base`}
+              >
+                <PlusCircle className="w-4 h-4 mr-2" /> Nova Atividade
+              </Button>
+            </div>
           </div>
         </div>
 
         {/* Activities List */}
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4 w-full">
           {activities.map((activity, index) => (
             <Card 
               key={activity.id}
-              className="glass-card border-0 shadow-lg hover:shadow-xl transition-all duration-300 animate-fade-in"
+              className="glass-card border-0 shadow-lg hover:shadow-xl transition-all duration-300 animate-fade-in w-full"
               style={{ animationDelay: `${index * 100}ms` }}
             >
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${getActivityColor(activity.type)}`}>
+              <CardContent className="p-4 flex flex-col sm:flex-row items-center gap-4 w-full overflow-x-auto">
+                <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${getActivityColor(activity.type)}`}> 
                   {getActivityIcon(activity.type)}
                 </div>
-                <div className="flex-1 grid grid-cols-4 items-center gap-4">
+                <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
                   <div>
-                    <p className="font-semibold text-gray-800">{activity.title}</p>
+                    <p className="font-semibold text-gray-800 break-words">{activity.title}</p>
                     <Badge variant="secondary" className="mt-1">{getActivityName(activity.type)}</Badge>
                   </div>
-                  <div className="text-muted-foreground text-sm">
+                  <div className="text-muted-foreground text-sm break-words">
                     {activity.description}
                   </div>
                   <div className="text-muted-foreground text-sm text-center">

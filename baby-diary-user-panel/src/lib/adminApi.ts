@@ -279,4 +279,113 @@ export const adminSettings = {
   }
 };
 
+export const adminMarketing = {
+  getCampaigns: async () => {
+    const response = await adminApi.get('/admin/marketing/campaigns');
+    return response.data;
+  },
+  createCampaign: async (data: any) => {
+    const response = await adminApi.post('/admin/marketing/campaigns', data);
+    return response.data;
+  },
+  updateCampaign: async (id: string, data: any) => {
+    const response = await adminApi.put(`/admin/marketing/campaigns/${id}`, data);
+    return response.data;
+  },
+  deleteCampaign: async (id: string) => {
+    const response = await adminApi.delete(`/admin/marketing/campaigns/${id}`);
+    return response.data;
+  },
+  generateWithGemini: async (prompt: string) => {
+    const response = await adminApi.post('/admin/marketing/campaigns/gemini', { prompt });
+    return response.data;
+  },
+  // Segmentação avançada
+  getSegmentationStats: async () => {
+    const response = await adminApi.get('/admin/marketing/segmentation/stats');
+    return response.data;
+  },
+  getTargetUsers: async (filters: any) => {
+    const response = await adminApi.post('/admin/marketing/segmentation/target-users', filters);
+    return response.data;
+  },
+  // Biblioteca de Marketing Digital
+  // Posts para Redes Sociais
+  getSocialMediaPosts: async (filters?: any) => {
+    const params = filters ? new URLSearchParams(filters).toString() : '';
+    const response = await adminApi.get(`/admin/marketing/social-media-posts${params ? `?${params}` : ''}`);
+    return response.data;
+  },
+  createSocialMediaPost: async (data: any) => {
+    const response = await adminApi.post('/admin/marketing/social-media-posts', data);
+    return response.data;
+  },
+  // Anúncios
+  getAdvertisements: async (filters?: any) => {
+    const params = filters ? new URLSearchParams(filters).toString() : '';
+    const response = await adminApi.get(`/admin/marketing/advertisements${params ? `?${params}` : ''}`);
+    return response.data;
+  },
+  createAdvertisement: async (data: any) => {
+    const response = await adminApi.post('/admin/marketing/advertisements', data);
+    return response.data;
+  },
+  // Vídeos
+  getVideoContents: async (filters?: any) => {
+    const params = filters ? new URLSearchParams(filters).toString() : '';
+    const response = await adminApi.get(`/admin/marketing/video-contents${params ? `?${params}` : ''}`);
+    return response.data;
+  },
+  createVideoContent: async (data: any) => {
+    const response = await adminApi.post('/admin/marketing/video-contents', data);
+    return response.data;
+  },
+  // Argumentos de Venda
+  getSalesArguments: async (filters?: any) => {
+    const params = filters ? new URLSearchParams(filters).toString() : '';
+    const response = await adminApi.get(`/admin/marketing/sales-arguments${params ? `?${params}` : ''}`);
+    return response.data;
+  },
+  createSalesArgument: async (data: any) => {
+    const response = await adminApi.post('/admin/marketing/sales-arguments', data);
+    return response.data;
+  },
+  // Links de Afiliados
+  getAffiliateLinks: async () => {
+    const response = await adminApi.get('/admin/marketing/affiliate-links');
+    return response.data;
+  },
+  createAffiliateLink: async (data: any) => {
+    const response = await adminApi.post('/admin/marketing/affiliate-links', data);
+    return response.data;
+  },
+  // Gerador de Conteúdo com IA
+  generateMarketingContent: async (data: any) => {
+    const response = await adminApi.post('/admin/marketing/generate-content', data);
+    return response.data;
+  },
+  // Upload, Download e Delete de mídia
+  uploadMedia: async (formData: FormData) => {
+    const response = await adminApi.post('/admin/marketing/upload-media', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+  downloadMedia: async (params: { publicId: string; filename?: string }) => {
+    const response = await adminApi.get('/admin/marketing/download-media', { params });
+    return response.data;
+  },
+  deleteMedia: async (publicId: string) => {
+    const response = await adminApi.delete(`/admin/marketing/delete-media/${publicId}`);
+    return response.data;
+  },
+  // Gerador de Conteúdo com IA
+  generateContentWithAI: async (data: any) => {
+    const response = await adminApi.post('/admin/marketing/generate-content', data);
+    return response.data;
+  },
+};
+
 export default adminApi; 

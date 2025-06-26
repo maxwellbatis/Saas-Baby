@@ -34,6 +34,7 @@ import { AdminGamification } from "./pages/admin/AdminGamification";
 import { AdminNotifications } from "./pages/admin/AdminNotifications";
 import { AdminSettings } from "./pages/admin/AdminSettings";
 import { AdminMilestones } from "./pages/admin/AdminMilestones";
+import { AdminMarketing } from "./pages/admin/AdminMarketing";
 
 const queryClient = new QueryClient();
 
@@ -76,6 +77,7 @@ const App = () => (
                   <Route path="/admin/gamification" element={<ProtectedAdminRoute><AdminLayout><AdminGamification /></AdminLayout></ProtectedAdminRoute>} />
                   <Route path="/admin/notifications" element={<ProtectedAdminRoute><AdminLayout><AdminNotifications /></AdminLayout></ProtectedAdminRoute>} />
                   <Route path="/admin/settings" element={<ProtectedAdminRoute><AdminLayout><AdminSettings /></AdminLayout></ProtectedAdminRoute>} />
+                  <Route path="/admin/marketing" element={<ProtectedAdminRoute><AdminLayout><AdminMarketing /></AdminLayout></ProtectedAdminRoute>} />
 
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />

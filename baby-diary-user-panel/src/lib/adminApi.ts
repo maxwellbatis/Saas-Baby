@@ -388,4 +388,19 @@ export const adminMarketing = {
   },
 };
 
+export const adminFamily = {
+  getMembers: async (userId: string) => {
+    const response = await adminApi.get(`/admin/users/${userId}/family`);
+    return response.data;
+  },
+  inviteMember: async (userId: string, data: any) => {
+    const response = await adminApi.post(`/admin/users/${userId}/family/invite`, data);
+    return response.data;
+  },
+  removeMember: async (userId: string, memberId: string) => {
+    const response = await adminApi.delete(`/admin/users/${userId}/family/${memberId}`);
+    return response.data;
+  },
+};
+
 export default adminApi; 

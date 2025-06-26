@@ -23,6 +23,7 @@ import Health from './pages/Health';
 import Rewards from './pages/Rewards';
 import Growth from './pages/Growth';
 import Business from "./pages/Business";
+import AcceptFamilyInvite from './pages/AcceptFamilyInvite';
 
 // Admin pages
 import { AdminLogin } from "./pages/admin/AdminLogin";
@@ -57,6 +58,7 @@ const App = () => (
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/business" element={<Business />} />
+                  <Route path="/accept-family-invite" element={<AcceptFamilyInvite />} />
 
                   {/* Rotas protegidas do usuário */}
                   <Route path="/onboarding" element={<ProtectedRoute requireBaby={false}><Onboarding /></ProtectedRoute>} />

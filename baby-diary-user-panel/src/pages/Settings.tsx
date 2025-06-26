@@ -19,6 +19,9 @@ import ChangePasswordForm from "@/components/ChangePasswordForm";
 import AIUsageStatsCard from '../components/AIUsageStatsCard';
 import UpgradePrompt from "@/components/UpgradePrompt";
 import { API_CONFIG } from '../config/api';
+import { adminFamily } from '../lib/adminApi';
+import { Input } from '../components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -37,6 +40,11 @@ const Settings = () => {
   const [plans, setPlans] = useState<any[]>([]);
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [isSubscribing, setIsSubscribing] = useState<string | null>(null);
+  const [familyMembers, setFamilyMembers] = useState<any[]>([]);
+  const [loadingFamily, setLoadingFamily] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteData, setInviteData] = useState({ name: '', email: '', relationship: '' });
+  const [inviting, setInviting] = useState(false);
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -60,6 +68,14 @@ const Settings = () => {
 
     fetchPlans();
   }, [toast]);
+
+  useEffect(() => {
+    if (user && user.plan && user.plan.familySharing > 0) {
+      fetchFamilyMembers();
+    } else {
+      setFamilyMembers([]);
+    }
+  }, [user]);
 
   const handleLogout = () => {
     logout();
@@ -156,6 +172,54 @@ const Settings = () => {
   const handleAddBaby = async () => {
     await refetch();
     setIsAddBabyOpen(false);
+  };
+
+  const fetchFamilyMembers = async () => {
+    if (!user) return;
+    setLoadingFamily(true);
+    try {
+      const response = await adminFamily.getMembers(user.id);
+      if (response.success) {
+        setFamilyMembers(response.data);
+      } else {
+        setFamilyMembers([]);
+      }
+    } catch (err) {
+      setFamilyMembers([]);
+    } finally {
+      setLoadingFamily(false);
+    }
+  };
+
+  const handleInviteFamily = async () => {
+    if (!user) return;
+    setInviting(true);
+    try {
+      const response = await adminFamily.inviteMember(user.id, inviteData);
+      if (response.success) {
+        setShowInviteModal(false);
+        setInviteData({ name: '', email: '', relationship: '' });
+        fetchFamilyMembers();
+      } else {
+        throw new Error(response.error || 'Erro ao convidar membro');
+      }
+    } catch (err: any) {
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const handleRemoveFamily = async (memberId: string) => {
+    if (!user) return;
+    try {
+      const response = await adminFamily.removeMember(user.id, memberId);
+      if (response.success) {
+        fetchFamilyMembers();
+      } else {
+        throw new Error(response.error || 'Erro ao remover membro');
+      }
+    } catch (err: any) {
+    }
   };
 
   // Mostra loading enquanto carrega os dados
@@ -541,6 +605,60 @@ const Settings = () => {
             <AIUsageStatsCard />
           </div>
         </div>
+
+        {/* Seção Família */}
+        {user && user.plan && user.plan.familySharing > 0 && (
+          <div className="mt-8">
+            <h2 className="text-xl font-bold mb-2 flex items-center justify-between">
+              Membros da Família
+              <Button size="sm" onClick={() => setShowInviteModal(true)} disabled={familyMembers.length >= user.plan.familySharing}>
+                Convidar Membro
+              </Button>
+            </h2>
+            <p className="text-sm text-gray-500 mb-2">
+              Limite do plano: {familyMembers.length} / {user.plan.familySharing}
+            </p>
+            {loadingFamily ? (
+              <p className="text-gray-400">Carregando membros...</p>
+            ) : familyMembers.length === 0 ? (
+              <p className="text-gray-400">Nenhum membro cadastrado.</p>
+            ) : (
+              <div className="space-y-2">
+                {familyMembers.map((member: any) => (
+                  <div key={member.id} className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                    <div className="flex-1">
+                      <p className="font-medium">{member.name} <span className="text-xs text-gray-500">({member.relationship})</span></p>
+                      <p className="text-sm text-gray-500">{member.email || 'Sem e-mail'} • {member.acceptedAt ? 'Aceito' : 'Pendente'}</p>
+                    </div>
+                    <Button size="sm" variant="destructive" onClick={() => handleRemoveFamily(member.id)}>
+                      Remover
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* Modal de convite */}
+            {showInviteModal && (
+              <Dialog open={showInviteModal} onOpenChange={setShowInviteModal}>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Convidar Membro da Família</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <Input placeholder="Nome" value={inviteData.name} onChange={e => setInviteData({ ...inviteData, name: e.target.value })} />
+                    <Input placeholder="E-mail (opcional)" value={inviteData.email} onChange={e => setInviteData({ ...inviteData, email: e.target.value })} />
+                    <Input placeholder="Relação (ex: mãe, pai, avó)" value={inviteData.relationship} onChange={e => setInviteData({ ...inviteData, relationship: e.target.value })} />
+                    <div className="flex justify-end">
+                      <Button onClick={handleInviteFamily} disabled={inviting || !inviteData.name || !inviteData.relationship || familyMembers.length >= user.plan.familySharing}>
+                        {inviting ? 'Enviando...' : 'Enviar Convite'}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
+        )}
 
         {/* Botão de cancelar assinatura no rodapé */}
         {userPlan && userPlan.name !== 'Básico' && (

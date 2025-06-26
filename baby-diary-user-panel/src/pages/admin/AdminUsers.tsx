@@ -57,8 +57,11 @@ import {
   Filter,
   Download
 } from 'lucide-react';
-import { adminUsers } from '../../lib/adminApi';
+import { adminUsers, adminPlans } from '../../lib/adminApi';
 import { useToast } from '../../hooks/use-toast';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '../../components/ui/select';
+import adminApi from '../../lib/adminApi';
+import { adminFamily } from '../../lib/adminApi';
 
 interface User {
   id: string;
@@ -74,6 +77,7 @@ interface User {
     name: string;
     price: number;
     features: string[];
+    familySharing: number;
   };
   subscription?: {
     id: string;
@@ -122,6 +126,17 @@ export const AdminUsers: React.FC = () => {
     premium: 0
   });
   const { toast } = useToast();
+  const [plans, setPlans] = useState<any[]>([]);
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+  const [savingPlan, setSavingPlan] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [savingUser, setSavingUser] = useState(false);
+  const [familyMembers, setFamilyMembers] = useState<any[]>([]);
+  const [loadingFamily, setLoadingFamily] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteData, setInviteData] = useState({ name: '', email: '', relationship: '' });
+  const [inviting, setInviting] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -130,6 +145,21 @@ export const AdminUsers: React.FC = () => {
   useEffect(() => {
     applyFilters();
   }, [users, filters]);
+
+  useEffect(() => {
+    if (selectedUser) {
+      setEditName(selectedUser.name);
+      setEditEmail(selectedUser.email);
+    }
+  }, [selectedUser]);
+
+  useEffect(() => {
+    if (selectedUser && selectedUser.plan && selectedUser.plan.familySharing > 0) {
+      fetchFamilyMembers();
+    } else {
+      setFamilyMembers([]);
+    }
+  }, [selectedUser]);
 
   const fetchUsers = async () => {
     try {
@@ -266,6 +296,116 @@ export const AdminUsers: React.FC = () => {
 
   const getPlanBadgeVariant = (planName: string) => {
     return planName.toLowerCase().includes('premium') ? 'default' : 'secondary';
+  };
+
+  // Buscar planos ao abrir modal de detalhes
+  useEffect(() => {
+    if (selectedUser) {
+      fetchPlans();
+      setSelectedPlanId(selectedUser.plan.id);
+    }
+    // eslint-disable-next-line
+  }, [selectedUser]);
+
+  const fetchPlans = async () => {
+    try {
+      const response = await adminPlans.getAll();
+      setPlans(response.data || response.plans || []);
+    } catch (err) {
+      toast({ title: 'Erro ao buscar planos', variant: 'destructive' });
+    }
+  };
+
+  // Salvar alteração de plano
+  const handleChangePlan = async () => {
+    if (!selectedUser || !selectedPlanId) return;
+    setSavingPlan(true);
+    try {
+      const response = await adminApi.put(`/admin/users/${selectedUser.id}/plan`, { planId: selectedPlanId });
+      if (response.data?.success) {
+        toast({ title: 'Plano atualizado com sucesso!' });
+        // Atualizar usuário na lista
+        setUsers(users.map(u => u.id === selectedUser.id ? { ...u, plan: response.data.data.plan } : u));
+        setSelectedUser({ ...selectedUser, plan: response.data.data.plan });
+      } else {
+        throw new Error(response.data?.error || 'Erro ao atualizar plano');
+      }
+    } catch (err: any) {
+      toast({ title: 'Erro ao atualizar plano', description: err.message, variant: 'destructive' });
+    } finally {
+      setSavingPlan(false);
+    }
+  };
+
+  const handleSaveUser = async () => {
+    if (!selectedUser) return;
+    setSavingUser(true);
+    try {
+      const response = await adminUsers.update(selectedUser.id, { name: editName, email: editEmail });
+      if (response.success) {
+        toast({ title: 'Usuário atualizado com sucesso!' });
+        setUsers(users.map(u => u.id === selectedUser.id ? { ...u, name: editName, email: editEmail } : u));
+        setSelectedUser({ ...selectedUser, name: editName, email: editEmail });
+      } else {
+        throw new Error(response.error || 'Erro ao atualizar usuário');
+      }
+    } catch (err: any) {
+      toast({ title: 'Erro ao atualizar usuário', description: err.message, variant: 'destructive' });
+    } finally {
+      setSavingUser(false);
+    }
+  };
+
+  const fetchFamilyMembers = async () => {
+    if (!selectedUser) return;
+    setLoadingFamily(true);
+    try {
+      const response = await adminFamily.getMembers(selectedUser.id);
+      if (response.success) {
+        setFamilyMembers(response.data);
+      } else {
+        setFamilyMembers([]);
+      }
+    } catch (err) {
+      setFamilyMembers([]);
+    } finally {
+      setLoadingFamily(false);
+    }
+  };
+
+  const handleInviteFamily = async () => {
+    if (!selectedUser) return;
+    setInviting(true);
+    try {
+      const response = await adminFamily.inviteMember(selectedUser.id, inviteData);
+      if (response.success) {
+        toast({ title: 'Convite enviado com sucesso!' });
+        setShowInviteModal(false);
+        setInviteData({ name: '', email: '', relationship: '' });
+        fetchFamilyMembers();
+      } else {
+        throw new Error(response.error || 'Erro ao convidar membro');
+      }
+    } catch (err: any) {
+      toast({ title: 'Erro ao convidar membro', description: err.message, variant: 'destructive' });
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const handleRemoveFamily = async (memberId: string) => {
+    if (!selectedUser) return;
+    try {
+      const response = await adminFamily.removeMember(selectedUser.id, memberId);
+      if (response.success) {
+        toast({ title: 'Membro removido com sucesso!' });
+        fetchFamilyMembers();
+      } else {
+        throw new Error(response.error || 'Erro ao remover membro');
+      }
+    } catch (err: any) {
+      toast({ title: 'Erro ao remover membro', description: err.message, variant: 'destructive' });
+    }
   };
 
   if (loading) {
@@ -553,11 +693,11 @@ export const AdminUsers: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-500">Nome</label>
-                  <p className="text-sm">{selectedUser.name}</p>
+                  <Input value={editName} onChange={e => setEditName(e.target.value)} className="text-sm" />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Email</label>
-                  <p className="text-sm">{selectedUser.email}</p>
+                  <Input value={editEmail} onChange={e => setEditEmail(e.target.value)} className="text-sm" />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Telefone</label>
@@ -570,11 +710,16 @@ export const AdminUsers: React.FC = () => {
                   </Badge>
                 </div>
               </div>
+              <div className="flex justify-end">
+                <Button onClick={handleSaveUser} disabled={savingUser || (!editName || !editEmail || (editName === selectedUser.name && editEmail === selectedUser.email))}>
+                  {savingUser ? 'Salvando...' : 'Salvar Dados'}
+                </Button>
+              </div>
 
               {/* Plano e assinatura */}
               <div>
                 <h3 className="font-medium mb-2">Plano Atual</h3>
-                <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
                   <div className="flex justify-between items-center">
                     <div>
                       <p className="font-medium">{selectedUser.plan.name}</p>
@@ -590,6 +735,25 @@ export const AdminUsers: React.FC = () => {
                         </p>
                       </div>
                     )}
+                  </div>
+                  {/* Seletor de plano */}
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-600 mb-1">Alterar Plano</label>
+                    <Select value={selectedPlanId || ''} onValueChange={setSelectedPlanId}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione o plano" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {plans.map((plan) => (
+                          <SelectItem key={plan.id} value={plan.id}>
+                            {plan.name} - R$ {plan.price?.toFixed(2)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button onClick={handleChangePlan} className="mt-2" disabled={savingPlan || !selectedPlanId || selectedPlanId === selectedUser.plan.id}>
+                      {savingPlan ? 'Salvando...' : 'Salvar Plano'}
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -612,6 +776,61 @@ export const AdminUsers: React.FC = () => {
                   ))}
                 </div>
               </div>
+
+              {/* Família */}
+              {selectedUser.plan && selectedUser.plan.familySharing > 0 && (
+                <div>
+                  <h3 className="font-medium mb-2 flex items-center justify-between">
+                    Membros da Família
+                    <Button size="sm" onClick={() => setShowInviteModal(true)} disabled={familyMembers.length >= selectedUser.plan.familySharing}>
+                      Convidar Membro
+                    </Button>
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-2">
+                    Limite do plano: {familyMembers.length} / {selectedUser.plan.familySharing}
+                  </p>
+                  {loadingFamily ? (
+                    <p className="text-gray-400">Carregando membros...</p>
+                  ) : familyMembers.length === 0 ? (
+                    <p className="text-gray-400">Nenhum membro cadastrado.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {familyMembers.map((member: any) => (
+                        <div key={member.id} className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                          <div className="flex-1">
+                            <p className="font-medium">{member.name} <span className="text-xs text-gray-500">({member.relationship})</span></p>
+                            <p className="text-sm text-gray-500">{member.email || 'Sem e-mail'} • {member.acceptedAt ? 'Aceito' : 'Pendente'}</p>
+                          </div>
+                          <Button size="sm" variant="destructive" onClick={() => handleRemoveFamily(member.id)}>
+                            Remover
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Modal de convite */}
+              {showInviteModal && (
+                <Dialog open={showInviteModal} onOpenChange={setShowInviteModal}>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Convidar Membro da Família</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <Input placeholder="Nome" value={inviteData.name} onChange={e => setInviteData({ ...inviteData, name: e.target.value })} />
+                      <Input placeholder="E-mail (opcional)" value={inviteData.email} onChange={e => setInviteData({ ...inviteData, email: e.target.value })} />
+                      <Input placeholder="Relação (ex: mãe, pai, avó)" value={inviteData.relationship} onChange={e => setInviteData({ ...inviteData, relationship: e.target.value })} />
+                      <div className="flex justify-end">
+                        <Button onClick={handleInviteFamily} disabled={inviting || !inviteData.name || !inviteData.relationship || familyMembers.length >= selectedUser.plan.familySharing}>
+                          {inviting ? 'Enviando...' : 'Enviar Convite'}
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
 
               {/* Gamificação */}
               {selectedUser.gamification && (

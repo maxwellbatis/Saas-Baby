@@ -2799,4 +2799,20 @@ router.post('/babies/:babyId/vaccines', async (req: Request, res: Response) => {
   }
 });
 
+// Aceitar convite de família por link
+router.post('/family/accept', async (req, res) => {
+  try {
+    const { inviteId, userId } = req.body;
+    if (!inviteId || !userId) {
+      return res.status(400).json({ success: false, error: 'inviteId e userId são obrigatórios' });
+    }
+    const familyService = require('../services/family.service').default;
+    const result = await familyService.acceptFamilyInvite(inviteId, userId);
+    return res.json({ success: true, message: result.message });
+  } catch (error) {
+    console.error('Erro ao aceitar convite de família:', error);
+    return res.status(500).json({ success: false, error: 'Erro ao aceitar convite' });
+  }
+});
+
 export default router;

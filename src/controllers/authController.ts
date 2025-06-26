@@ -51,7 +51,7 @@ export const register = async (req: Request, res: Response) => {
       });
     }
 
-    const { name, email, password, avatarUrl }: RegisterRequest & { avatarUrl?: string } = req.body;
+    const { name, email, password, avatarUrl, inviteId }: RegisterRequest & { avatarUrl?: string, inviteId?: string } = req.body;
 
     // Verificar se o email já existe
     const existingUser = await prisma.user.findUnique({
@@ -124,6 +124,23 @@ export const register = async (req: Request, res: Response) => {
         },
       },
     });
+
+    // Se veio um inviteId, associar o novo usuário ao convite de família
+    if (inviteId) {
+      try {
+        await prisma.familyMember.update({
+          where: { id: inviteId },
+          data: {
+            userId: user.id,
+            acceptedAt: new Date(),
+            isActive: true
+          }
+        });
+      } catch (err) {
+        console.error('Erro ao associar usuário ao convite de família:', err);
+        // Não bloquear o registro por erro aqui
+      }
+    }
 
     // Opcional: aplicar gamificação de registro
     try {

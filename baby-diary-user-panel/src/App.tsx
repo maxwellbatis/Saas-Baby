@@ -22,6 +22,7 @@ import ResetPassword from './pages/ResetPassword';
 import Health from './pages/Health';
 import Rewards from './pages/Rewards';
 import Growth from './pages/Growth';
+import Business from "./pages/Business";
 
 // Admin pages
 import { AdminLogin } from "./pages/admin/AdminLogin";
@@ -55,6 +56,7 @@ const App = () => (
                   <Route path="/register" element={<Register />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/business" element={<Business />} />
 
                   {/* Rotas protegidas do usuário */}
                   <Route path="/onboarding" element={<ProtectedRoute requireBaby={false}><Onboarding /></ProtectedRoute>} />

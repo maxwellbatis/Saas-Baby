@@ -79,7 +79,7 @@ export const AdminLogin: React.FC = () => {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@babydiary.com"
+                  placeholder="admin@microsaas.com"
                   {...register('email')}
                   className={errors.email ? 'border-red-500' : ''}
                 />
@@ -138,7 +138,7 @@ export const AdminLogin: React.FC = () => {
 
             <div className="text-center">
               <p className="text-sm text-gray-600">
-                Credenciais padrão: admin@babydiary.com / admin123
+                Credenciais padrão: admin@microsaas.com / admin123
               </p>
             </div>
           </CardContent>

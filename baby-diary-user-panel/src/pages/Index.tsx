@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Header from "@/components/Header";
 import { Baby, Image, User, FileImage, Shield, ListChecks, Sparkles, Heart, Quote } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -251,6 +251,12 @@ const Index = () => {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        <div className="flex justify-center mt-8">
+          <Link to="/business">
+            <Button className="text-lg px-8 py-4 bg-green-600 hover:bg-green-700">Quero vender o Baby Diary</Button>
+          </Link>
         </div>
       </div>
     </div>

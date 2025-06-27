@@ -62,6 +62,7 @@ import { useToast } from '../../hooks/use-toast';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '../../components/ui/select';
 import adminApi from '../../lib/adminApi';
 import { adminFamily } from '../../lib/adminApi';
+import { useQuery } from '@tanstack/react-query';
 
 interface User {
   id: string;
@@ -105,10 +106,15 @@ interface UserFilters {
 }
 
 export const AdminUsers: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([]);
+  const { data, isLoading, error } = useQuery<{ success: boolean; data: { users: User[] } }>({
+    queryKey: ['admin-users'],
+    queryFn: () => adminUsers.getAll(),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const users = data?.data?.users || [];
+
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [filters, setFilters] = useState<UserFilters>({
     search: '',
@@ -120,10 +126,9 @@ export const AdminUsers: React.FC = () => {
     total: 0,
     active: 0,
     inactive: 0,
-    verified: 0,
-    unverified: 0,
+    premium: 0,
     basic: 0,
-    premium: 0
+    family: 0,
   });
   const { toast } = useToast();
   const [plans, setPlans] = useState<any[]>([]);
@@ -137,10 +142,6 @@ export const AdminUsers: React.FC = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteData, setInviteData] = useState({ name: '', email: '', relationship: '' });
   const [inviting, setInviting] = useState(false);
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
 
   useEffect(() => {
     applyFilters();
@@ -161,36 +162,30 @@ export const AdminUsers: React.FC = () => {
     }
   }, [selectedUser]);
 
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const response = await adminUsers.getAll();
-      
-      if (response.success) {
-        setUsers(response.data.users);
-        calculateStats(response.data.users);
-      } else {
-        setError('Erro ao carregar usuários');
-      }
-    } catch (error: any) {
-      console.error('Erro ao buscar usuários:', error);
-      setError('Erro de conexão');
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (users && users.length > 0) {
+      calculateStats(users);
+    } else {
+      calculateStats([]);
     }
-  };
+  }, [users]);
 
   const calculateStats = (userList: User[]) => {
-    const stats = {
-      total: userList.length,
-      active: userList.filter(u => u.isActive).length,
-      inactive: userList.filter(u => !u.isActive).length,
-      verified: userList.filter(u => u.emailVerified).length,
-      unverified: userList.filter(u => !u.emailVerified).length,
-      basic: userList.filter(u => u.plan.name.toLowerCase().includes('básico')).length,
-      premium: userList.filter(u => u.plan.name.toLowerCase().includes('premium')).length
-    };
-    setStats(stats);
+    const total = userList.length;
+    const active = userList.filter(u => u.isActive).length;
+    const inactive = total - active;
+    const premium = userList.filter(u => u.plan.name?.toLowerCase().includes('premium')).length;
+    const basic = userList.filter(u => u.plan.name?.toLowerCase().includes('básico')).length;
+    const family = userList.filter(u => u.plan.name?.toLowerCase().includes('família')).length;
+
+    setStats({
+      total,
+      active,
+      inactive,
+      premium,
+      basic,
+      family,
+    });
   };
 
   const applyFilters = () => {
@@ -234,9 +229,6 @@ export const AdminUsers: React.FC = () => {
       const response = await adminUsers.updateStatus(userId, !currentStatus);
       
       if (response.success) {
-        setUsers(users.map(user => 
-          user.id === userId ? { ...user, isActive: !currentStatus } : user
-        ));
         toast({
           title: "Status atualizado",
           description: `Usuário ${currentStatus ? 'desativado' : 'ativado'} com sucesso`,
@@ -325,7 +317,7 @@ export const AdminUsers: React.FC = () => {
       if (response.data?.success) {
         toast({ title: 'Plano atualizado com sucesso!' });
         // Atualizar usuário na lista
-        setUsers(users.map(u => u.id === selectedUser.id ? { ...u, plan: response.data.data.plan } : u));
+        toast({ title: 'Plano atualizado com sucesso!' });
         setSelectedUser({ ...selectedUser, plan: response.data.data.plan });
       } else {
         throw new Error(response.data?.error || 'Erro ao atualizar plano');
@@ -344,7 +336,6 @@ export const AdminUsers: React.FC = () => {
       const response = await adminUsers.update(selectedUser.id, { name: editName, email: editEmail });
       if (response.success) {
         toast({ title: 'Usuário atualizado com sucesso!' });
-        setUsers(users.map(u => u.id === selectedUser.id ? { ...u, name: editName, email: editEmail } : u));
         setSelectedUser({ ...selectedUser, name: editName, email: editEmail });
       } else {
         throw new Error(response.error || 'Erro ao atualizar usuário');
@@ -408,13 +399,10 @@ export const AdminUsers: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Carregando usuários...</p>
-        </div>
+        <span className="text-lg font-medium">Carregando usuários...</span>
       </div>
     );
   }
@@ -423,8 +411,8 @@ export const AdminUsers: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <Button onClick={fetchUsers}>Tentar novamente</Button>
+          <p className="text-red-600 mb-4">{(error as Error)?.message || 'Erro ao carregar usuários'}</p>
+          <Button onClick={() => window.location.reload()}>Tentar novamente</Button>
         </div>
       </div>
     );
@@ -473,19 +461,6 @@ export const AdminUsers: React.FC = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Email Verificado</CardTitle>
-            <Mail className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.verified}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.unverified} não verificados
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Plano Premium</CardTitle>
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -494,6 +469,16 @@ export const AdminUsers: React.FC = () => {
             <p className="text-xs text-muted-foreground">
               {stats.basic} básico
             </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Plano Família</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{stats.family}</div>
           </CardContent>
         </Card>
       </div>

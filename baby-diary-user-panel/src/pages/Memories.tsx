@@ -15,6 +15,8 @@ import BackButton from '@/components/BackButton';
 import AddBabyModal from '@/components/AddBabyModal';
 import { API_CONFIG } from '../config/api';
 import { AchievementNotification } from '@/components/AchievementNotification';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { getBabies } from '@/lib/api';
 
 interface Memory {
   id: string;
@@ -30,8 +32,8 @@ const Memories = () => {
   const { getGradientClass } = useTheme();
   const { toast } = useToast();
   const { fetchGamificationData, gamification } = useGamification();
+  const queryClient = useQueryClient();
 
-  const [memories, setMemories] = useState<Memory[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMemory, setSelectedMemory] = useState<Memory | undefined>(undefined);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
@@ -48,45 +50,33 @@ const Memories = () => {
     setShowAddBabyModal(false);
   };
 
-  const fetchMemories = useCallback(async () => {
-    if (!currentBaby) {
-      setMemories([]);
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_CONFIG.BASE_URL}/user/memories?babyId=${currentBaby.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error('Falha ao buscar memórias');
-      const data = await response.json();
-      setMemories(Array.isArray(data.data) ? data.data : []);
-    } catch (error: any) {
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível buscar as memórias.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [currentBaby, toast]);
-
-  const handleSuccess = () => {
-    fetchMemories();
-    refetch();
-    fetchGamificationData();
+  const fetchMemories = async () => {
+    if (!currentBaby) return [];
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_CONFIG.BASE_URL}/user/memories?babyId=${currentBaby.id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) throw new Error('Falha ao buscar memórias');
+    const data = await response.json();
+    return Array.isArray(data.data) ? data.data : [];
   };
 
-  useEffect(() => {
-    // We wait for auth to finish before fetching
-    if (!isAuthLoading) {
-      fetchMemories();
-    }
-  }, [fetchMemories, isAuthLoading]);
+  const {
+    data: memories = [],
+    isLoading: queryLoading,
+    error,
+    refetch: refetchMemories,
+  } = useQuery({
+    queryKey: ['memories', currentBaby?.id],
+    queryFn: fetchMemories,
+    enabled: !!currentBaby,
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const handleSuccess = () => {
+    refetchMemories();
+    fetchGamificationData();
+  };
 
   useEffect(() => {
     if (!gamification) return;
@@ -163,7 +153,7 @@ const Memories = () => {
         title: "Sucesso",
         description: "Memória removida."
       });
-      fetchMemories();
+      refetchMemories();
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -173,7 +163,7 @@ const Memories = () => {
     }
   };
 
-  if (isLoading || isAuthLoading) {
+  if (queryLoading || isAuthLoading) {
     return (
       <div className="w-full max-w-full px-2 sm:px-4 py-4 mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-2 sm:gap-0">

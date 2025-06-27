@@ -300,6 +300,29 @@ export const adminMarketing = {
     const response = await adminApi.post('/admin/marketing/campaigns/gemini', { prompt });
     return response.data;
   },
+  // Analytics Dashboard
+  getAnalytics: async (timeRange: string = '30d') => {
+    const response = await adminApi.get(`/admin/marketing/analytics?timeRange=${timeRange}`);
+    return response.data;
+  },
+  // Calendário Editorial
+  getScheduledPosts: async (params?: any) => {
+    const queryParams = params ? new URLSearchParams(params).toString() : '';
+    const response = await adminApi.get(`/admin/marketing/scheduled-posts${queryParams ? `?${queryParams}` : ''}`);
+    return response.data;
+  },
+  schedulePost: async (data: any) => {
+    const response = await adminApi.post('/admin/marketing/scheduled-posts', data);
+    return response.data;
+  },
+  updateScheduledPost: async (id: string, data: any) => {
+    const response = await adminApi.put(`/admin/marketing/scheduled-posts/${id}`, data);
+    return response.data;
+  },
+  deleteScheduledPost: async (id: string) => {
+    const response = await adminApi.delete(`/admin/marketing/scheduled-posts/${id}`);
+    return response.data;
+  },
   // Segmentação avançada
   getSegmentationStats: async () => {
     const response = await adminApi.get('/admin/marketing/segmentation/stats');
@@ -386,6 +409,51 @@ export const adminMarketing = {
     const response = await adminApi.post('/admin/marketing/generate-content', data);
     return response.data;
   },
+  // Social Media Posts
+  updateSocialMediaPost: async (id: string, data: any) => {
+    const response = await adminApi.put(`/admin/marketing/social-media-posts/${id}`, data);
+    return response.data;
+  },
+  deleteSocialMediaPost: async (id: string) => {
+    const response = await adminApi.delete(`/admin/marketing/social-media-posts/${id}`);
+    return response.data;
+  },
+  // Advertisements
+  updateAdvertisement: async (id: string, data: any) => {
+    const response = await adminApi.put(`/admin/marketing/advertisements/${id}`, data);
+    return response.data;
+  },
+  deleteAdvertisement: async (id: string) => {
+    const response = await adminApi.delete(`/admin/marketing/advertisements/${id}`);
+    return response.data;
+  },
+  // Video Contents
+  updateVideoContent: async (id: string, data: any) => {
+    const response = await adminApi.put(`/admin/marketing/video-contents/${id}`, data);
+    return response.data;
+  },
+  deleteVideoContent: async (id: string) => {
+    const response = await adminApi.delete(`/admin/marketing/video-contents/${id}`);
+    return response.data;
+  },
+  // Sales Arguments
+  updateSalesArgument: async (id: string, data: any) => {
+    const response = await adminApi.put(`/admin/marketing/sales-arguments/${id}`, data);
+    return response.data;
+  },
+  deleteSalesArgument: async (id: string) => {
+    const response = await adminApi.delete(`/admin/marketing/sales-arguments/${id}`);
+    return response.data;
+  },
+  // Affiliate Links
+  updateAffiliateLink: async (id: string, data: any) => {
+    const response = await adminApi.put(`/admin/marketing/affiliate-links/${id}`, data);
+    return response.data;
+  },
+  deleteAffiliateLink: async (id: string) => {
+    const response = await adminApi.delete(`/admin/marketing/affiliate-links/${id}`);
+    return response.data;
+  },
 };
 
 export const adminFamily = {
@@ -399,6 +467,26 @@ export const adminFamily = {
   },
   removeMember: async (userId: string, memberId: string) => {
     const response = await adminApi.delete(`/admin/users/${userId}/family/${memberId}`);
+    return response.data;
+  },
+};
+
+// Notificações do Admin
+export const adminNotifications = {
+  createTemplate: async (data: any) => {
+    const response = await adminApi.post('/admin/notifications/templates', data);
+    return response.data;
+  },
+  updateTemplate: async (id: string, data: any) => {
+    const response = await adminApi.put(`/admin/notifications/templates/${id}`, data);
+    return response.data;
+  },
+  deleteTemplate: async (id: string) => {
+    const response = await adminApi.delete(`/admin/notifications/templates/${id}`);
+    return response.data;
+  },
+  send: async (data: any) => {
+    const response = await adminApi.post('/admin/notifications/send', data);
     return response.data;
   },
 };

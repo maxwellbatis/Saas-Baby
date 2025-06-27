@@ -16,6 +16,7 @@ import SleepAnalysisModal from '@/components/SleepAnalysisModal';
 import SuggestedActivitiesModal from '@/components/SuggestedActivitiesModal';
 import { API_CONFIG } from '../config/api';
 import { AchievementNotification } from '@/components/AchievementNotification';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface Activity {
   id: string;
@@ -35,8 +36,29 @@ const Activities = () => {
   const { fetchGamificationData, gamification } = useGamification();
   
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  
+  const queryClient = useQueryClient();
+  const fetchActivities = async () => {
+    if (!baby) return [];
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${API_CONFIG.BASE_URL}/user/babies/${baby.id}/activities`, {
+      headers: { "Authorization": `Bearer ${token}` },
+    });
+    if (!response.ok) throw new Error("Erro ao buscar atividades");
+    const data = await response.json();
+    return data.data.activities || [];
+  };
+  const {
+    data: activitiesData = [],
+    isLoading: activitiesLoading,
+    error: activitiesError,
+    refetch: refetchActivities,
+  } = useQuery({
+    queryKey: ['activities', baby?.id],
+    queryFn: fetchActivities,
+    enabled: !!baby,
+    staleTime: 1000 * 60 * 10,
+  });
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
   const [selectedActivity, setSelectedActivity] = useState<Activity | undefined>();
@@ -49,41 +71,18 @@ const Activities = () => {
 
   const baby = babies?.[0];
 
-  const fetchActivities = async () => {
-    if (!baby) return;
-    setIsLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API_CONFIG.BASE_URL}/user/babies/${baby.id}/activities`, {
-        headers: { "Authorization": `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error("Erro ao buscar atividades");
-      const data = await response.json();
-      setActivities(data.data.activities || []);
-    } catch (error) {
-      toast({
-        title: "Erro ao buscar atividades",
-        description: "Não foi possível carregar as atividades do bebê.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleSuccess = () => {
-    fetchActivities();
-    refetch();
+    refetchActivities();
     fetchGamificationData();
   };
 
   useEffect(() => {
     if (baby) {
-      fetchActivities();
+      refetchActivities();
     } else if (!isAuthLoading) {
-      setIsLoading(false);
+      setActivities(activitiesData);
     }
-  }, [baby, isAuthLoading]);
+  }, [baby, isAuthLoading, activitiesData]);
   
   const handleDeleteActivity = async (id: string) => {
     try {
@@ -99,7 +98,7 @@ const Activities = () => {
         description: "A atividade foi removida com sucesso",
       });
       
-      await fetchActivities();
+      refetchActivities();
     } catch (error) {
       toast({
         title: "Erro ao deletar atividade",
@@ -206,7 +205,7 @@ const Activities = () => {
     prevBadgesRef.current = gamification.badges;
   }, [gamification]);
 
-  if (isAuthLoading || isLoading) {
+  if (activitiesLoading || isAuthLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -282,7 +281,7 @@ const Activities = () => {
 
         {/* Activities List */}
         <div className="flex flex-col gap-4 w-full">
-          {activities.map((activity, index) => (
+          {activitiesData.map((activity, index) => (
             <Card 
               key={activity.id}
               className="glass-card border-0 shadow-lg hover:shadow-xl transition-all duration-300 animate-fade-in w-full"
@@ -355,7 +354,7 @@ const Activities = () => {
         </div>
 
         {/* Empty State */}
-        {activities.length === 0 && !isLoading && (
+        {activitiesData.length === 0 && !activitiesLoading && (
           <div className="text-center py-12 animate-fade-in">
             <div className={`w-24 h-24 mx-auto mb-6 ${getGradientClass()} rounded-full flex items-center justify-center`}>
               <ActivityIcon className="w-12 h-12 text-white" />

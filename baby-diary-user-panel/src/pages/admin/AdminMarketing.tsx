@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../components/ui/table';
@@ -11,7 +11,6 @@ import { adminMarketing } from '../../lib/adminApi';
 import { Textarea } from '../../components/ui/textarea';
 import { MediaUpload } from '../../components/MediaUpload';
 import { 
-  Users, 
   Target, 
   BarChart3, 
   Filter, 
@@ -50,26 +49,13 @@ import {
   Brain
 } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
-
-interface SegmentationStats {
-  babyAgeStats: Array<{ age_group: string; count: number }>;
-  planStats: Array<{ name: string; _count: { users: number } }>;
-  engagementStats: Array<{ engagement_level: string; count: number }>;
-  motherTypeStats: Array<{ mother_type: string; count: number }>;
-}
-
-interface TargetUser {
-  id: string;
-  name: string;
-  email: string;
-  emailVerified: boolean;
-  lastLoginAt: string;
-  createdAt: string;
-  plan_name: string;
-  baby_count: number;
-  memory_count: number;
-  activity_count: number;
-}
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { MarketingCampaignModal } from './marketing/MarketingCampaignModal';
+import { CampaignsTab } from './marketing/CampaignsTab';
+import { DigitalLibraryTab } from './marketing/DigitalLibraryTab';
+import { AnalyticsTab } from './marketing/AnalyticsTab';
+import { EditorialCalendarTab } from './marketing/EditorialCalendarTab';
+import { HashtagAnalytics } from './marketing/HashtagAnalytics';
 
 // Interfaces para Biblioteca de Marketing Digital
 interface SocialMediaPost {
@@ -181,12 +167,35 @@ interface MarketingCampaign {
   totalActivities?: number;
 }
 
+// Adicionar hook de debounce (apenas uma vez, antes do componente)
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = React.useState(value);
+  React.useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debouncedValue;
+}
+
 export const AdminMarketing: React.FC = () => {
   const { toast } = useToast();
   
-  // Estados para campanhas
-  const [campaigns, setCampaigns] = useState<MarketingCampaign[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  // Busca de campanhas com React Query
+  const {
+    data: campaigns = [],
+    isLoading: campaignsLoading,
+    error: campaignsError,
+    refetch: refetchCampaigns,
+  } = useQuery({
+    queryKey: ['adminMarketingCampaigns'],
+    queryFn: async () => {
+      const res = await adminMarketing.getCampaigns();
+      return res.data || [];
+    },
+    staleTime: 1000 * 60 * 10,
+  });
+
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editingId, setEditingId] = useState<string>('');
@@ -195,29 +204,7 @@ export const AdminMarketing: React.FC = () => {
     name: '',
     type: 'email',
     content: '',
-    subject: '',
-    segment: '',
-    scheduledAt: ''
-  });
-
-  // Estados para segmentação
-  const [segmentationStats, setSegmentationStats] = useState<SegmentationStats | null>(null);
-  const [targetUsers, setTargetUsers] = useState<TargetUser[]>([]);
-  const [showTargetUsers, setShowTargetUsers] = useState(false);
-  const [targetUsersCount, setTargetUsersCount] = useState(0);
-  const [filters, setFilters] = useState({
-    babyAgeMin: '',
-    babyAgeMax: '',
-    motherType: '',
-    planType: '',
-    engagement: '',
-    daysInactive: '',
-    hasMultipleBabies: '',
-    isPremium: '',
-    isVerified: '',
-    lastActivityDays: '',
-    totalMemories: '',
-    totalActivities: ''
+    segment: ''
   });
 
   // Estados para biblioteca digital
@@ -244,47 +231,35 @@ export const AdminMarketing: React.FC = () => {
     duration: undefined as number | undefined
   });
 
-  useEffect(() => {
-    fetchCampaigns();
-    fetchSegmentationStats();
-    fetchDigitalLibraryData();
-  }, []);
+  // 1. ESTADO PARA MODAL DE GERAÇÃO DE POST COM IA
+  const [showAIPostModal, setShowAIPostModal] = useState(false);
+  const [aiPostForm, setAIPostForm] = useState({
+    objetivo: '',
+    publico: '',
+    plataforma: 'Facebook',
+    tom: 'amigável',
+    categoria: '',
+    cta: '',
+    imagem: '',
+    hashtags: '',
+  });
+  const [aiPostLoading, setAIPostLoading] = useState(false);
 
-  const fetchCampaigns = async () => {
-    setLoading(true);
-    const response = await adminMarketing.getCampaigns();
-    if (response.success) setCampaigns(response.data);
-    setLoading(false);
-  };
-
-  const fetchSegmentationStats = async () => {
-    try {
-      const response = await adminMarketing.getSegmentationStats();
-      if (response.success) setSegmentationStats(response.data);
-    } catch (error) {
-      console.error('Erro ao buscar estatísticas:', error);
-    }
-  };
-
-  const fetchDigitalLibraryData = async () => {
-    try {
-      const [postsRes, adsRes, videosRes, argsRes, linksRes] = await Promise.all([
-        adminMarketing.getSocialMediaPosts(),
-        adminMarketing.getAdvertisements(),
-        adminMarketing.getVideoContents(),
-        adminMarketing.getSalesArguments(),
-        adminMarketing.getAffiliateLinks()
-      ]);
-
-      if (postsRes.success) setSocialMediaPosts(postsRes.data);
-      if (adsRes.success) setAdvertisements(adsRes.data);
-      if (videosRes.success) setVideoContents(videosRes.data);
-      if (argsRes.success) setSalesArguments(argsRes.data);
-      if (linksRes.success) setAffiliateLinks(linksRes.data);
-    } catch (error) {
-      console.error('Erro ao carregar dados da biblioteca:', error);
-    }
-  };
+  // 2. ESTADO PARA MODAL DE GERAÇÃO DE ANÚNCIO COM IA
+  const [showAIAdModal, setShowAIAdModal] = useState(false);
+  const [aiAdForm, setAIAdForm] = useState({
+    objetivo: '',
+    publico: '',
+    plataforma: 'Facebook',
+    tipoAnuncio: 'image',
+    tom: 'persuasivo',
+    categoria: '',
+    cta: '',
+    imagem: '',
+    orcamento: '',
+    interesses: '',
+  });
+  const [aiAdLoading, setAIAdLoading] = useState(false);
 
   const handleOpenModal = (campaign?: any) => {
     if (campaign) {
@@ -294,9 +269,7 @@ export const AdminMarketing: React.FC = () => {
         name: campaign.name,
         type: campaign.type,
         content: campaign.content,
-        subject: campaign.subject || '',
         segment: campaign.segment,
-        scheduledAt: campaign.scheduledAt ? new Date(campaign.scheduledAt).toISOString().slice(0, 16) : ''
       });
     } else {
       setEditing(false);
@@ -305,53 +278,66 @@ export const AdminMarketing: React.FC = () => {
         name: '',
         type: 'email',
         content: '',
-        subject: '',
         segment: '',
-        scheduledAt: ''
       });
     }
     setShowModal(true);
   };
 
-  const handleSave = async () => {
-    try {
-      if (editing && editingId) {
-        await adminMarketing.updateCampaign(editingId, form);
-        toast({
-          title: "Sucesso",
-          description: "Campanha atualizada com sucesso",
-        });
-      } else {
-        await adminMarketing.createCampaign(form);
-        toast({
-          title: "Sucesso",
-          description: "Campanha criada com sucesso",
-        });
-      }
+  // Mutations para criar, editar e deletar campanhas
+  const createCampaignMutation = useMutation({
+    mutationFn: async (data: any) => adminMarketing.createCampaign(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminMarketingCampaigns'] });
+      toast({ title: 'Campanha criada com sucesso!' });
       setShowModal(false);
-      fetchCampaigns();
-    } catch (error) {
-      console.error('Erro ao salvar campanha:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao salvar campanha",
-        variant: "destructive",
-      });
+    },
+    onError: (error) => {
+      toast({ title: 'Erro ao criar campanha', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const editCampaignMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string, data: any }) => adminMarketing.updateCampaign(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminMarketingCampaigns'] });
+      toast({ title: 'Campanha atualizada com sucesso!' });
+      setShowModal(false);
+    },
+    onError: (error) => {
+      toast({ title: 'Erro ao atualizar campanha', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const deleteCampaignMutation = useMutation({
+    mutationFn: async (id: string) => adminMarketing.deleteCampaign(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminMarketingCampaigns'] });
+      toast({ title: 'Campanha excluída com sucesso!' });
+    },
+    onError: (error) => {
+      toast({ title: 'Erro ao excluir campanha', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const handleSave = async () => {
+    if (editing && editingId) {
+      editCampaignMutation.mutate({ id: editingId, data: form });
+    } else {
+      createCampaignMutation.mutate(form);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Tem certeza que deseja excluir esta campanha?')) {
-      await adminMarketing.deleteCampaign(id);
-      fetchCampaigns();
-    }
+    if (!window.confirm('Tem certeza que deseja excluir esta campanha?')) return;
+    deleteCampaignMutation.mutate(id);
   };
 
   const handleGenerateAI = async () => {
     try {
       const response = await adminMarketing.generateWithGemini(
         `Gere um conteúdo de marketing para campanha de email sobre o app Baby Diary. 
-        Foco: ${form.subject || 'maternidade e desenvolvimento infantil'}
+        Foco: maternidade e desenvolvimento infantil
         Tom: amigável e motivacional
         Público: mães de bebês`
       );
@@ -361,30 +347,6 @@ export const AdminMarketing: React.FC = () => {
       toast({
         title: "Erro",
         description: "Erro ao gerar conteúdo com IA",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleCalculateTargetUsers = async () => {
-    try {
-      // Converter valores booleanos para string para compatibilidade com a API
-      const apiFilters = {
-        ...filters,
-        hasMultipleBabies: filters.hasMultipleBabies === 'true',
-        isPremium: filters.isPremium === 'true',
-        isVerified: filters.isVerified === 'true'
-      };
-      
-      const response = await adminMarketing.getTargetUsers(apiFilters);
-      setTargetUsers(response.data);
-      setTargetUsersCount(response.data.length);
-      setShowTargetUsers(true);
-    } catch (error) {
-      console.error('Erro ao buscar usuários alvo:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao buscar usuários alvo",
         variant: "destructive",
       });
     }
@@ -407,33 +369,131 @@ export const AdminMarketing: React.FC = () => {
 
   const handleSaveDigitalLibraryItem = async () => {
     try {
-      let response;
-      switch (digitalLibraryType) {
-        case 'post':
-          response = await adminMarketing.createSocialMediaPost(digitalLibraryForm);
-          break;
-        case 'ad':
-          response = await adminMarketing.createAdvertisement(digitalLibraryForm);
-          break;
-        case 'video':
-          response = await adminMarketing.createVideoContent(digitalLibraryForm);
-          break;
-        case 'argument':
-          response = await adminMarketing.createSalesArgument(digitalLibraryForm);
-          break;
-        case 'link':
-          response = await adminMarketing.createAffiliateLink(digitalLibraryForm);
-          break;
-        default:
-          return;
+      // Garante campos obrigatórios para cada tipo
+      if (digitalLibraryType === 'post') {
+        const postPayload = {
+          title: digitalLibraryForm.title || '',
+          description: digitalLibraryForm.description || '',
+          category: digitalLibraryForm.category || '',
+          platform: digitalLibraryForm.platform || '',
+          contentType: digitalLibraryForm.contentType || 'post',
+          caption: digitalLibraryForm.caption || '',
+          hashtags: digitalLibraryForm.hashtags || '',
+          targetAudience: digitalLibraryForm.targetAudience || '',
+          isActive: digitalLibraryForm.isActive ?? true,
+          sortOrder: digitalLibraryForm.sortOrder ?? 0,
+          imageUrl: digitalLibraryForm.imageUrl || '',
+          videoUrl: digitalLibraryForm.videoUrl || '',
+          createdBy: 'admin',
+        };
+        const response = await adminMarketing.createSocialMediaPost(postPayload);
+        if (response.success && response.data) {
+          setSocialMediaPosts((prev) => [response.data, ...prev]);
+          toast({ title: 'Post salvo com sucesso!' });
+          setShowDigitalLibraryModal(false);
+        }
+        return;
       }
-
-      if (response.success) {
-        setShowDigitalLibraryModal(false);
-        fetchDigitalLibraryData();
+      if (digitalLibraryType === 'ad') {
+        const adPayload = {
+          title: digitalLibraryForm.title || '',
+          platform: digitalLibraryForm.platform || '',
+          adType: digitalLibraryForm.adType || 'image',
+          copyShort: digitalLibraryForm.copyShort || '',
+          copyLong: digitalLibraryForm.copyLong || '',
+          headline: digitalLibraryForm.headline || '',
+          description: digitalLibraryForm.description || '',
+          cta: digitalLibraryForm.cta || '',
+          imageUrl: digitalLibraryForm.imageUrl || '',
+          videoUrl: digitalLibraryForm.videoUrl || '',
+          targetAudience: digitalLibraryForm.targetAudience || '',
+          interests: digitalLibraryForm.interests || '[]',
+          budget: digitalLibraryForm.budget || 0,
+          isActive: digitalLibraryForm.isActive ?? true,
+          createdBy: 'admin',
+        };
+        const response = await adminMarketing.createAdvertisement(adPayload);
+        if (response.success && response.data) {
+          setAdvertisements((prev) => [response.data, ...prev]);
+          toast({ title: 'Anúncio salvo com sucesso!' });
+          setShowDigitalLibraryModal(false);
+        }
+        return;
       }
-    } catch (error) {
+      if (digitalLibraryType === 'video') {
+        const videoPayload = {
+          title: digitalLibraryForm.title || '',
+          description: digitalLibraryForm.description || '',
+          platform: digitalLibraryForm.platform || '',
+          videoType: digitalLibraryForm.videoType || 'reel',
+          duration: digitalLibraryForm.duration || 30,
+          videoUrl: digitalLibraryForm.videoUrl || '',
+          thumbnailUrl: digitalLibraryForm.thumbnailUrl || '',
+          script: digitalLibraryForm.script || '',
+          music: digitalLibraryForm.music || '',
+          hashtags: digitalLibraryForm.hashtags || '',
+          targetAudience: digitalLibraryForm.targetAudience || '',
+          isActive: digitalLibraryForm.isActive ?? true,
+          createdBy: 'admin',
+        };
+        const response = await adminMarketing.createVideoContent(videoPayload);
+        if (response.success && response.data) {
+          setVideoContents((prev) => [response.data, ...prev]);
+          toast({ title: 'Vídeo salvo com sucesso!' });
+          setShowDigitalLibraryModal(false);
+        }
+        return;
+      }
+      if (digitalLibraryType === 'argument') {
+        const argumentPayload = {
+          title: digitalLibraryForm.title || '',
+          category: digitalLibraryForm.category || '',
+          argument: digitalLibraryForm.argument || '',
+          examples: digitalLibraryForm.examples || [],
+          targetAudience: digitalLibraryForm.targetAudience || '',
+          conversionRate: digitalLibraryForm.conversionRate || 0,
+          isActive: digitalLibraryForm.isActive ?? true,
+          sortOrder: digitalLibraryForm.sortOrder ?? 0,
+          createdBy: 'admin',
+        };
+        const response = await adminMarketing.createSalesArgument(argumentPayload);
+        if (response.success && response.data) {
+          setSalesArguments((prev) => [response.data, ...prev]);
+          toast({ title: 'Argumento salvo com sucesso!' });
+          setShowDigitalLibraryModal(false);
+        }
+        return;
+      }
+      if (digitalLibraryType === 'link') {
+        const linkPayload = {
+          name: digitalLibraryForm.name || '',
+          baseUrl: digitalLibraryForm.baseUrl || '',
+          utmSource: digitalLibraryForm.utmSource || '',
+          utmMedium: digitalLibraryForm.utmMedium || '',
+          utmCampaign: digitalLibraryForm.utmCampaign || '',
+          utmContent: digitalLibraryForm.utmContent || '',
+          utmTerm: digitalLibraryForm.utmTerm || '',
+          fullUrl: digitalLibraryForm.fullUrl || '',
+          clicks: 0,
+          conversions: 0,
+          isActive: digitalLibraryForm.isActive ?? true,
+          createdBy: 'admin',
+        };
+        const response = await adminMarketing.createAffiliateLink(linkPayload);
+        if (response.success && response.data) {
+          setAffiliateLinks((prev) => [response.data, ...prev]);
+          toast({ title: 'Link salvo com sucesso!' });
+          setShowDigitalLibraryModal(false);
+        }
+        return;
+      }
+    } catch (error: any) {
       console.error('Erro ao salvar item:', error);
+      toast({ 
+        title: 'Erro ao salvar', 
+        description: error?.message || 'Erro desconhecido', 
+        variant: 'destructive' 
+      });
     }
   };
 
@@ -506,90 +566,369 @@ export const AdminMarketing: React.FC = () => {
   // Função para salvar conteúdo gerado automaticamente
   const handleSaveGeneratedContent = async (generatedContent: any) => {
     try {
-      const contentData = {
-        title: generatedContent.title || `Conteúdo ${aiGeneratorForm.type} - ${aiGeneratorForm.platform}`,
+      console.log('Salvando conteúdo gerado:', generatedContent);
+      
+      // Mapear o conteúdo gerado para o formulário
+      const mappedContent = {
+        title: generatedContent.title || `Conteúdo gerado por IA - ${new Date().toLocaleDateString()}`,
         description: generatedContent.description || generatedContent.content || '',
-        category: aiGeneratorForm.category || 'gerado_ia',
-        platform: aiGeneratorForm.platform,
-        targetAudience: aiGeneratorForm.targetAudience,
+        platform: generatedContent.platform || 'instagram',
+        targetAudience: generatedContent.targetAudience || 'maes_bebes',
+        category: generatedContent.category || 'motivacional',
+        contentType: generatedContent.contentType || 'post',
+        caption: generatedContent.caption || generatedContent.content || '',
+        hashtags: generatedContent.hashtags || '',
+        imageUrl: generatedContent.imageUrl || '',
+        videoUrl: generatedContent.videoUrl || '',
         isActive: true,
-        createdBy: 'admin'
+        sortOrder: 0,
+        // Campos específicos para anúncios
+        adType: generatedContent.adType || 'image',
+        copyShort: generatedContent.copyShort || generatedContent.content?.substring(0, 125) || '',
+        copyLong: generatedContent.copyLong || generatedContent.content || '',
+        headline: generatedContent.headline || generatedContent.title || '',
+        cta: generatedContent.cta || 'Saiba Mais',
+        interests: generatedContent.interests || '[]',
+        budget: generatedContent.budget || 0,
+        // Campos específicos para vídeos
+        videoType: generatedContent.videoType || 'reel',
+        duration: generatedContent.duration || 30,
+        thumbnailUrl: generatedContent.thumbnailUrl || '',
+        script: generatedContent.script || generatedContent.content || '',
+        music: generatedContent.music || '',
+        // Campos específicos para argumentos
+        argument: generatedContent.argument || generatedContent.content || '',
+        examples: generatedContent.examples || [],
+        conversionRate: generatedContent.conversionRate || 0,
+        // Campos específicos para links
+        name: generatedContent.name || generatedContent.title || '',
+        baseUrl: generatedContent.baseUrl || 'https://babydiary.shop',
+        utmSource: generatedContent.utmSource || 'ai_generated',
+        utmMedium: generatedContent.utmMedium || 'social',
+        utmCampaign: generatedContent.utmCampaign || 'ai_campaign',
+        utmContent: generatedContent.utmContent || '',
+        utmTerm: generatedContent.utmTerm || '',
+        fullUrl: generatedContent.fullUrl || 'https://babydiary.shop?utm_source=ai_generated&utm_medium=social&utm_campaign=ai_campaign',
       };
 
-      let saveResponse;
-      
-      switch (aiGeneratorForm.type) {
-        case 'post':
-          saveResponse = await adminMarketing.createSocialMediaPost({
-            ...contentData,
-            contentType: 'post',
-            caption: generatedContent.caption || generatedContent.content,
-            hashtags: generatedContent.hashtags || '',
-            cta: generatedContent.cta || ''
-          });
-          if (saveResponse.success) {
-            setSocialMediaPosts(prev => [saveResponse.data, ...prev]);
-          }
-          break;
-          
-        case 'ad':
-          saveResponse = await adminMarketing.createAdvertisement({
-            ...contentData,
-            adType: 'image',
-            copyShort: generatedContent.copyShort || generatedContent.content.substring(0, 125),
-            copyLong: generatedContent.copyLong || generatedContent.content,
-            headline: generatedContent.headline || contentData.title,
-            description: generatedContent.description || generatedContent.content,
-            cta: generatedContent.cta || 'Saiba Mais',
-            interests: generatedContent.interests || []
-          });
-          if (saveResponse.success) {
-            setAdvertisements(prev => [saveResponse.data, ...prev]);
-          }
-          break;
-          
-        case 'video_script':
-          saveResponse = await adminMarketing.createVideoContent({
-            ...contentData,
-            videoType: 'reel',
-            duration: aiGeneratorForm.duration || 30,
-            script: generatedContent.script || generatedContent.content,
-            music: generatedContent.music || '',
-            hashtags: generatedContent.hashtags || ''
-          });
-          if (saveResponse.success) {
-            setVideoContents(prev => [saveResponse.data, ...prev]);
-          }
-          break;
-          
-        case 'argument':
-          saveResponse = await adminMarketing.createSalesArgument({
-            ...contentData,
-            argument: generatedContent.argument || generatedContent.content,
-            examples: generatedContent.examples || [],
-            conversionRate: generatedContent.conversionRate || 15.0,
-            sortOrder: 0
-          });
-          if (saveResponse.success) {
-            setSalesArguments(prev => [saveResponse.data, ...prev]);
-          }
-          break;
-          
-        default:
-          console.log('Tipo de conteúdo não suportado para salvamento automático');
+      // Determinar o tipo baseado no conteúdo gerado
+      let contentType = 'post';
+      if (generatedContent.type === 'ad' || generatedContent.adType) {
+        contentType = 'ad';
+      } else if (generatedContent.type === 'video' || generatedContent.videoType) {
+        contentType = 'video';
+      } else if (generatedContent.type === 'argument') {
+        contentType = 'argument';
+      } else if (generatedContent.type === 'link') {
+        contentType = 'link';
       }
-      
-    } catch (error) {
+
+      // Definir o tipo e preencher o formulário
+      setDigitalLibraryType(contentType);
+      setDigitalLibraryForm(mappedContent);
+      setShowDigitalLibraryModal(true);
+
+      toast({ 
+        title: 'Conteúdo carregado!', 
+        description: 'Revise e salve o conteúdo gerado pela IA.' 
+      });
+
+    } catch (error: any) {
       console.error('Erro ao salvar conteúdo gerado:', error);
-      toast({
-        title: "Aviso",
-        description: "Conteúdo gerado com sucesso, mas houve erro ao salvar na biblioteca.",
-        variant: "destructive",
+      toast({ 
+        title: 'Erro ao processar conteúdo', 
+        description: error?.message || 'Erro desconhecido', 
+        variant: 'destructive' 
       });
     }
   };
 
-  if (loading) {
+  // 2. Definir createPostMutation usando useMutation para criar posts na biblioteca digital.
+  const createPostMutation = useMutation({
+    mutationFn: async (data) => adminMarketing.createSocialMediaPost(data),
+    onSuccess: (data) => {
+      setSocialMediaPosts(prev => [data, ...prev]);
+      toast({ title: 'Post criado com sucesso!' });
+      setShowDigitalLibraryModal(false);
+    },
+    onError: (error) => {
+      toast({ title: 'Erro ao criar post', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // --- Mutations e handlers para Social Media Posts ---
+  const updatePostMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string, data: any }) => adminMarketing.updateSocialMediaPost(id, data),
+    onSuccess: (data) => {
+      setSocialMediaPosts((prev) => prev.map((p) => p.id === data.id ? data : p));
+      toast({ title: 'Post atualizado com sucesso!' });
+      setShowDigitalLibraryModal(false);
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao atualizar post', description: error.message, variant: 'destructive' });
+    }
+  });
+  const deletePostMutation = useMutation({
+    mutationFn: (id: string) => adminMarketing.deleteSocialMediaPost(id),
+    onSuccess: (_, id) => {
+      setSocialMediaPosts((prev) => prev.filter((p) => p.id !== id));
+      toast({ title: 'Post deletado com sucesso!' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao deletar post', description: error.message, variant: 'destructive' });
+    }
+  });
+  const handleEditPost = (id: string, data: any) => updatePostMutation.mutate({ id, data });
+  const handleDeletePost = (id: string) => {
+    if (window.confirm('Tem certeza que deseja excluir este post?')) deletePostMutation.mutate(id);
+  };
+  // --- Mutations e handlers para Anúncios ---
+  const updateAdMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string, data: any }) => adminMarketing.updateAdvertisement(id, data),
+    onSuccess: (data) => {
+      setAdvertisements((prev) => prev.map((a) => a.id === data.id ? data : a));
+      toast({ title: 'Anúncio atualizado com sucesso!' });
+      setShowDigitalLibraryModal(false);
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao atualizar anúncio', description: error.message, variant: 'destructive' });
+    }
+  });
+  const deleteAdMutation = useMutation({
+    mutationFn: (id: string) => adminMarketing.deleteAdvertisement(id),
+    onSuccess: (_, id) => {
+      setAdvertisements((prev) => prev.filter((a) => a.id !== id));
+      toast({ title: 'Anúncio deletado com sucesso!' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao deletar anúncio', description: error.message, variant: 'destructive' });
+    }
+  });
+  const handleEditAd = (id: string, data: any) => updateAdMutation.mutate({ id, data });
+  const handleDeleteAd = (id: string) => {
+    if (window.confirm('Tem certeza que deseja excluir este anúncio?')) deleteAdMutation.mutate(id);
+  };
+  // --- Mutations e handlers para Vídeos ---
+  const updateVideoMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string, data: any }) => adminMarketing.updateVideoContent(id, data),
+    onSuccess: (data) => {
+      setVideoContents((prev) => prev.map((v) => v.id === data.id ? data : v));
+      toast({ title: 'Vídeo atualizado com sucesso!' });
+      setShowDigitalLibraryModal(false);
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao atualizar vídeo', description: error.message, variant: 'destructive' });
+    }
+  });
+  const deleteVideoMutation = useMutation({
+    mutationFn: (id: string) => adminMarketing.deleteVideoContent(id),
+    onSuccess: (_, id) => {
+      setVideoContents((prev) => prev.filter((v) => v.id !== id));
+      toast({ title: 'Vídeo deletado com sucesso!' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao deletar vídeo', description: error.message, variant: 'destructive' });
+    }
+  });
+  const handleEditVideo = (id: string, data: any) => updateVideoMutation.mutate({ id, data });
+  const handleDeleteVideo = (id: string) => {
+    if (window.confirm('Tem certeza que deseja excluir este vídeo?')) deleteVideoMutation.mutate(id);
+  };
+  // --- Mutations e handlers para Argumentos de Venda ---
+  const updateArgumentMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string, data: any }) => adminMarketing.updateSalesArgument(id, data),
+    onSuccess: (data) => {
+      setSalesArguments((prev) => prev.map((a) => a.id === data.id ? data : a));
+      toast({ title: 'Argumento atualizado com sucesso!' });
+      setShowDigitalLibraryModal(false);
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao atualizar argumento', description: error.message, variant: 'destructive' });
+    }
+  });
+  const deleteArgumentMutation = useMutation({
+    mutationFn: (id: string) => adminMarketing.deleteSalesArgument(id),
+    onSuccess: (_, id) => {
+      setSalesArguments((prev) => prev.filter((a) => a.id !== id));
+      toast({ title: 'Argumento deletado com sucesso!' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao deletar argumento', description: error.message, variant: 'destructive' });
+    }
+  });
+  const handleEditArgument = (id: string, data: any) => updateArgumentMutation.mutate({ id, data });
+  const handleDeleteArgument = (id: string) => {
+    if (window.confirm('Tem certeza que deseja excluir este argumento?')) deleteArgumentMutation.mutate(id);
+  };
+  // --- Mutations e handlers para Links de Afiliados ---
+  const updateLinkMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string, data: any }) => adminMarketing.updateAffiliateLink(id, data),
+    onSuccess: (data) => {
+      setAffiliateLinks((prev) => prev.map((l) => l.id === data.id ? data : l));
+      toast({ title: 'Link atualizado com sucesso!' });
+      setShowDigitalLibraryModal(false);
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao atualizar link', description: error.message, variant: 'destructive' });
+    }
+  });
+  const deleteLinkMutation = useMutation({
+    mutationFn: (id: string) => adminMarketing.deleteAffiliateLink(id),
+    onSuccess: (_, id) => {
+      setAffiliateLinks((prev) => prev.filter((l) => l.id !== id));
+      toast({ title: 'Link deletado com sucesso!' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao deletar link', description: error.message, variant: 'destructive' });
+    }
+  });
+  const handleEditLink = (id: string, data: any) => updateLinkMutation.mutate({ id, data });
+  const handleDeleteLink = (id: string) => {
+    if (window.confirm('Tem certeza que deseja excluir este link?')) deleteLinkMutation.mutate(id);
+  };
+
+  // Handler único para onDelete do DigitalLibraryTab
+  const handleDeleteDigitalLibraryItem = (type: string, id: string) => {
+    switch (type) {
+      case 'post':
+        handleDeletePost(id);
+        break;
+      case 'ad':
+        handleDeleteAd(id);
+        break;
+      case 'video':
+        handleDeleteVideo(id);
+        break;
+      case 'argument':
+        handleDeleteArgument(id);
+        break;
+      case 'link':
+        handleDeleteLink(id);
+        break;
+      default:
+        break;
+    }
+  };
+
+  // 2. HANDLER PARA ABRIR MODAL
+  const handleOpenAIPostModal = () => setShowAIPostModal(true);
+  const handleOpenAIAdModal = () => setShowAIAdModal(true);
+
+  // 3. HANDLER PARA GERAR POST COM IA
+  const handleGenerateAIPost = async () => {
+    setAIPostLoading(true);
+    try {
+      // Chamar endpoint Gemini/backend
+      const res = await adminMarketing.generateContentWithAI({
+        type: 'post',
+        ...aiPostForm
+      });
+      // Preencher formulário de criação de post com resultado da IA
+      setDigitalLibraryForm({
+        title: res.title || '',
+        description: res.description || '',
+        platform: aiPostForm.plataforma,
+        category: aiPostForm.categoria,
+        imageUrl: res.imageUrl || aiPostForm.imagem,
+        caption: res.caption || '',
+        hashtags: res.hashtags || aiPostForm.hashtags,
+        cta: res.cta || aiPostForm.cta,
+        targetAudience: aiPostForm.publico,
+        contentType: 'post',
+        isActive: true,
+        sortOrder: 0,
+      });
+      setShowAIPostModal(false);
+      setDigitalLibraryType('post');
+      setShowDigitalLibraryModal(true); // Abre modal de criação de post já preenchido
+    } catch (err: any) {
+      toast({ title: 'Erro ao gerar post com IA', description: err.message, variant: 'destructive' });
+    } finally {
+      setAIPostLoading(false);
+    }
+  };
+
+  // 4. HANDLER PARA GERAR ANÚNCIO COM IA
+  const handleGenerateAIAd = async () => {
+    setAIAdLoading(true);
+    try {
+      // Chamar endpoint Gemini/backend
+      const res = await adminMarketing.generateContentWithAI({
+        type: 'ad',
+        ...aiAdForm
+      });
+      // Preencher formulário de criação de anúncio com resultado da IA
+      setDigitalLibraryForm({
+        title: res.title || '',
+        description: res.description || '',
+        platform: aiAdForm.plataforma,
+        adType: aiAdForm.tipoAnuncio,
+        copyShort: res.copyShort || '',
+        copyLong: res.copyLong || res.description || '',
+        headline: res.headline || res.title || '',
+        cta: res.cta || aiAdForm.cta,
+        imageUrl: res.imageUrl || aiAdForm.imagem,
+        targetAudience: aiAdForm.publico,
+        interests: aiAdForm.interesses ? aiAdForm.interesses.split(',').map(i => i.trim()) : [],
+        budget: aiAdForm.orcamento ? parseFloat(aiAdForm.orcamento) : undefined,
+        isActive: true,
+      });
+      setShowAIAdModal(false);
+      setDigitalLibraryType('ad');
+      setShowDigitalLibraryModal(true); // Abre modal de criação de anúncio já preenchido
+    } catch (err: any) {
+      toast({ title: 'Erro ao gerar anúncio com IA', description: err.message, variant: 'destructive' });
+    } finally {
+      setAIAdLoading(false);
+    }
+  };
+
+  // 5. HANDLER PARA CHAT INTELIGENTE
+  const handleChatMessage = async (type: string, message: string) => {
+    try {
+      // Mapear tipos para plataformas padrão
+      const platformMap = {
+        posts: 'instagram',
+        ads: 'facebook',
+        videos: 'tiktok',
+        arguments: 'whatsapp',
+        links: 'google_ads'
+      };
+
+      // Mapear tipos para público-alvo padrão
+      const audienceMap = {
+        posts: 'maes_bebes',
+        ads: 'maes_bebes',
+        videos: 'maes_criancas',
+        arguments: 'gestantes',
+        links: 'maes_bebes'
+      };
+
+      // Chamar IA com parâmetros corretos
+      const res = await adminMarketing.generateContentWithAI({
+        type: 'chat',
+        platform: platformMap[type as keyof typeof platformMap] || 'instagram',
+        targetAudience: audienceMap[type as keyof typeof audienceMap] || 'maes_bebes',
+        specificTopic: message,
+        category: type
+      });
+
+      // Retornar a resposta para ser adicionada ao chat
+      return {
+        success: true,
+        content: res.data?.content || 'Resposta gerada com sucesso!'
+      };
+
+    } catch (err: any) {
+      console.error('Erro no chat:', err);
+      return {
+        success: false,
+        content: err.message || 'Erro ao processar mensagem'
+      };
+    }
+  };
+
+  if (campaignsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -610,1021 +949,68 @@ export const AdminMarketing: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="campaigns">Campanhas</TabsTrigger>
-          <TabsTrigger value="segmentation">Segmentação</TabsTrigger>
           <TabsTrigger value="digital-library">Biblioteca Digital</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="editorial-calendar">Calendário Editorial</TabsTrigger>
+          <TabsTrigger value="hashtag-analytics">Hashtag Analytics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="campaigns" className="space-y-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Campanhas de Marketing</CardTitle>
-              <Button onClick={() => handleOpenModal()}>Nova Campanha</Button>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Segmentação</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Agendamento</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {campaigns.map((c) => (
-                    <TableRow key={c.id}>
-                      <TableCell>{c.name}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{c.type}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          {c.segment}
-                          {(c as any).babyAgeMin && (
-                            <div className="text-xs text-gray-500">
-                              Bebê: {(c as any).babyAgeMin}-{(c as any).babyAgeMax || '∞'} meses
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={c.status === 'sent' ? 'default' : 'secondary'}>
-                          {c.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {c.scheduledAt ? formatDate(c.scheduledAt) : '-'}
-                      </TableCell>
-                      <TableCell>
-                        <Button size="sm" onClick={() => handleOpenModal(c)}>Editar</Button>{' '}
-                        <Button size="sm" variant="destructive" onClick={() => handleDelete(c.id)}>Excluir</Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="segmentation" className="space-y-6">
-          {/* Estatísticas de Segmentação */}
-          {segmentationStats && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Baby className="w-4 h-4" />
-                    Idade dos Bebês
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {segmentationStats.babyAgeStats.map((stat) => (
-                      <div key={stat.age_group} className="flex justify-between">
-                        <span className="text-sm">{stat.age_group}</span>
-                        <Badge variant="outline">{stat.count}</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    Tipo de Mãe
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {segmentationStats.motherTypeStats.map((stat) => (
-                      <div key={stat.mother_type} className="flex justify-between">
-                        <span className="text-sm">{stat.mother_type}</span>
-                        <Badge variant="outline">{stat.count}</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Activity className="w-4 h-4" />
-                    Engajamento
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {segmentationStats.engagementStats.map((stat) => (
-                      <div key={stat.engagement_level} className="flex justify-between">
-                        <span className="text-sm">{stat.engagement_level}</span>
-                        <Badge variant="outline">{stat.count}</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CreditCard className="w-4 h-4" />
-                    Planos
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {segmentationStats.planStats.map((stat, index) => (
-                      <div key={`${stat.name}-${index}`} className="flex justify-between">
-                        <span className="text-sm">{stat.name}</span>
-                        <Badge variant="outline">{stat._count.users}</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Filtros de Segmentação */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Filter className="w-4 h-4" />
-                Filtros de Segmentação
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Idade do Bebê (meses)</label>
-                  <div className="flex gap-2 mt-1">
-                    <input
-                      type="number"
-                      placeholder="Min"
-                      className="border p-2 w-full rounded"
-                      value={filters.babyAgeMin}
-                      onChange={(e) => setFilters({...filters, babyAgeMin: e.target.value})}
-                    />
-                    <input
-                      type="number"
-                      placeholder="Max"
-                      className="border p-2 w-full rounded"
-                      value={filters.babyAgeMax}
-                      onChange={(e) => setFilters({...filters, babyAgeMax: e.target.value})}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium">Tipo de Mãe</label>
-                  <select
-                    className="border p-2 w-full rounded mt-1"
-                    value={filters.motherType}
-                    onChange={(e) => setFilters({...filters, motherType: e.target.value})}
-                  >
-                    <option value="">Todos</option>
-                    <option value="primeira_vez">Primeira vez</option>
-                    <option value="experiente">Experiente</option>
-                    <option value="muito_experiente">Muito experiente</option>
-                    <option value="familia_grande">Família grande</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium">Engajamento</label>
-                  <select
-                    className="border p-2 w-full rounded mt-1"
-                    value={filters.engagement}
-                    onChange={(e) => setFilters({...filters, engagement: e.target.value})}
-                  >
-                    <option value="">Todos</option>
-                    <option value="ativa">Ativa</option>
-                    <option value="inativa">Inativa</option>
-                    <option value="nova">Nova</option>
-                    <option value="retornando">Retornando</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium">Plano</label>
-                  <select
-                    className="border p-2 w-full rounded mt-1"
-                    value={filters.planType}
-                    onChange={(e) => setFilters({...filters, planType: e.target.value})}
-                  >
-                    <option value="">Todos</option>
-                    <option value="básico">Básico</option>
-                    <option value="premium">Premium</option>
-                    <option value="família">Família</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium">Múltiplos Bebês</label>
-                  <select
-                    className="border p-2 w-full rounded mt-1"
-                    value={filters.hasMultipleBabies}
-                    onChange={(e) => setFilters({...filters, hasMultipleBabies: e.target.value})}
-                  >
-                    <option value="">Todos</option>
-                    <option value="true">Sim</option>
-                    <option value="false">Não</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium">Email Verificado</label>
-                  <select
-                    className="border p-2 w-full rounded mt-1"
-                    value={filters.isVerified}
-                    onChange={(e) => setFilters({...filters, isVerified: e.target.value})}
-                  >
-                    <option value="">Todos</option>
-                    <option value="true">Sim</option>
-                    <option value="false">Não</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <Button onClick={handleCalculateTargetUsers} className="flex items-center gap-2">
-                  <Target className="w-4 h-4" />
-                  Calcular Usuários Alvo
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <CampaignsTab
+            campaigns={campaigns}
+            onEdit={handleOpenModal}
+            onDelete={handleDelete}
+            formatDate={formatDate}
+          />
         </TabsContent>
 
         <TabsContent value="digital-library" className="space-y-6">
-          {/* Header com IA */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4" />
-                Gerador de Conteúdo com IA
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Tipo de Conteúdo</label>
-                  <Select value={aiGeneratorForm.type} onValueChange={(value) => setAiGeneratorForm({...aiGeneratorForm, type: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="post">Post para Redes Sociais</SelectItem>
-                      <SelectItem value="ad">Anúncio</SelectItem>
-                      <SelectItem value="video_script">Roteiro de Vídeo</SelectItem>
-                      <SelectItem value="argument">Argumento de Venda</SelectItem>
-                      <SelectItem value="hashtag_research">Pesquisa de Hashtags</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+          <DigitalLibraryTab
+            posts={socialMediaPosts}
+            ads={advertisements}
+            videos={videoContents}
+            arguments={salesArguments}
+            links={affiliateLinks}
+            onCreate={handleOpenDigitalLibraryModal}
+            onEdit={handleOpenDigitalLibraryModal}
+            onDelete={handleDeleteDigitalLibraryItem}
+            onSave={handleSaveDigitalLibraryItem}
+            form={digitalLibraryForm}
+            setForm={setDigitalLibraryForm}
+            showModal={showDigitalLibraryModal}
+            setShowModal={setShowDigitalLibraryModal}
+            onGenerateAIPost={handleOpenAIPostModal}
+            onGenerateAIAd={handleOpenAIAdModal}
+            onChatMessage={handleChatMessage}
+            setDigitalLibraryType={setDigitalLibraryType}
+          />
+        </TabsContent>
 
-                <div>
-                  <label className="text-sm font-medium">Plataforma</label>
-                  <Select value={aiGeneratorForm.platform} onValueChange={(value) => setAiGeneratorForm({...aiGeneratorForm, platform: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a plataforma" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="instagram">Instagram</SelectItem>
-                      <SelectItem value="facebook">Facebook</SelectItem>
-                      <SelectItem value="tiktok">TikTok</SelectItem>
-                      <SelectItem value="youtube">YouTube</SelectItem>
-                      <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                      <SelectItem value="google_ads">Google Ads</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+        <TabsContent value="analytics" className="space-y-6">
+          <AnalyticsTab />
+        </TabsContent>
 
-                <div>
-                  <label className="text-sm font-medium">Público-Alvo</label>
-                  <Select value={aiGeneratorForm.targetAudience} onValueChange={(value) => setAiGeneratorForm({...aiGeneratorForm, targetAudience: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o público" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="gestantes">Gestantes</SelectItem>
-                      <SelectItem value="maes_bebes">Mães de Bebês (0-2 anos)</SelectItem>
-                      <SelectItem value="maes_criancas">Mães de Crianças (2+ anos)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+        <TabsContent value="editorial-calendar" className="space-y-6">
+          <EditorialCalendarTab />
+        </TabsContent>
 
-                <div>
-                  <label className="text-sm font-medium">Tom</label>
-                  <Select value={aiGeneratorForm.tone} onValueChange={(value) => setAiGeneratorForm({...aiGeneratorForm, tone: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tom" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="amigavel">Amigável e Motivacional</SelectItem>
-                      <SelectItem value="emocional">Emocional e Inspirador</SelectItem>
-                      <SelectItem value="profissional">Profissional e Informativo</SelectItem>
-                      <SelectItem value="divertido">Divertido e Casual</SelectItem>
-                      <SelectItem value="urgente">Urgente e Persuasivo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Configurações Avançadas */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Categoria</label>
-                  <Select value={aiGeneratorForm.category} onValueChange={(value) => setAiGeneratorForm({...aiGeneratorForm, category: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a categoria" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="emocional">Emocional</SelectItem>
-                      <SelectItem value="funcionalidade">Funcionalidade</SelectItem>
-                      <SelectItem value="beneficio">Benefício</SelectItem>
-                      <SelectItem value="depoimento">Depoimento</SelectItem>
-                      <SelectItem value="comemorativo">Comemorativo</SelectItem>
-                      <SelectItem value="educativo">Educativo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {aiGeneratorForm.type === 'video_script' && (
-                  <div>
-                    <label className="text-sm font-medium">Duração (segundos)</label>
-                    <Input
-                      type="number"
-                      placeholder="30"
-                      value={aiGeneratorForm.duration?.toString() || ''}
-                      onChange={(e) => setAiGeneratorForm({...aiGeneratorForm, duration: e.target.value ? parseInt(e.target.value) : undefined})}
-                    />
-                  </div>
-                )}
-
-                <div className="md:col-span-2">
-                  <label className="text-sm font-medium">Tópico Específico (opcional)</label>
-                  <Input
-                    placeholder="Ex: primeiro sorriso, sono do bebê, alimentação, marcos de desenvolvimento..."
-                    value={aiGeneratorForm.specificTopic || ''}
-                    onChange={(e) => setAiGeneratorForm({...aiGeneratorForm, specificTopic: e.target.value})}
-                  />
-                </div>
-              </div>
-
-              {/* Botão de Geração */}
-              <div className="flex justify-center">
-                <Button 
-                  onClick={handleGenerateContent}
-                  disabled={isGenerating || !aiGeneratorForm.type || !aiGeneratorForm.platform || !aiGeneratorForm.targetAudience}
-                  className="w-full max-w-md"
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Gerando Conteúdo...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Gerar Conteúdo com IA
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              {/* Resultado da IA */}
-              {aiGeneratedContent && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold">Conteúdo Gerado</h3>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => copyToClipboard(aiGeneratedContent.content)}
-                      >
-                        <Copy className="w-4 h-4 mr-1" />
-                        Copiar Tudo
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setAiGeneratedContent(null)}
-                      >
-                        <X className="w-4 h-4 mr-1" />
-                        Limpar
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Conteúdo Principal */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">Conteúdo Principal</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="whitespace-pre-wrap text-sm bg-gray-50 p-4 rounded-lg max-h-96 overflow-y-auto">
-                        {aiGeneratedContent.content}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Metadados e Sugestões */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {aiGeneratedContent.suggestedPostingTime && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-sm">Horário Sugerido</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-sm">{aiGeneratedContent.suggestedPostingTime}</p>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {aiGeneratedContent.engagementTips && aiGeneratedContent.engagementTips.length > 0 && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-sm">Dicas de Engajamento</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <ul className="text-sm space-y-1">
-                            {aiGeneratedContent.engagementTips.map((tip: string, index: number) => (
-                              <li key={index} className="flex items-start">
-                                <span className="text-blue-500 mr-2">•</span>
-                                {tip}
-                              </li>
-                            ))}
-                          </ul>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {aiGeneratedContent.targetingSuggestions && aiGeneratedContent.targetingSuggestions.length > 0 && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-sm">Sugestões de Segmentação</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="flex flex-wrap gap-2">
-                            {aiGeneratedContent.targetingSuggestions.map((suggestion: string, index: number) => (
-                              <Badge key={index} variant="secondary">
-                                {suggestion}
-                              </Badge>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {aiGeneratedContent.budgetRecommendation && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-sm">Orçamento Sugerido</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-sm">{aiGeneratedContent.budgetRecommendation}</p>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {aiGeneratedContent.videoTips && aiGeneratedContent.videoTips.length > 0 && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-sm">Dicas para Vídeo</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <ul className="text-sm space-y-1">
-                            {aiGeneratedContent.videoTips.map((tip: string, index: number) => (
-                              <li key={index} className="flex items-start">
-                                <span className="text-green-500 mr-2">•</span>
-                                {tip}
-                              </li>
-                            ))}
-                          </ul>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {aiGeneratedContent.musicSuggestions && aiGeneratedContent.musicSuggestions.length > 0 && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-sm">Sugestões de Música</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <ul className="text-sm space-y-1">
-                            {aiGeneratedContent.musicSuggestions.map((music: string, index: number) => (
-                              <li key={index} className="flex items-start">
-                                <span className="text-purple-500 mr-2">•</span>
-                                {music}
-                              </li>
-                            ))}
-                          </ul>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
-
-                  {/* Botões de Ação */}
-                  <div className="flex gap-2 justify-center">
-                    <Button
-                      onClick={() => {
-                        // Salvar na biblioteca correspondente
-                        const contentData = {
-                          title: `Conteúdo IA - ${aiGeneratorForm.type} - ${aiGeneratorForm.platform}`,
-                          description: aiGeneratedContent.content.substring(0, 200) + '...',
-                          content: aiGeneratedContent.content,
-                          type: aiGeneratorForm.type,
-                          platform: aiGeneratorForm.platform,
-                          targetAudience: aiGeneratorForm.targetAudience,
-                          category: aiGeneratorForm.category,
-                          metadata: aiGeneratedContent
-                        };
-                        
-                        // Aqui você pode implementar a lógica para salvar na biblioteca
-                        console.log('Salvando conteúdo:', contentData);
-                        toast({
-                          title: "Conteúdo salvo!",
-                          description: "O conteúdo foi salvo na biblioteca correspondente.",
-                        });
-                      }}
-                    >
-                      <Save className="w-4 h-4 mr-2" />
-                      Salvar na Biblioteca
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Posts para Redes Sociais */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Instagram className="w-4 h-4" />
-                  Posts para Redes Sociais
-                </div>
-                <Button 
-                  onClick={() => handleOpenDigitalLibraryModal('post')}
-                  size="sm"
-                >
-                  Novo Post
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {socialMediaPosts.map((post) => (
-                  <div key={post.id} className="border rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      {getPlatformIcon(post.platform)}
-                      <Badge variant="outline">{post.category}</Badge>
-                    </div>
-                    <h4 className="font-medium text-sm mb-2">{post.title}</h4>
-                    <p className="text-xs text-gray-600 mb-3">{post.description}</p>
-                    <div className="flex gap-2">
-                      <Button 
-                        onClick={() => copyToClipboard(post.caption)}
-                        variant="outline" 
-                        size="sm"
-                      >
-                        <Copy className="w-3 h-3 mr-1" />
-                        Legenda
-                      </Button>
-                      <Button 
-                        onClick={() => copyToClipboard(post.hashtags)}
-                        variant="outline" 
-                        size="sm"
-                      >
-                        <Copy className="w-3 h-3 mr-1" />
-                        Hashtags
-                      </Button>
-                      {(post.imageUrl || post.videoUrl) && (
-                        <>
-                          <Button 
-                            onClick={() => window.open(post.imageUrl || post.videoUrl, '_blank')}
-                            variant="outline" 
-                            size="sm"
-                          >
-                            <Eye className="w-3 h-3 mr-1" />
-                            Ver Mídia
-                          </Button>
-                          <Button 
-                            onClick={async () => {
-                              try {
-                                const response = await adminMarketing.downloadMedia({
-                                  publicId: post.imageUrl || post.videoUrl || '',
-                                  filename: `${post.title}_media`
-                                });
-                                if (response.success) {
-                                  const link = document.createElement('a');
-                                  link.href = response.data.downloadUrl;
-                                  link.download = `${post.title}_media`;
-                                  document.body.appendChild(link);
-                                  link.click();
-                                  document.body.removeChild(link);
-                                }
-                              } catch (err) {
-                                console.error('Erro ao fazer download:', err);
-                              }
-                            }}
-                            variant="outline" 
-                            size="sm"
-                          >
-                            <Download className="w-3 h-3 mr-1" />
-                            Download
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Anúncios */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Facebook className="w-4 h-4" />
-                  Anúncios
-                </div>
-                <Button 
-                  onClick={() => handleOpenDigitalLibraryModal('ad')}
-                  size="sm"
-                >
-                  Novo Anúncio
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Título</TableHead>
-                    <TableHead>Plataforma</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Público</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {advertisements.map((ad) => (
-                    <TableRow key={ad.id}>
-                      <TableCell className="font-medium">{ad.title}</TableCell>
-                      <TableCell>{getPlatformIcon(ad.platform)} {ad.platform}</TableCell>
-                      <TableCell>{ad.adType}</TableCell>
-                      <TableCell>{ad.targetAudience}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button 
-                            onClick={() => copyToClipboard(ad.copyShort)}
-                            variant="outline" 
-                            size="sm"
-                          >
-                            <Copy className="w-3 h-3 mr-1" />
-                            Copy
-                          </Button>
-                          <Button 
-                            onClick={() => copyToClipboard(ad.headline)}
-                            variant="outline" 
-                            size="sm"
-                          >
-                            <Copy className="w-3 h-3 mr-1" />
-                            Título
-                          </Button>
-                          {(ad.imageUrl || ad.videoUrl) && (
-                            <>
-                              <Button 
-                                onClick={() => window.open(ad.imageUrl || ad.videoUrl, '_blank')}
-                                variant="outline" 
-                                size="sm"
-                              >
-                                <Eye className="w-3 h-3 mr-1" />
-                                Ver Mídia
-                              </Button>
-                              <Button 
-                                onClick={async () => {
-                                  try {
-                                    const response = await adminMarketing.downloadMedia({
-                                      publicId: ad.imageUrl || ad.videoUrl || '',
-                                      filename: `${ad.title}_media`
-                                    });
-                                    if (response.success) {
-                                      const link = document.createElement('a');
-                                      link.href = response.data.downloadUrl;
-                                      link.download = `${ad.title}_media`;
-                                      document.body.appendChild(link);
-                                      link.click();
-                                      document.body.removeChild(link);
-                                    }
-                                  } catch (err) {
-                                    console.error('Erro ao fazer download:', err);
-                                  }
-                                }}
-                                variant="outline" 
-                                size="sm"
-                              >
-                                <Download className="w-3 h-3 mr-1" />
-                                Download
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          {/* Vídeos */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Video className="w-4 h-4" />
-                  Vídeos e Reels
-                </div>
-                <Button 
-                  onClick={() => handleOpenDigitalLibraryModal('video')}
-                  size="sm"
-                >
-                  Novo Vídeo
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {videoContents.map((video) => (
-                  <div key={video.id} className="border rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      {getPlatformIcon(video.platform)}
-                      <Badge variant="outline">{video.videoType}</Badge>
-                      <span className="text-sm text-gray-500">{video.duration}s</span>
-                    </div>
-                    <h4 className="font-medium text-sm mb-2">{video.title}</h4>
-                    <p className="text-xs text-gray-600 mb-3">{video.description}</p>
-                    <div className="flex gap-2">
-                      <Button 
-                        onClick={() => copyToClipboard(video.script)}
-                        variant="outline" 
-                        size="sm"
-                      >
-                        <Copy className="w-3 h-3 mr-1" />
-                        Roteiro
-                      </Button>
-                      <Button 
-                        onClick={() => copyToClipboard(video.hashtags)}
-                        variant="outline" 
-                        size="sm"
-                      >
-                        <Copy className="w-3 h-3 mr-1" />
-                        Hashtags
-                      </Button>
-                      {video.videoUrl && (
-                        <>
-                          <Button 
-                            onClick={() => window.open(video.videoUrl, '_blank')}
-                            variant="outline" 
-                            size="sm"
-                          >
-                            <Play className="w-3 h-3 mr-1" />
-                            Ver Vídeo
-                          </Button>
-                          <Button 
-                            onClick={async () => {
-                              try {
-                                const response = await adminMarketing.downloadMedia({
-                                  publicId: video.videoUrl || '',
-                                  filename: `${video.title}_video`
-                                });
-                                if (response.success) {
-                                  const link = document.createElement('a');
-                                  link.href = response.data.downloadUrl;
-                                  link.download = `${video.title}_video`;
-                                  document.body.appendChild(link);
-                                  link.click();
-                                  document.body.removeChild(link);
-                                }
-                              } catch (err) {
-                                console.error('Erro ao fazer download:', err);
-                              }
-                            }}
-                            variant="outline" 
-                            size="sm"
-                          >
-                            <Download className="w-3 h-3 mr-1" />
-                            Download
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Argumentos de Venda */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Brain className="w-4 h-4" />
-                  Argumentos de Venda
-                </div>
-                <Button 
-                  onClick={() => handleOpenDigitalLibraryModal('argument')}
-                  size="sm"
-                >
-                  Novo Argumento
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {salesArguments.map((arg) => (
-                  <div key={arg.id} className="border rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge variant="outline">{arg.category}</Badge>
-                      {arg.conversionRate && (
-                        <span className="text-sm text-green-600">
-                          {arg.conversionRate}% conversão
-                        </span>
-                      )}
-                    </div>
-                    <h4 className="font-medium text-sm mb-2">{arg.title}</h4>
-                    <p className="text-xs text-gray-600 mb-3">{arg.argument}</p>
-                    <Button 
-                      onClick={() => copyToClipboard(arg.argument)}
-                      variant="outline" 
-                      size="sm"
-                    >
-                      <Copy className="w-3 h-3 mr-1" />
-                      Copiar Argumento
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Links de Afiliados */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Link className="w-4 h-4" />
-                  Links de Afiliados
-                </div>
-                <Button 
-                  onClick={() => handleOpenDigitalLibraryModal('link')}
-                  size="sm"
-                >
-                  Novo Link
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Campanha</TableHead>
-                    <TableHead>Cliques</TableHead>
-                    <TableHead>Conversões</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {affiliateLinks.map((link) => (
-                    <TableRow key={link.id}>
-                      <TableCell className="font-medium">{link.name}</TableCell>
-                      <TableCell>{link.utmCampaign}</TableCell>
-                      <TableCell>{link.clicks}</TableCell>
-                      <TableCell>{link.conversions}</TableCell>
-                      <TableCell>
-                        <Button 
-                          onClick={() => copyToClipboard(link.fullUrl)}
-                          variant="outline" 
-                          size="sm"
-                        >
-                          <Copy className="w-3 h-3 mr-1" />
-                          Copiar Link
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+        <TabsContent value="hashtag-analytics" className="space-y-6">
+          <HashtagAnalytics />
         </TabsContent>
       </Tabs>
 
-      {/* Modal de criar/editar campanha */}
-      <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editing ? 'Editar Campanha' : 'Nova Campanha'}</DialogTitle>
-            <DialogDescription>
-              Preencha os dados da campanha. Use a IA para gerar conteúdo se desejar.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium">Nome da Campanha</label>
-              <input
-                className="border p-2 w-full rounded mt-1"
-                placeholder="Nome"
-                value={form.name}
-                onChange={(e) => setForm({...form, name: e.target.value})}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Tipo</label>
-              <select
-                className="border p-2 w-full rounded mt-1"
-                value={form.type}
-                onChange={(e) => setForm({...form, type: e.target.value})}
-              >
-                <option value="email">Email</option>
-                <option value="push">Push</option>
-                <option value="sms">SMS</option>
-                <option value="inapp">In-App</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-sm font-medium">Assunto (para email)</label>
-              <input
-                className="border p-2 w-full rounded mt-1"
-                placeholder="Assunto"
-                value={form.subject}
-                onChange={(e) => setForm({...form, subject: e.target.value})}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Segmento</label>
-              <input
-                className="border p-2 w-full rounded mt-1"
-                placeholder="Ex: novas_mamaes, premium"
-                value={form.segment}
-                onChange={(e) => setForm({...form, segment: e.target.value})}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Data Agendada</label>
-              <input
-                type="datetime-local"
-                className="border p-2 w-full rounded mt-1"
-                value={form.scheduledAt}
-                onChange={(e) => setForm({...form, scheduledAt: e.target.value})}
-              />
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <label className="text-sm font-medium">Conteúdo</label>
-            <div className="flex gap-2 mb-2">
-              <Button onClick={handleGenerateAI} size="sm" variant="outline">
-                <Sparkles className="w-4 h-4 mr-2" />
-                Gerar com IA
-              </Button>
-            </div>
-            <Textarea
-              className="min-h-[200px]"
-              placeholder="Conteúdo da campanha..."
-              value={form.content}
-              onChange={(e) => setForm({...form, content: e.target.value})}
-            />
-          </div>
-
-          <div className="flex gap-2 mt-4">
-            <Button onClick={handleSave} className="flex-1">
-              {editing ? 'Atualizar' : 'Criar'} Campanha
-            </Button>
-            <Button variant="outline" onClick={() => setShowModal(false)}>
-              Cancelar
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Substituir o modal antigo pelo novo componente */}
+      <MarketingCampaignModal
+        open={showModal}
+        onOpenChange={setShowModal}
+        editing={editing}
+        form={form}
+        setForm={(f) => setForm(f)}
+        onSave={handleSave}
+        onCancel={() => setShowModal(false)}
+      />
 
       {/* Modal de Biblioteca Digital */}
       <Dialog open={showDigitalLibraryModal} onOpenChange={setShowDigitalLibraryModal}>
@@ -1641,98 +1027,120 @@ export const AdminMarketing: React.FC = () => {
               Preencha os dados do item da biblioteca digital.
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium">Título</label>
-              <input
-                className="border p-2 w-full rounded mt-1"
-                placeholder="Título"
-                value={digitalLibraryForm.title || ''}
-                onChange={(e) => setDigitalLibraryForm({...digitalLibraryForm, title: e.target.value})}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Público Alvo</label>
-              <select
-                className="border p-2 w-full rounded mt-1"
-                value={digitalLibraryForm.targetAudience || ''}
-                onChange={(e) => setDigitalLibraryForm({...digitalLibraryForm, targetAudience: e.target.value})}
-              >
-                <option value="">Selecione...</option>
-                <option value="gestantes">Gestantes</option>
-                <option value="maes_bebes">Mães de Bebês</option>
-                <option value="maes_criancas">Mães de Crianças</option>
-              </select>
-            </div>
-            
-            {digitalLibraryType === 'post' && (
-              <>
-                <div>
-                  <label className="text-sm font-medium">Plataforma</label>
-                  <select
-                    className="border p-2 w-full rounded mt-1"
-                    value={digitalLibraryForm.platform || ''}
-                    onChange={(e) => setDigitalLibraryForm({...digitalLibraryForm, platform: e.target.value})}
-                  >
-                    <option value="">Selecione...</option>
-                    <option value="instagram">Instagram</option>
-                    <option value="facebook">Facebook</option>
-                    <option value="tiktok">TikTok</option>
-                    <option value="whatsapp">WhatsApp</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Categoria</label>
-                  <select
-                    className="border p-2 w-full rounded mt-1"
-                    value={digitalLibraryForm.category || ''}
-                    onChange={(e) => setDigitalLibraryForm({...digitalLibraryForm, category: e.target.value})}
-                  >
-                    <option value="">Selecione...</option>
-                    <option value="motivacional">Motivacional</option>
-                    <option value="beneficio">Benefício</option>
-                    <option value="funcionalidade">Funcionalidade</option>
-                    <option value="depoimento">Depoimento</option>
-                    <option value="comemorativo">Comemorativo</option>
-                  </select>
-                </div>
-              </>
-            )}
 
-            {digitalLibraryType === 'ad' && (
-              <>
-                <div>
-                  <label className="text-sm font-medium">Plataforma</label>
-                  <select
-                    className="border p-2 w-full rounded mt-1"
-                    value={digitalLibraryForm.platform || ''}
-                    onChange={(e) => setDigitalLibraryForm({...digitalLibraryForm, platform: e.target.value})}
-                  >
-                    <option value="">Selecione...</option>
-                    <option value="facebook">Facebook</option>
-                    <option value="instagram">Instagram</option>
-                    <option value="google_ads">Google Ads</option>
-                    <option value="tiktok">TikTok</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Tipo de Anúncio</label>
-                  <select
-                    className="border p-2 w-full rounded mt-1"
-                    value={digitalLibraryForm.adType || ''}
-                    onChange={(e) => setDigitalLibraryForm({...digitalLibraryForm, adType: e.target.value})}
-                  >
-                    <option value="">Selecione...</option>
-                    <option value="image">Imagem</option>
-                    <option value="video">Vídeo</option>
-                    <option value="carousel">Carrossel</option>
-                    <option value="story">Story</option>
-                  </select>
-                </div>
-              </>
-            )}
+          {/* Campo de seleção do tipo de conteúdo */}
+          <div className="mb-6">
+            <label className="text-sm font-medium">Tipo de Conteúdo <span className="text-red-500">*</span></label>
+            <select
+              className="border p-2 w-full rounded mt-1"
+              value={digitalLibraryType}
+              onChange={e => {
+                setDigitalLibraryType(e.target.value);
+                setDigitalLibraryForm({});
+              }}
+            >
+              <option value="">Selecione...</option>
+              <option value="post">Post para Redes Sociais</option>
+              <option value="ad">Anúncio</option>
+              <option value="video">Vídeo</option>
+              <option value="argument">Argumento de Venda</option>
+              <option value="link">Link de Afiliado</option>
+            </select>
           </div>
+
+          {/* Só renderiza o restante do formulário se o tipo estiver selecionado */}
+          {digitalLibraryType && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Título</label>
+                <input
+                  className="border p-2 w-full rounded mt-1"
+                  placeholder="Título"
+                  value={digitalLibraryForm.title || ''}
+                  onChange={(e) => setDigitalLibraryForm({...digitalLibraryForm, title: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Público Alvo</label>
+                <select
+                  className="border p-2 w-full rounded mt-1"
+                  value={digitalLibraryForm.targetAudience || ''}
+                  onChange={(e) => setDigitalLibraryForm({...digitalLibraryForm, targetAudience: e.target.value})}
+                >
+                  <option value="">Selecione...</option>
+                  <option value="gestantes">Gestantes</option>
+                  <option value="maes_bebes">Mães de Bebês</option>
+                  <option value="maes_criancas">Mães de Crianças</option>
+                </select>
+              </div>
+              {digitalLibraryType === 'post' && (
+                <>
+                  <div>
+                    <label className="text-sm font-medium">Plataforma</label>
+                    <select
+                      className="border p-2 w-full rounded mt-1"
+                      value={digitalLibraryForm.platform || ''}
+                      onChange={(e) => setDigitalLibraryForm({...digitalLibraryForm, platform: e.target.value})}
+                    >
+                      <option value="">Selecione...</option>
+                      <option value="instagram">Instagram</option>
+                      <option value="facebook">Facebook</option>
+                      <option value="tiktok">TikTok</option>
+                      <option value="whatsapp">WhatsApp</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Categoria</label>
+                    <select
+                      className="border p-2 w-full rounded mt-1"
+                      value={digitalLibraryForm.category || ''}
+                      onChange={(e) => setDigitalLibraryForm({...digitalLibraryForm, category: e.target.value})}
+                    >
+                      <option value="">Selecione...</option>
+                      <option value="motivacional">Motivacional</option>
+                      <option value="beneficio">Benefício</option>
+                      <option value="funcionalidade">Funcionalidade</option>
+                      <option value="depoimento">Depoimento</option>
+                      <option value="comemorativo">Comemorativo</option>
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {digitalLibraryType === 'ad' && (
+                <>
+                  <div>
+                    <label className="text-sm font-medium">Plataforma</label>
+                    <select
+                      className="border p-2 w-full rounded mt-1"
+                      value={digitalLibraryForm.platform || ''}
+                      onChange={(e) => setDigitalLibraryForm({...digitalLibraryForm, platform: e.target.value})}
+                    >
+                      <option value="">Selecione...</option>
+                      <option value="facebook">Facebook</option>
+                      <option value="instagram">Instagram</option>
+                      <option value="google_ads">Google Ads</option>
+                      <option value="tiktok">TikTok</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Tipo de Anúncio</label>
+                    <select
+                      className="border p-2 w-full rounded mt-1"
+                      value={digitalLibraryForm.adType || ''}
+                      onChange={(e) => setDigitalLibraryForm({...digitalLibraryForm, adType: e.target.value})}
+                    >
+                      <option value="">Selecione...</option>
+                      <option value="image">Imagem</option>
+                      <option value="video">Vídeo</option>
+                      <option value="carousel">Carrossel</option>
+                      <option value="story">Story</option>
+                    </select>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           <div className="mt-4">
             <label className="text-sm font-medium">Descrição</label>
@@ -1973,70 +1381,6 @@ export const AdminMarketing: React.FC = () => {
               Cancelar
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal de usuários alvo */}
-      <Dialog open={showTargetUsers} onOpenChange={setShowTargetUsers}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Usuários Alvo ({targetUsersCount} total)</DialogTitle>
-            <DialogDescription>
-              Usuários que se encaixam nos critérios de segmentação selecionados
-            </DialogDescription>
-          </DialogHeader>
-          
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Usuário</TableHead>
-                <TableHead>Plano</TableHead>
-                <TableHead>Bebês</TableHead>
-                <TableHead>Memórias</TableHead>
-                <TableHead>Atividades</TableHead>
-                <TableHead>Último Login</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {targetUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{user.name}</div>
-                      <div className="text-sm text-gray-500">{user.email}</div>
-                      {user.emailVerified && (
-                        <Badge variant="outline" className="text-xs">✓ Verificado</Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{user.plan_name}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Baby className="w-4 h-4 text-gray-500" />
-                      <span>{user.baby_count}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Heart className="w-4 h-4 text-gray-500" />
-                      <span>{user.memory_count}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Activity className="w-4 h-4 text-gray-500" />
-                      <span>{user.activity_count}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Nunca'}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
         </DialogContent>
       </Dialog>
 
@@ -2345,6 +1689,198 @@ export const AdminMarketing: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Geração de Post com IA */}
+      {showAIPostModal && (
+        <Dialog open={showAIPostModal} onOpenChange={setShowAIPostModal}>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Gerar Post com IA</DialogTitle>
+              <DialogDescription>Preencha as opções para a IA gerar um post focado em vendas para mães.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-3">
+              <div>
+                <label className="text-sm font-medium">Objetivo</label>
+                <Input value={aiPostForm.objetivo} onChange={e => setAIPostForm(f => ({ ...f, objetivo: e.target.value }))} placeholder="Ex: Vender plano premium, engajar mães..." />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Público-alvo</label>
+                <Input value={aiPostForm.publico} onChange={e => setAIPostForm(f => ({ ...f, publico: e.target.value }))} placeholder="Ex: Mães de primeira viagem, mães premium..." />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Plataforma</label>
+                <Select value={aiPostForm.plataforma} onValueChange={v => setAIPostForm(f => ({ ...f, plataforma: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Facebook">Facebook</SelectItem>
+                    <SelectItem value="Instagram">Instagram</SelectItem>
+                    <SelectItem value="WhatsApp">WhatsApp</SelectItem>
+                    <SelectItem value="TikTok">TikTok</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Tom</label>
+                <Select value={aiPostForm.tom} onValueChange={v => setAIPostForm(f => ({ ...f, tom: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="amigável">Amigável</SelectItem>
+                    <SelectItem value="urgente">Urgente</SelectItem>
+                    <SelectItem value="inspirador">Inspirador</SelectItem>
+                    <SelectItem value="divertido">Divertido</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Categoria</label>
+                <Input value={aiPostForm.categoria} onChange={e => setAIPostForm(f => ({ ...f, categoria: e.target.value }))} placeholder="Ex: Promoção, Dica, Engajamento..." />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Call-to-Action</label>
+                <Input value={aiPostForm.cta} onChange={e => setAIPostForm(f => ({ ...f, cta: e.target.value }))} placeholder="Ex: Saiba mais, Assine agora..." />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Imagem (opcional)</label>
+                <MediaUpload
+                  onUploadSuccess={(mediaData) => {
+                    setAIPostForm(f => ({ ...f, imagem: mediaData.url }));
+                  }}
+                  onUploadError={(error) => {
+                    console.error('Erro no upload:', error);
+                    toast({ title: 'Erro no upload', description: error, variant: 'destructive' });
+                  }}
+                  accept="image/*"
+                  maxSize={10 * 1024 * 1024} // 10MB
+                  showPreview={false}
+                  className="mt-2"
+                />
+                {aiPostForm.imagem && (
+                  <div className="mt-2 p-2 border rounded bg-gray-50">
+                    <img src={aiPostForm.imagem} alt="Preview" className="w-full h-20 object-cover rounded" />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setAIPostForm(f => ({ ...f, imagem: '' }))}
+                      className="mt-1"
+                    >
+                      Remover Imagem
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="text-sm font-medium">Hashtags</label>
+                <Input value={aiPostForm.hashtags} onChange={e => setAIPostForm(f => ({ ...f, hashtags: e.target.value }))} placeholder="#promo #mamaes..." />
+              </div>
+              <Button onClick={handleGenerateAIPost} disabled={aiPostLoading}>{aiPostLoading ? 'Gerando...' : 'Gerar com IA'}</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Modal de Geração de Anúncio com IA */}
+      {showAIAdModal && (
+        <Dialog open={showAIAdModal} onOpenChange={setShowAIAdModal}>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Gerar Anúncio com IA</DialogTitle>
+              <DialogDescription>Preencha as opções para a IA gerar um anúncio focado em vendas para mães.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-3">
+              <div>
+                <label className="text-sm font-medium">Objetivo</label>
+                <Input value={aiAdForm.objetivo} onChange={e => setAIAdForm(f => ({ ...f, objetivo: e.target.value }))} placeholder="Ex: Vender plano premium, converter leads..." />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Público-alvo</label>
+                <Input value={aiAdForm.publico} onChange={e => setAIAdForm(f => ({ ...f, publico: e.target.value }))} placeholder="Ex: Mães de primeira viagem, mães premium..." />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Plataforma</label>
+                <Select value={aiAdForm.plataforma} onValueChange={v => setAIAdForm(f => ({ ...f, plataforma: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Facebook">Facebook</SelectItem>
+                    <SelectItem value="Instagram">Instagram</SelectItem>
+                    <SelectItem value="Google_Ads">Google Ads</SelectItem>
+                    <SelectItem value="TikTok">TikTok</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Tipo de Anúncio</label>
+                <Select value={aiAdForm.tipoAnuncio} onValueChange={v => setAIAdForm(f => ({ ...f, tipoAnuncio: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="image">Imagem</SelectItem>
+                    <SelectItem value="video">Vídeo</SelectItem>
+                    <SelectItem value="carousel">Carrossel</SelectItem>
+                    <SelectItem value="story">Story</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Tom</label>
+                <Select value={aiAdForm.tom} onValueChange={v => setAIAdForm(f => ({ ...f, tom: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="persuasivo">Persuasivo</SelectItem>
+                    <SelectItem value="urgente">Urgente</SelectItem>
+                    <SelectItem value="emocional">Emocional</SelectItem>
+                    <SelectItem value="profissional">Profissional</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Categoria</label>
+                <Input value={aiAdForm.categoria} onChange={e => setAIAdForm(f => ({ ...f, categoria: e.target.value }))} placeholder="Ex: Promoção, Benefício, Funcionalidade..." />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Call-to-Action</label>
+                <Input value={aiAdForm.cta} onChange={e => setAIAdForm(f => ({ ...f, cta: e.target.value }))} placeholder="Ex: Saiba mais, Assine agora, Teste grátis..." />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Imagem (opcional)</label>
+                <MediaUpload
+                  onUploadSuccess={(mediaData) => {
+                    setAIAdForm(f => ({ ...f, imagem: mediaData.url }));
+                  }}
+                  onUploadError={(error) => {
+                    console.error('Erro no upload:', error);
+                    toast({ title: 'Erro no upload', description: error, variant: 'destructive' });
+                  }}
+                  accept="image/*"
+                  maxSize={10 * 1024 * 1024} // 10MB
+                  showPreview={false}
+                  className="mt-2"
+                />
+                {aiAdForm.imagem && (
+                  <div className="mt-2 p-2 border rounded bg-gray-50">
+                    <img src={aiAdForm.imagem} alt="Preview" className="w-full h-20 object-cover rounded" />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setAIAdForm(f => ({ ...f, imagem: '' }))}
+                      className="mt-1"
+                    >
+                      Remover Imagem
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="text-sm font-medium">Orçamento (R$)</label>
+                <Input value={aiAdForm.orcamento} onChange={e => setAIAdForm(f => ({ ...f, orcamento: e.target.value }))} placeholder="Ex: 100" type="number" min="0" />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Interesses</label>
+                <Input value={aiAdForm.interesses} onChange={e => setAIAdForm(f => ({ ...f, interesses: e.target.value }))} placeholder="Ex: maternidade, bebês, desenvolvimento infantil" />
+              </div>
+              <Button onClick={handleGenerateAIAd} disabled={aiAdLoading}>{aiAdLoading ? 'Gerando...' : 'Gerar com IA'}</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

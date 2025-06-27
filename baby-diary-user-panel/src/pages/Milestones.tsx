@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAuth, useGamification } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import ImageUpload from '@/components/ImageUpload';
 import PredictedMilestonesCard from '../components/PredictedMilestonesCard';
 import { API_CONFIG } from '../config/api';
 import { AchievementNotification } from '@/components/AchievementNotification';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface Milestone {
   id: string;
@@ -44,15 +45,13 @@ const Milestones = () => {
   const { getGradientClass, theme } = useTheme();
   const { toast } = useToast();
   const { fetchGamificationData, gamification } = useGamification();
+  const queryClient = useQueryClient();
 
-  const [milestones, setMilestones] = useState<Milestone[]>([]);
-  const [suggestedMilestones, setSuggestedMilestones] = useState<SuggestedMilestone[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMilestone, setSelectedMilestone] = useState<Milestone | undefined>(undefined);
   const [selectedSuggested, setSelectedSuggested] = useState<SuggestedMilestone | null>(null);
   type ModalMode = 'create' | 'edit' | 'view' | 'create-from-suggested';
   const [modalMode, setModalMode] = useState<ModalMode>('create');
-  const [isLoading, setIsLoading] = useState(true);
   const [viewingImage, setViewingImage] = useState<string | null>(null);
   const [suggestedImageFile, setSuggestedImageFile] = useState<File | null>(null);
   const [suggestedPhotoUrl, setSuggestedPhotoUrl] = useState<string | undefined>();
@@ -60,82 +59,58 @@ const Milestones = () => {
   const [achievementData, setAchievementData] = useState(null);
   const prevLevelRef = useRef<number | null>(null);
   const prevBadgesRef = useRef<string[]>([]);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  const fetchMilestones = useCallback(async () => {
-    if (!currentBaby) {
-      setMilestones([]);
-      setIsLoading(false);
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_CONFIG.BASE_URL}/user/milestones?babyId=${currentBaby.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error('Falha ao buscar marcos');
-      const data = await response.json();
-      setMilestones(Array.isArray(data.data) ? data.data : []);
-    } catch (error: any) {
-      toast({
-        title: 'Erro',
-        description: error.message || 'Não foi possível buscar os marcos.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [currentBaby, toast]);
+  const fetchMilestones = async () => {
+    if (!currentBaby) return [];
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_CONFIG.BASE_URL}/user/milestones?babyId=${currentBaby.id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) throw new Error('Falha ao buscar marcos');
+    const data = await response.json();
+    return Array.isArray(data.data) ? data.data : [];
+  };
 
-  const fetchSuggestedMilestones = useCallback(async () => {
-    if (!currentBaby) {
-      console.log('❌ Nenhum bebê selecionado para buscar marcos sugeridos');
-      setSuggestedMilestones([]);
-      return;
-    }
-    try {
-      console.log('🔍 Buscando marcos sugeridos para bebê:', currentBaby.id);
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_CONFIG.BASE_URL}/user/milestones/suggested?babyId=${currentBaby.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      console.log('📡 Resposta da API:', response.status, response.statusText);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Erro na resposta:', errorText);
-        throw new Error('Falha ao buscar marcos sugeridos');
-      }
-      
-      const data = await response.json();
-      console.log('📋 Dados recebidos:', data);
-      
-      const milestones = Array.isArray(data.data) ? data.data : [];
-      console.log('🎯 Marcos sugeridos processados:', milestones.length);
-      console.log('📝 Títulos:', milestones.map(m => m.title));
-      
-      setSuggestedMilestones(milestones);
-    } catch (error: any) {
-      console.error('❌ Erro ao buscar marcos sugeridos:', error);
-      toast({
-        title: 'Erro',
-        description: error.message || 'Não foi possível buscar os marcos sugeridos.',
-        variant: 'destructive',
-      });
-    }
-  }, [currentBaby, toast]);
+  const fetchSuggestedMilestones = async () => {
+    if (!currentBaby) return [];
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_CONFIG.BASE_URL}/user/milestones/suggested?babyId=${currentBaby.id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) throw new Error('Falha ao buscar marcos sugeridos');
+    const data = await response.json();
+    return Array.isArray(data.data) ? data.data : [];
+  };
 
-  useEffect(() => {
-    if (!isAuthLoading) {
-      fetchMilestones();
-      fetchSuggestedMilestones();
-    }
-  }, [fetchMilestones, fetchSuggestedMilestones, isAuthLoading]);
+  const {
+    data: milestones = [],
+    isLoading: milestonesLoading,
+    error: milestonesError,
+    refetch: refetchMilestones,
+  } = useQuery({
+    queryKey: ['milestones', currentBaby?.id],
+    queryFn: fetchMilestones,
+    enabled: !!currentBaby,
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const {
+    data: suggestedMilestones = [],
+    isLoading: suggestedLoading,
+    error: suggestedError,
+    refetch: refetchSuggested,
+  } = useQuery({
+    queryKey: ['suggestedMilestones', currentBaby?.id],
+    queryFn: fetchSuggestedMilestones,
+    enabled: !!currentBaby,
+    staleTime: 1000 * 60 * 10,
+  });
 
   const handleSuccess = () => {
-    fetchMilestones();
-    fetchSuggestedMilestones();
-    refetch();
+    refetchMilestones();
+    refetchSuggested();
     fetchGamificationData();
   };
 
@@ -170,7 +145,7 @@ const Milestones = () => {
         title: 'Sucesso',
         description: 'Marco removido.'
       });
-      fetchMilestones();
+      refetchMilestones();
     } catch (error: any) {
       toast({
         title: 'Erro',
@@ -188,7 +163,6 @@ const Milestones = () => {
 
   const handleSubmitSuggestedMilestone = async (fields: { date: string; description: string; }) => {
     if (!selectedSuggested || !currentBaby) return;
-    setIsLoading(true);
     try {
       const token = localStorage.getItem('token');
       let finalPhotoUrl = suggestedPhotoUrl;
@@ -230,8 +204,8 @@ const Milestones = () => {
         title: 'Marco sugerido registrado!',
         description: `O marco "${selectedSuggested.title}" foi salvo com sucesso.`,
       });
-      await fetchMilestones();
-      await fetchSuggestedMilestones();
+      refetchMilestones();
+      refetchSuggested();
       setIsModalOpen(false);
       setSelectedSuggested(null);
       setSuggestedImageFile(null);
@@ -242,8 +216,6 @@ const Milestones = () => {
         description: err.message,
         variant: 'destructive',
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -292,7 +264,21 @@ const Milestones = () => {
     prevBadgesRef.current = gamification.badges;
   }, [gamification]);
 
-  if (isLoading || isAuthLoading) {
+  // Debounce do campo de busca
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  // Filtrar marcos pelo título
+  const filteredMilestones = useMemo(() => {
+    if (!debouncedSearch) return milestones;
+    return milestones.filter(m => m.title.toLowerCase().includes(debouncedSearch.toLowerCase()));
+  }, [milestones, debouncedSearch]);
+
+  if (milestonesLoading || suggestedLoading || isAuthLoading) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
@@ -361,6 +347,16 @@ const Milestones = () => {
             <PlusCircle className="mr-2 h-4 w-4" /> Novo Marco
           </Button>
         </div>
+        {/* Campo de busca */}
+        <div className="mb-6 max-w-md">
+          <Input
+            type="text"
+            placeholder="Buscar marcos por título..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full"
+          />
+        </div>
 
         {suggestedMilestones.length > 0 && (
           <div className="mb-8">
@@ -382,7 +378,7 @@ const Milestones = () => {
           </div>
         )}
 
-        {milestones.length === 0 ? (
+        {filteredMilestones.length === 0 ? (
           <div className="text-center py-20 bg-gray-50 dark:bg-gray-800/20 rounded-lg">
             <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Sem marcos ainda</h3>
@@ -390,7 +386,7 @@ const Milestones = () => {
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {milestones.map((milestone) => (
+            {filteredMilestones.map((milestone) => (
               <Card key={milestone.id} className="overflow-hidden group">
                 <CardContent className="p-0 relative">
                   <div className="overflow-hidden">

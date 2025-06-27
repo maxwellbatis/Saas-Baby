@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from "react";
 import { getMe, getGamificationData } from "@/lib/api";
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface AuthContextType {
   user: any;
@@ -10,7 +11,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   hasBaby: boolean;
   error: string | null;
-  refetch: () => Promise<void>;
+  refetch: () => Promise<any>;
   isPregnancyMode: boolean;
   isPostpartumMode: boolean;
 }
@@ -30,75 +31,24 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<any>(null);
-  const [babies, setBabies] = useState<any[]>([]);
-  const [currentBaby, setCurrentBaby] = useState<any | null>(null);
-  const [userPlan, setUserPlan] = useState<any | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [hasInitialized, setHasInitialized] = useState(false);
-  const isFetchingRef = useRef(false);
+  const queryClient = useQueryClient();
+  const {
+    data,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['me'],
+    queryFn: getMe,
+    staleTime: 1000 * 60 * 5,
+  });
 
-  const fetchProfile = useCallback(async () => {
-    // Evita múltiplas chamadas simultâneas
-    if (isFetchingRef.current) {
-      return;
-    }
-
-    // Verificar se há token antes de fazer a chamada
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setIsLoading(false);
-      setHasInitialized(true);
-      return;
-    }
-
-    isFetchingRef.current = true;
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const response = await getMe();
-      
-      if (response.success && response.data) {
-        setUser(response.data);
-        const babyList = response.data.babies || [];
-        setBabies(babyList);
-        setCurrentBaby(babyList.length > 0 ? babyList[0] : null);
-        setUserPlan(response.data.plan || null);
-      } else {
-        // Limpar estado se não estiver autenticado
-        setUser(null);
-        setBabies([]);
-        setCurrentBaby(null);
-        setUserPlan(null);
-        setError(response.message || "Erro ao buscar dados do perfil");
-      }
-    } catch (err: any) {
-      console.error("[AuthContext] Erro no fetchProfile:", err);
-      // Limpar estado em caso de erro 401 (não autorizado)
-      if (err.response?.status === 401) {
-        setUser(null);
-        setBabies([]);
-        setCurrentBaby(null);
-        setUserPlan(null);
-        setError("Sessão expirada");
-      }
-    } finally {
-      setIsLoading(false);
-      isFetchingRef.current = false;
-      if (!hasInitialized) {
-        setHasInitialized(true);
-      }
-    }
-  }, []);
-
-  // Efeito inicial - só executa uma vez na inicialização
-  useEffect(() => {
-    if (!hasInitialized) {
-      fetchProfile();
-    }
-  }, [fetchProfile, hasInitialized]);
+  const user = data?.success ? data.data : null;
+  const babies = user?.babies || [];
+  const currentBaby = babies.length > 0 ? babies[0] : null;
+  const userPlan = user?.plan || null;
+  const isAuthenticated = !!user;
+  const hasBaby = babies.length > 0;
 
   // Flags de modo gestante e pós-parto
   const isFutureDate = (dateString: string) => {
@@ -124,22 +74,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const isPregnancyMode = babies.length === 0 || babies.some(b => isFutureDate(b.birthDate));
   const isPostpartumMode = babies.length > 0 && babies.some(b => isPastOrTodayDate(b.birthDate));
 
-  const authState: AuthContextType = {
-    user,
-    babies,
-    currentBaby,
-    userPlan,
-    isLoading,
-    isAuthenticated: !!user,
-    hasBaby: babies.length > 0,
-    error,
-    refetch: fetchProfile,
-    isPregnancyMode,
-    isPostpartumMode,
-  };
-
   return (
-    <AuthContext.Provider value={authState}>
+    <AuthContext.Provider
+      value={{
+        user,
+        babies,
+        currentBaby,
+        userPlan,
+        isLoading,
+        isAuthenticated,
+        hasBaby,
+        error: error ? (error as Error).message : null,
+        refetch,
+        isPregnancyMode,
+        isPostpartumMode,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -28,7 +28,8 @@ import {
   Clock
 } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
-import { adminApi } from '../../lib/adminApi';
+import { adminNotifications, adminApi } from '../../lib/adminApi';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 
 interface NotificationStats {
   totalNotifications: number;
@@ -84,12 +85,6 @@ interface SendForm {
 }
 
 export const AdminNotifications: React.FC = () => {
-  const [stats, setStats] = useState<NotificationStats | null>(null);
-  const [templates, setTemplates] = useState<NotificationTemplate[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [plans, setPlans] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedTemplate, setSelectedTemplate] = useState<NotificationTemplate | null>(null);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [isSendModalOpen, setIsSendModalOpen] = useState(false);
@@ -112,11 +107,77 @@ export const AdminNotifications: React.FC = () => {
     isActive: true
   });
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  // Carregar dados
-  useEffect(() => {
-    loadData();
-  }, []);
+  // Buscar estatísticas de notificações
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    error: statsError,
+  } = useQuery({
+    queryKey: ['adminNotificationStats'],
+    queryFn: async () => {
+      const res = await adminApi.get('/admin/notifications/stats');
+      return res.data.data;
+    },
+    staleTime: 1000 * 60 * 10,
+  });
+
+  // Buscar templates de notificação
+  const {
+    data: templates = [],
+    isLoading: templatesLoading,
+    error: templatesError,
+  } = useQuery({
+    queryKey: ['adminNotificationTemplates'],
+    queryFn: async () => {
+      const res = await adminApi.get('/admin/notifications/templates');
+      return res.data.data;
+    },
+    staleTime: 1000 * 60 * 10,
+  });
+
+  // Buscar histórico de notificações
+  const {
+    data: notifications = [],
+    isLoading: notificationsLoading,
+    error: notificationsError,
+  } = useQuery({
+    queryKey: ['adminNotificationHistory'],
+    queryFn: async () => {
+      const res = await adminApi.get('/admin/notifications/history');
+      return res.data.data;
+    },
+    staleTime: 1000 * 60 * 10,
+  });
+
+  // Buscar usuários
+  const {
+    data: users = [],
+    isLoading: usersLoading,
+    error: usersError,
+  } = useQuery({
+    queryKey: ['adminUsers'],
+    queryFn: async () => {
+      const res = await adminApi.get('/admin/users?limit=1000');
+      return res.data?.data?.users || res.data?.data || [];
+    },
+    staleTime: 1000 * 60 * 10,
+  });
+
+  // Buscar planos
+  const {
+    data: plans = [],
+    isLoading: plansLoading,
+    error: plansError,
+  } = useQuery({
+    queryKey: ['adminPlans'],
+    queryFn: async () => {
+      const res = await adminApi.get('/admin/plans');
+      return res.data?.data || [];
+    },
+    staleTime: 1000 * 60 * 10,
+  });
 
   // Debug: Log dos estados quando mudam
   useEffect(() => {
@@ -126,128 +187,69 @@ export const AdminNotifications: React.FC = () => {
     console.log('Número de planos:', plans?.length);
   }, [users, plans]);
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const [statsRes, templatesRes, historyRes, usersRes, plansRes] = await Promise.all([
-        adminApi.get('/admin/notifications/stats'),
-        adminApi.get('/admin/notifications/templates'),
-        adminApi.get('/admin/notifications/history'),
-        adminApi.get('/admin/users?limit=1000'),
-        adminApi.get('/admin/plans')
-      ]);
-
-      console.log('Resposta completa da API de usuários:', usersRes);
-      console.log('Dados dos usuários (usersRes.data):', usersRes.data);
-      console.log('Resposta completa da API de planos:', plansRes);
-      console.log('Dados dos planos (plansRes.data):', plansRes.data);
-
-      setStats(statsRes.data.data);
-      setTemplates(templatesRes.data.data);
-      setNotifications(historyRes.data.data);
-      
-      // Ajuste para garantir que estamos pegando o array de usuários
-      const usersData = usersRes.data?.data?.users || usersRes.data?.data || [];
-      const plansData = plansRes.data?.data || [];
-      
-      setUsers(usersData);
-      setPlans(plansData);
-
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível carregar os dados de notificações',
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Gerenciamento de Templates
-  const handleCreateTemplate = async () => {
-    try {
-      const response = await adminApi.post('/admin/notifications/templates', templateForm);
-      setTemplates([...templates, response.data.data]);
-      setIsTemplateModalOpen(false);
-      resetTemplateForm();
-      toast({
-        title: 'Sucesso',
-        description: 'Template criado com sucesso'
-      });
-    } catch (error) {
-      console.error('Erro ao criar template:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível criar o template',
-        variant: 'destructive'
-      });
-    }
-  };
+  const createTemplateMutation = useMutation({
+    mutationFn: async (data) => adminNotifications.createTemplate(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminNotificationTemplates'] });
+      toast({ title: 'Template criado com sucesso!' });
+    },
+    onError: (error) => {
+      toast({ title: 'Erro ao criar template', description: error.message, variant: 'destructive' });
+    },
+  });
 
-  const handleUpdateTemplate = async () => {
-    if (!selectedTemplate) return;
-    
-    try {
-      const response = await adminApi.put(`/admin/notifications/templates/${selectedTemplate.id}`, templateForm);
-      setTemplates(templates.map(t => t.id === selectedTemplate.id ? response.data.data : t));
-      setIsTemplateModalOpen(false);
-      setSelectedTemplate(null);
-      resetTemplateForm();
-      toast({
-        title: 'Sucesso',
-        description: 'Template atualizado com sucesso'
-      });
-    } catch (error) {
-      console.error('Erro ao atualizar template:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível atualizar o template',
-        variant: 'destructive'
-      });
-    }
-  };
+  const editTemplateMutation = useMutation({
+    mutationFn: async ({ id, data }) => adminNotifications.updateTemplate(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminNotificationTemplates'] });
+      toast({ title: 'Template atualizado com sucesso!' });
+    },
+    onError: (error) => {
+      toast({ title: 'Erro ao atualizar template', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const deleteTemplateMutation = useMutation({
+    mutationFn: async (id) => adminNotifications.deleteTemplate(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminNotificationTemplates'] });
+      toast({ title: 'Template deletado com sucesso!' });
+    },
+    onError: (error) => {
+      toast({ title: 'Erro ao deletar template', description: error.message, variant: 'destructive' });
+    },
+  });
 
   const handleToggleTemplateStatus = async (templateId: string, isActive: boolean) => {
     try {
       const response = await adminApi.put(`/admin/notifications/templates/${templateId}/status`, { isActive });
-      setTemplates(templates.map(t => t.id === templateId ? response.data.data : t));
+      queryClient.invalidateQueries({ queryKey: ['adminNotificationTemplates'] });
       toast({
         title: 'Sucesso',
-        description: `Template ${isActive ? 'ativado' : 'desativado'} com sucesso`
+        description: 'Status do template atualizado',
       });
     } catch (error) {
-      console.error('Erro ao alterar status do template:', error);
       toast({
         title: 'Erro',
-        description: 'Não foi possível alterar o status do template',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  const handleDeleteTemplate = async (templateId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este template?')) return;
-    
-    try {
-      await adminApi.delete(`/admin/notifications/templates/${templateId}`);
-      setTemplates(templates.filter(t => t.id !== templateId));
-      toast({
-        title: 'Sucesso',
-        description: 'Template excluído com sucesso'
-      });
-    } catch (error) {
-      console.error('Erro ao excluir template:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível excluir o template',
-        variant: 'destructive'
+        description: 'Não foi possível atualizar o status do template',
+        variant: 'destructive',
       });
     }
   };
 
   // Envio de Notificações
+  const sendNotificationMutation = useMutation({
+    mutationFn: async (data) => adminNotifications.send(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminNotificationHistory'] });
+      toast({ title: 'Notificação enviada com sucesso!' });
+    },
+    onError: (error) => {
+      toast({ title: 'Erro ao enviar notificação', description: error.message, variant: 'destructive' });
+    },
+  });
+
   const handleSendNotification = async () => {
     try {
       let payload = {
@@ -281,14 +283,12 @@ export const AdminNotifications: React.FC = () => {
         return;
       }
 
-      await adminApi.post('/admin/notifications/send', payload);
+      if (payload && typeof payload.title === 'string' && payload.title && typeof payload.body === 'string' && payload.body) {
+        await sendNotificationMutation.mutateAsync(payload);
+      }
 
       setIsSendModalOpen(false);
       resetSendForm();
-      toast({
-        title: 'Sucesso',
-        description: 'Notificação enviada com sucesso'
-      });
     } catch (error) {
       console.error('Erro ao enviar notificação:', error);
       toast({
@@ -341,7 +341,7 @@ export const AdminNotifications: React.FC = () => {
     setIsTemplateModalOpen(true);
   };
 
-  if (loading) {
+  if (statsLoading || templatesLoading || notificationsLoading || usersLoading || plansLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -484,7 +484,7 @@ export const AdminNotifications: React.FC = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDeleteTemplate(template.id)}
+                        onClick={() => { if (typeof template?.id === 'string' && template.id) deleteTemplateMutation.mutate(template.id); }}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -624,7 +624,13 @@ export const AdminNotifications: React.FC = () => {
             <Button variant="outline" onClick={() => setIsTemplateModalOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={selectedTemplate ? handleUpdateTemplate : handleCreateTemplate}>
+            <Button onClick={() => {
+              if (selectedTemplate && typeof selectedTemplate.id === 'string' && selectedTemplate.id) {
+                editTemplateMutation.mutate({ id: selectedTemplate.id, data: templateForm });
+              } else if (templateForm && typeof templateForm.name === 'string' && templateForm.name) {
+                createTemplateMutation.mutate(templateForm);
+              }
+            }}>
               {selectedTemplate ? 'Atualizar' : 'Criar'} Template
             </Button>
           </DialogFooter>

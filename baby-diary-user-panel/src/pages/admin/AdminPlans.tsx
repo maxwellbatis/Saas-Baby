@@ -26,6 +26,7 @@ import {
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface Plan {
   id: string;
@@ -48,9 +49,7 @@ function formatLimit(limit: number | null | undefined, unidade: string = '') {
 }
 
 export const AdminPlans: React.FC = () => {
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   // Modal state
   const { toast } = useToast();
@@ -59,21 +58,49 @@ export const AdminPlans: React.FC = () => {
   const [formData, setFormData] = useState<Partial<Plan>>({});
   const [isSaving, setIsSaving] = useState(false);
 
-  const fetchPlans = async () => {
-    try {
-      setLoading(true);
+  // Buscar planos com React Query
+  const {
+    data: plans = [],
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['adminPlans'],
+    queryFn: async () => {
       const response = await adminPlans.getAll();
-      setPlans(response.data || response.plans || []);
-    } catch (err: any) {
-      setError('Erro ao buscar planos.');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return response.data || response.plans || [];
+    },
+    staleTime: 1000 * 60 * 10,
+  });
 
-  useEffect(() => {
-    fetchPlans();
-  }, []);
+  // Mutação para editar plano
+  const updatePlanMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<Plan> }) => {
+      return await adminPlans.update(id, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminPlans'] });
+      toast({ title: 'Plano atualizado com sucesso!' });
+      setIsModalOpen(false);
+    },
+    onError: (err: any) => {
+      toast({ title: 'Ocorreu um erro ao salvar.', description: err.message, variant: 'destructive' });
+    },
+    onSettled: () => setIsSaving(false),
+  });
+
+  // Mutação para deletar plano
+  const deletePlanMutation = useMutation({
+    mutationFn: async (planId: string) => {
+      return await adminPlans.delete(planId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminPlans'] });
+      toast({ title: 'Plano excluído com sucesso!' });
+    },
+    onError: (err: any) => {
+      toast({ title: 'Ocorreu um erro ao excluir.', description: err.message, variant: 'destructive' });
+    },
+  });
 
   const handleEditClick = (plan: Plan) => {
     setSelectedPlan(plan);
@@ -96,36 +123,16 @@ export const AdminPlans: React.FC = () => {
       if (!selectedPlan) {
         throw new Error('Nenhum plano selecionado para edição.');
       }
-
       const { id, ...dataToUpdate } = formData;
-      const response = await adminPlans.update(selectedPlan.id, dataToUpdate);
-
-      if (response.success) {
-        toast({ title: 'Plano atualizado com sucesso!' });
-        await fetchPlans();
-        setIsModalOpen(false);
-      } else {
-        throw new Error(response.error || 'Falha ao atualizar o plano.');
-      }
+      updatePlanMutation.mutate({ id: selectedPlan.id, data: dataToUpdate });
     } catch (err: any) {
       toast({ title: 'Ocorreu um erro ao salvar.', description: err.message, variant: 'destructive' });
-    } finally {
       setIsSaving(false);
     }
   };
 
   const handleDeletePlan = async (planId: string) => {
-    try {
-      const response = await adminPlans.delete(planId);
-      if (response.success) {
-        toast({ title: 'Plano excluído com sucesso!' });
-        await fetchPlans();
-      } else {
-        throw new Error(response.error || 'Falha ao excluir o plano.');
-      }
-    } catch (err: any) {
-      toast({ title: 'Ocorreu um erro ao excluir.', description: err.message, variant: 'destructive' });
-    }
+    deletePlanMutation.mutate(planId);
   };
 
   return (
@@ -139,10 +146,10 @@ export const AdminPlans: React.FC = () => {
             </CardHeader>
           </Card>
         </div>
-        {loading ? (
+        {isLoading ? (
           <p>Carregando planos...</p>
         ) : error ? (
-          <p className="text-red-500">{error}</p>
+          <p className="text-red-500">{error.message || error.toString()}</p>
         ) : (
           <div className="flex flex-wrap gap-6 justify-center">
             {plans.map((plan) => {

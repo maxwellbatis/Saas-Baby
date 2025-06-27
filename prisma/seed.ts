@@ -1055,6 +1055,80 @@ Texto: "Seu marco ficou registrado para sempre!"`,
 
   console.log('✅ Biblioteca de Marketing Digital criada');
 
+  // Criar posts agendados de exemplo
+  console.log('📅 Criando posts agendados de exemplo...');
+  
+  const scheduledPosts = [
+    {
+      title: 'Dica do Dia: Sono do Bebê',
+      content: '💤 Dica importante para o sono do seu bebê: estabeleça uma rotina consistente antes de dormir. Banho, massagem e uma canção de ninar podem fazer toda a diferença! #sonodobebe #rotina #maternidade',
+      platform: 'instagram',
+      contentType: 'post',
+      scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Amanhã
+      status: 'scheduled',
+      targetAudience: 'maes_bebes',
+      category: 'motivacional',
+      hashtags: '#sonodobebe #rotina #maternidade #dicas',
+      createdBy: 'admin'
+    },
+    {
+      title: 'Benefício Premium: Backup Automático',
+      content: '🔒 Com o plano Premium, suas memórias são salvas automaticamente na nuvem. Nunca perca um momento especial! #premium #backup #memorias',
+      platform: 'facebook',
+      contentType: 'post',
+      scheduledAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // Em 2 dias
+      status: 'scheduled',
+      targetAudience: 'maes_bebes',
+      category: 'beneficio',
+      hashtags: '#premium #backup #memorias #seguranca',
+      createdBy: 'admin'
+    },
+    {
+      title: 'Story: Primeiros Passos',
+      content: '👶 Cada pequeno passo é uma grande conquista! Compartilhe os primeiros passos do seu bebê no Baby Diary. #primeirospassos #conquista #bebe',
+      platform: 'instagram',
+      contentType: 'story',
+      scheduledAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // Em 3 dias
+      status: 'scheduled',
+      targetAudience: 'maes_criancas',
+      category: 'comemorativo',
+      hashtags: '#primeirospassos #conquista #bebe #story',
+      createdBy: 'admin'
+    },
+    {
+      title: 'Reel: Atividades para Bebês',
+      content: '🎯 Atividades simples e divertidas para estimular o desenvolvimento do seu bebê! Veja no nosso perfil. #atividades #desenvolvimento #bebe',
+      platform: 'instagram',
+      contentType: 'reel',
+      scheduledAt: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000), // Em 4 dias
+      status: 'scheduled',
+      targetAudience: 'maes_bebes',
+      category: 'funcionalidade',
+      hashtags: '#atividades #desenvolvimento #bebe #reel',
+      createdBy: 'admin'
+    },
+    {
+      title: 'Depoimento: Maria e João',
+      content: '💕 "O Baby Diary mudou a forma como registro os momentos do meu filho. Cada memória fica mais especial!" - Maria, mãe do João #depoimento #testemunho #maternidade',
+      platform: 'facebook',
+      contentType: 'post',
+      scheduledAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // Em 5 dias
+      status: 'scheduled',
+      targetAudience: 'maes_bebes',
+      category: 'depoimento',
+      hashtags: '#depoimento #testemunho #maternidade #babyDiary',
+      createdBy: 'admin'
+    }
+  ];
+
+  for (const postData of scheduledPosts) {
+    await prisma.scheduledPost.create({
+      data: postData
+    });
+  }
+
+  console.log(`✅ ${scheduledPosts.length} posts agendados criados`);
+
   console.log('🎉 Seed concluído com sucesso!');
 }
 

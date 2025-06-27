@@ -176,6 +176,87 @@ export async function generateMarketingContent(
         6. ANÁLISE CONCORRÊNCIA: Hashtags de concorrentes
         7. ESTRATÉGIA: Sugestão de uso`;
         break;
+
+      case 'chat':
+        specificPrompt = `Você é um assistente de marketing especializado em maternidade e desenvolvimento infantil.
+        
+        Público-alvo: ${targetAudience}
+        ${category ? `Categoria: ${category}` : ''}
+        ${specificTopic ? `Pergunta/Contexto: ${specificTopic}` : ''}
+        
+        CONTEXTO DO APP:
+        - Nome: Baby Diary
+        - Foco: Acompanhamento do desenvolvimento de bebês
+        - Funcionalidades: registro de marcos, memórias, atividades, IA personalizada, backup na nuvem, compartilhamento familiar
+        - Diferencial: IA que entende o contexto da maternidade
+        
+        SUA FUNÇÃO:
+        Responda de forma conversacional e acolhedora, oferecendo:
+        - Dicas práticas de marketing para mães
+        - Estratégias de conteúdo específicas
+        - Ideias criativas para campanhas
+        - Análise de tendências do mercado
+        - Sugestões de funil de vendas
+        - Otimização de conversão
+        - Estratégias de segmentação
+        - Dicas de engajamento
+        
+        FORMATAÇÃO OBRIGATÓRIA:
+        - Use títulos claros com **
+        - Use listas com * para facilitar leitura
+        - Separe seções com ---
+        - Use emojis estratégicos (máximo 1 por seção)
+        - Mantenha parágrafos curtos
+        - Destaque pontos importantes
+        
+        MANTENHA O FOCO:
+        - Sempre no app Baby Diary
+        - No público de mães (gestantes, mães de bebês, mães de crianças)
+        - Em estratégias práticas e acionáveis
+        - Em linguagem calorosa e acolhedora
+        
+        Responda de forma direta e útil, como um consultor de marketing especializado.`;
+        break;
+
+      case 'video':
+        specificPrompt = `Crie um conceito completo de vídeo para ${platform} direcionado a ${targetAudience}.
+        
+        ${category ? `Categoria: ${category}` : ''}
+        ${specificTopic ? `Tópico específico: ${specificTopic}` : ''}
+        Duração: ${duration || 30} segundos
+        
+        ESTRUTURA OBRIGATÓRIA:
+        1. CONCEITO: Ideia principal do vídeo
+        2. ROTEIRO: Cenas detalhadas com tempo
+        3. NARRAÇÃO: Texto para cada cena
+        4. ELEMENTOS VISUAIS: O que mostrar
+        5. MÚSICA: Sugestão de estilo
+        6. HASHTAGS: Para o vídeo
+        7. THUMBNAIL: Descrição
+        8. CALL-TO-ACTION: No final
+        
+        Estrutura temporal:
+        - Hook (0-3s)
+        - Problema (3-8s)
+        - Solução (8-20s)
+        - Demonstração (20-25s)
+        - CTA (25-30s)`;
+        break;
+
+      case 'link':
+        specificPrompt = `Crie estratégias para links de afiliados e UTM para ${platform} direcionado a ${targetAudience}.
+        
+        ${category ? `Categoria: ${category}` : ''}
+        ${specificTopic ? `Tópico específico: ${specificTopic}` : ''}
+        
+        ESTRUTURA OBRIGATÓRIA:
+        1. LINKS PRINCIPAIS: URLs com UTM otimizadas
+        2. CAMPANHAS: Sugestões de campanha
+        3. SEGMENTAÇÃO: Parâmetros UTM por público
+        4. TRACKING: Estratégia de monitoramento
+        5. CONVERSÃO: Otimização de CTA
+        6. A/B TESTING: Variações sugeridas`;
+        break;
         
       default:
         throw new Error('Tipo de conteúdo não suportado');

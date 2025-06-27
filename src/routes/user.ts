@@ -1947,7 +1947,23 @@ router.get('/me', async (req: Request, res: Response) => {
     const user = await prisma.user.findUnique({
       where: { id: req.user.userId },
       include: {
-        plan: true,
+        plan: {
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            yearlyPrice: true,
+            features: true,
+            userLimit: true,
+            memoryLimit: true,
+            aiLimit: true,
+            familySharing: true,
+            exportFeatures: true,
+            prioritySupport: true,
+            aiFeatures: true,
+            offlineMode: true,
+          }
+        },
         subscription: true,
         gamification: true,
         babies: {

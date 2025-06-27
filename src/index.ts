@@ -36,9 +36,10 @@ app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 
 // Configurar rate limiting
+// Limite global aumentado para facilitar testes/admin (ajuste em produção se necessário)
 const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '9000'), // 15 minutos
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '10000'), // limite por IP
+  windowMs: 900_000, // 15 minutos
+  max: 100_000, // 100 mil requisições por IP
   message: {
     success: false,
     error: 'Muitas requisições. Tente novamente mais tarde.',

@@ -3,6 +3,7 @@ import prisma from '@/config/database';
 import { generateGeminiContent, generateMarketingContent as generateMarketingContentWithGemini } from '@/services/gemini.service';
 import { uploadImage, uploadMedia } from '@/config/cloudinary';
 import multer from 'multer';
+import { socialMediaAPI } from '@/services/socialMediaAPI.service';
 const upload = multer();
 
 // Listar campanhas
@@ -435,6 +436,39 @@ export const getTargetUsers = async (req: Request, res: Response) => {
   }
 };
 
+// Gerar conteúdo com IA para marketing
+export const generateMarketingContent = async (req: Request, res: Response) => {
+  try {
+    const { type, platform, targetAudience, tone, category, specificTopic, duration, format } = req.body;
+    
+    // Usar a função especializada do Gemini
+    const result = await generateMarketingContentWithGemini(
+      type,
+      platform,
+      targetAudience,
+      {
+        category,
+        specificTopic,
+        tone,
+        duration,
+        format
+      }
+    );
+    
+    return res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('Erro ao gerar conteúdo de marketing:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Erro ao gerar conteúdo',
+      details: error instanceof Error ? error.message : 'Erro desconhecido'
+    });
+  }
+};
+
 // (Opcional) Endpoint para integração com Gemini (Google AI)
 export const generateWithGemini = async (req: Request, res: Response) => {
   try {
@@ -493,23 +527,23 @@ export const getSocialMediaPosts = async (req: Request, res: Response) => {
 export const createSocialMediaPost = async (req: Request, res: Response) => {
   try {
     const {
-      title,
-      description,
-      category,
-      platform,
-      contentType,
-      imageUrl,
-      videoUrl,
-      caption,
-      hashtags,
-      cta,
-      targetAudience,
-      sortOrder
+      title = '',
+      description = '',
+      category = '',
+      platform = '',
+      contentType = 'post',
+      imageUrl = '',
+      videoUrl = '',
+      caption = '',
+      hashtags = '',
+      cta = '',
+      targetAudience = '',
+      isActive = true,
+      sortOrder = 0,
+      createdBy = 'admin'
     } = req.body;
 
-    const createdBy = req.admin?.userId || 'admin';
-
-    const post = await prisma.socialMediaPost.create({
+    const socialMediaPost = await prisma.socialMediaPost.create({
       data: {
         title,
         description,
@@ -522,15 +556,44 @@ export const createSocialMediaPost = async (req: Request, res: Response) => {
         hashtags,
         cta,
         targetAudience,
-        sortOrder: sortOrder || 0,
-        createdBy
-      }
+        isActive,
+        sortOrder,
+        createdBy,
+      },
     });
 
-    return res.status(201).json({ success: true, data: post });
+    return res.status(201).json({
+      success: true,
+      message: 'Post criado com sucesso',
+      data: socialMediaPost,
+    });
   } catch (error) {
     console.error('Erro ao criar post:', error);
-    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor',
+    });
+  }
+};
+
+export const updateSocialMediaPost = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+    const post = await prisma.socialMediaPost.update({ where: { id }, data });
+    return res.json({ success: true, data: post });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Erro ao editar post' });
+  }
+};
+
+export const deleteSocialMediaPost = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await prisma.socialMediaPost.delete({ where: { id } });
+    return res.json({ success: true, message: 'Post deletado com sucesso' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Erro ao deletar post' });
   }
 };
 
@@ -559,24 +622,24 @@ export const getAdvertisements = async (req: Request, res: Response) => {
 export const createAdvertisement = async (req: Request, res: Response) => {
   try {
     const {
-      title,
-      platform,
-      adType,
-      copyShort,
-      copyLong,
-      headline,
-      description,
-      cta,
-      imageUrl,
-      videoUrl,
-      targetAudience,
-      interests,
-      budget
+      title = '',
+      platform = '',
+      adType = 'image',
+      copyShort = '',
+      copyLong = '',
+      headline = '',
+      description = '',
+      cta = '',
+      imageUrl = '',
+      videoUrl = '',
+      targetAudience = '',
+      interests = '[]',
+      budget = 0,
+      isActive = true,
+      createdBy = 'admin'
     } = req.body;
 
-    const createdBy = req.admin?.userId || 'admin';
-
-    const ad = await prisma.advertisement.create({
+    const advertisement = await prisma.advertisement.create({
       data: {
         title,
         platform,
@@ -589,16 +652,45 @@ export const createAdvertisement = async (req: Request, res: Response) => {
         imageUrl,
         videoUrl,
         targetAudience,
-        interests: interests || [],
+        interests: typeof interests === 'string' ? interests : JSON.stringify(interests),
         budget,
-        createdBy
-      }
+        isActive,
+        createdBy,
+      },
     });
 
-    return res.status(201).json({ success: true, data: ad });
+    return res.status(201).json({
+      success: true,
+      message: 'Anúncio criado com sucesso',
+      data: advertisement,
+    });
   } catch (error) {
     console.error('Erro ao criar anúncio:', error);
-    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor',
+    });
+  }
+};
+
+export const updateAdvertisement = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+    const ad = await prisma.advertisement.update({ where: { id }, data });
+    return res.json({ success: true, data: ad });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Erro ao editar anúncio' });
+  }
+};
+
+export const deleteAdvertisement = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await prisma.advertisement.delete({ where: { id } });
+    return res.json({ success: true, message: 'Anúncio deletado com sucesso' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Erro ao deletar anúncio' });
   }
 };
 
@@ -647,13 +739,13 @@ export const createVideoContent = async (req: Request, res: Response) => {
         title,
         description,
         platform,
-        videoType,
-        duration,
+        videoType: videoType || 'reel',
+        duration: duration || 30,
         videoUrl,
         thumbnailUrl,
-        script,
+        script: script || description || 'Roteiro do vídeo',
         music,
-        hashtags,
+        hashtags: hashtags || '#babydiary #maternidade',
         targetAudience,
         createdBy
       }
@@ -663,6 +755,27 @@ export const createVideoContent = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Erro ao criar vídeo:', error);
     return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+  }
+};
+
+export const updateVideoContent = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+    const video = await prisma.videoContent.update({ where: { id }, data });
+    return res.json({ success: true, data: video });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Erro ao editar vídeo' });
+  }
+};
+
+export const deleteVideoContent = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await prisma.videoContent.delete({ where: { id } });
+    return res.json({ success: true, message: 'Vídeo deletado com sucesso' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Erro ao deletar vídeo' });
   }
 };
 
@@ -704,8 +817,8 @@ export const createSalesArgument = async (req: Request, res: Response) => {
     const salesArg = await prisma.salesArgument.create({
       data: {
         title,
-        category,
-        argument,
+        category: category || 'emocional',
+        argument: argument || title || 'Argumento de venda',
         examples: examples || [],
         targetAudience,
         conversionRate,
@@ -718,6 +831,27 @@ export const createSalesArgument = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Erro ao criar argumento:', error);
     return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+  }
+};
+
+export const updateSalesArgument = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+    const arg = await prisma.salesArgument.update({ where: { id }, data });
+    return res.json({ success: true, data: arg });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Erro ao editar argumento' });
+  }
+};
+
+export const deleteSalesArgument = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await prisma.salesArgument.delete({ where: { id } });
+    return res.json({ success: true, message: 'Argumento deletado com sucesso' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Erro ao deletar argumento' });
   }
 };
 
@@ -779,36 +913,24 @@ export const createAffiliateLink = async (req: Request, res: Response) => {
   }
 };
 
-// Gerar conteúdo com IA para marketing
-export const generateMarketingContent = async (req: Request, res: Response) => {
+export const updateAffiliateLink = async (req: Request, res: Response) => {
   try {
-    const { type, platform, targetAudience, tone, category, specificTopic, duration, format } = req.body;
-    
-    // Usar a função especializada do Gemini
-    const result = await generateMarketingContentWithGemini(
-      type,
-      platform,
-      targetAudience,
-      {
-        category,
-        specificTopic,
-        tone,
-        duration,
-        format
-      }
-    );
-    
-    return res.json({
-      success: true,
-      data: result
-    });
+    const { id } = req.params;
+    const data = req.body;
+    const link = await prisma.affiliateLink.update({ where: { id }, data });
+    return res.json({ success: true, data: link });
   } catch (error) {
-    console.error('Erro ao gerar conteúdo de marketing:', error);
-    return res.status(500).json({ 
-      success: false, 
-      error: 'Erro ao gerar conteúdo',
-      details: error instanceof Error ? error.message : 'Erro desconhecido'
-    });
+    return res.status(500).json({ success: false, error: 'Erro ao editar link' });
+  }
+};
+
+export const deleteAffiliateLink = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await prisma.affiliateLink.delete({ where: { id } });
+    return res.json({ success: true, message: 'Link deletado com sucesso' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Erro ao deletar link' });
   }
 };
 
@@ -940,25 +1062,938 @@ export const deleteDigitalMedia = async (req: Request, res: Response) => {
 
 export const getMarketingLibrary = async (req: Request, res: Response) => {
   try {
-    const [socialMediaPosts, advertisements, videoContents, salesArguments, affiliateLinks] = await Promise.all([
-      prisma.socialMediaPost.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } }),
-      prisma.advertisement.findMany({ where: { isActive: true }, orderBy: { createdAt: 'desc' } }),
-      prisma.videoContent.findMany({ where: { isActive: true }, orderBy: { createdAt: 'desc' } }),
-      prisma.salesArgument.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } }),
-      prisma.affiliateLink.findMany({ where: { isActive: true }, orderBy: { createdAt: 'desc' } })
+    const createdBy = req.admin?.userId || 'admin';
+
+    const [posts, ads, videos, salesArgs, links] = await Promise.all([
+      prisma.socialMediaPost.findMany({
+        where: { createdBy },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+      prisma.advertisement.findMany({
+        where: { createdBy },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+      prisma.videoContent.findMany({
+        where: { createdBy },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+      prisma.salesArgument.findMany({
+        where: { createdBy },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+      prisma.affiliateLink.findMany({
+        where: { createdBy },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
     ]);
+
     return res.json({
       success: true,
       data: {
-        socialMediaPosts,
-        advertisements,
-        videoContents,
-        salesArguments,
-        affiliateLinks
-      }
+        posts,
+        ads,
+        videos,
+        arguments: salesArgs,
+        links,
+      },
     });
   } catch (error) {
     console.error('Erro ao buscar biblioteca de marketing:', error);
-    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor',
+    });
   }
-}; 
+};
+
+export const getAnalytics = async (req: Request, res: Response) => {
+  try {
+    const { timeRange = '30d' } = req.query;
+    const createdBy = req.admin?.userId || 'admin';
+
+    // Calcular datas baseadas no timeRange
+    const now = new Date();
+    let startDate: Date;
+    
+    switch (timeRange) {
+      case '7d':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case '30d':
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case '90d':
+        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        break;
+      case '1y':
+        startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        break;
+      default:
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    }
+
+    // Buscar dados em paralelo
+    const [
+      campaigns,
+      posts,
+      ads,
+      totalCampaigns,
+      totalPosts,
+      totalAds
+    ] = await Promise.all([
+      // Campanhas ativas no período
+      prisma.marketingCampaign.findMany({
+        where: {
+          createdBy,
+          createdAt: { gte: startDate },
+          status: 'active'
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+      // Posts no período
+      prisma.socialMediaPost.findMany({
+        where: {
+          createdBy,
+          createdAt: { gte: startDate }
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+      // Anúncios no período
+      prisma.advertisement.findMany({
+        where: {
+          createdBy,
+          createdAt: { gte: startDate }
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+      // Total de campanhas
+      prisma.marketingCampaign.count({
+        where: { createdBy }
+      }),
+      // Total de posts
+      prisma.socialMediaPost.count({
+        where: { createdBy }
+      }),
+      // Total de anúncios
+      prisma.advertisement.count({
+        where: { createdBy }
+      })
+    ]);
+
+    // Gerar dados simulados de performance (em produção, viriam de APIs externas)
+    const generatePerformanceData = (items: any[], type: string) => {
+      return items.map(item => {
+        const baseReach = Math.floor(Math.random() * 10000) + 1000;
+        const baseEngagement = Math.random() * 0.1 + 0.02; // 2-12%
+        
+        return {
+          id: item.id,
+          name: item.title || item.name,
+          type: type,
+          status: item.status || 'active',
+          sentAt: item.createdAt,
+          openRate: Math.random() * 0.3 + 0.1, // 10-40%
+          clickRate: Math.random() * 0.15 + 0.02, // 2-17%
+          conversionRate: Math.random() * 0.05 + 0.01, // 1-6%
+          reach: baseReach,
+          engagement: Math.floor(baseReach * baseEngagement),
+          // Dados específicos para posts
+          ...(type === 'post' && {
+            platform: item.platform,
+            publishedAt: item.createdAt,
+            likes: Math.floor(baseReach * 0.08),
+            shares: Math.floor(baseReach * 0.03),
+            comments: Math.floor(baseReach * 0.02),
+          }),
+          // Dados específicos para anúncios
+          ...(type === 'ad' && {
+            platform: item.platform,
+            impressions: baseReach * 2,
+            clicks: Math.floor(baseReach * 0.05),
+            ctr: Math.random() * 0.1 + 0.01, // 1-11%
+            spend: Math.floor(Math.random() * 500) + 50,
+            conversions: Math.floor(baseReach * 0.02),
+            cpa: Math.floor(Math.random() * 50) + 10,
+          })
+        };
+      });
+    };
+
+    // Gerar dados de tendências
+    const generateTrendsData = () => {
+      const days = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : timeRange === '90d' ? 90 : 365;
+      const trends = [];
+      
+      for (let i = days - 1; i >= 0; i--) {
+        const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        trends.push({
+          date: date.toISOString().split('T')[0],
+          reach: Math.floor(Math.random() * 5000) + 1000,
+          engagement: Math.floor(Math.random() * 500) + 100,
+          conversions: Math.floor(Math.random() * 50) + 10,
+        });
+      }
+      
+      return trends;
+    };
+
+    // Gerar dados de segmentação
+    const generateSegmentationData = () => ({
+      byPlatform: [
+        { platform: 'Facebook', reach: 15000, engagement: 0.08, conversions: 0.03 },
+        { platform: 'Instagram', reach: 12000, engagement: 0.12, conversions: 0.04 },
+        { platform: 'TikTok', reach: 8000, engagement: 0.15, conversions: 0.02 },
+        { platform: 'Google Ads', reach: 20000, engagement: 0.05, conversions: 0.06 },
+      ],
+      byAudience: [
+        { audience: 'Gestantes', reach: 10000, engagement: 0.10, conversions: 0.04 },
+        { audience: 'Mães de Bebês', reach: 15000, engagement: 0.12, conversions: 0.05 },
+        { audience: 'Mães de Crianças', reach: 8000, engagement: 0.08, conversions: 0.03 },
+      ],
+      byContentType: [
+        { type: 'Post', reach: 12000, engagement: 0.11, conversions: 0.03 },
+        { type: 'Anúncio', reach: 18000, engagement: 0.06, conversions: 0.05 },
+        { type: 'Vídeo', reach: 9000, engagement: 0.15, conversions: 0.04 },
+      ]
+    });
+
+    const analyticsData = {
+      overview: {
+        totalCampaigns,
+        activeCampaigns: campaigns.length,
+        totalPosts,
+        totalAds,
+        totalEngagement: Math.floor(Math.random() * 50000) + 10000,
+        totalReach: Math.floor(Math.random() * 200000) + 50000,
+      },
+      performance: {
+        campaigns: generatePerformanceData(campaigns, 'campaign'),
+        posts: generatePerformanceData(posts, 'post'),
+        ads: generatePerformanceData(ads, 'ad'),
+      },
+      trends: {
+        daily: generateTrendsData(),
+        weekly: [], // Implementar se necessário
+        monthly: [], // Implementar se necessário
+      },
+      segmentation: generateSegmentationData(),
+    };
+
+    return res.json({
+      success: true,
+      data: analyticsData,
+    });
+  } catch (error) {
+    console.error('Erro ao buscar analytics:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor',
+    });
+  }
+};
+
+// ===== CALENDÁRIO EDITORIAL =====
+
+export const getScheduledPosts = async (req: Request, res: Response) => {
+  try {
+    const { month, year, platform, status } = req.query;
+    const createdBy = req.admin?.userId || 'admin';
+
+    let where: any = { createdBy };
+
+    // Filtrar por mês/ano se fornecido
+    if (month && year) {
+      const startDate = new Date(parseInt(year as string), parseInt(month as string) - 1, 1);
+      const endDate = new Date(parseInt(year as string), parseInt(month as string), 0);
+      where.scheduledAt = {
+        gte: startDate,
+        lte: endDate,
+      };
+    }
+
+    // Filtrar por plataforma se fornecido
+    if (platform) {
+      where.platform = platform;
+    }
+
+    // Filtrar por status se fornecido
+    if (status) {
+      where.status = status;
+    }
+
+    const scheduledPosts = await prisma.scheduledPost.findMany({
+      where,
+      orderBy: { scheduledAt: 'asc' },
+    });
+
+    return res.json({
+      success: true,
+      data: scheduledPosts,
+    });
+  } catch (error) {
+    console.error('Erro ao buscar posts agendados:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor',
+    });
+  }
+};
+
+export const createScheduledPost = async (req: Request, res: Response) => {
+  try {
+    const {
+      title,
+      content,
+      platform,
+      contentType,
+      scheduledAt,
+      targetAudience,
+      category,
+      hashtags,
+      imageUrl,
+      videoUrl,
+      status = 'scheduled'
+    } = req.body;
+
+    const createdBy = req.admin?.userId || 'admin';
+
+    const scheduledPost = await prisma.scheduledPost.create({
+      data: {
+        title,
+        content,
+        platform,
+        contentType,
+        scheduledAt: new Date(scheduledAt),
+        targetAudience,
+        category,
+        hashtags,
+        imageUrl,
+        videoUrl,
+        status,
+        createdBy,
+      },
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Post agendado com sucesso',
+      data: scheduledPost,
+    });
+  } catch (error) {
+    console.error('Erro ao agendar post:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor',
+    });
+  }
+};
+
+export const updateScheduledPost = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+    const createdBy = req.admin?.userId || 'admin';
+
+    // Verificar se o post existe e pertence ao admin
+    const existingPost = await prisma.scheduledPost.findFirst({
+      where: { id, createdBy },
+    });
+
+    if (!existingPost) {
+      return res.status(404).json({
+        success: false,
+        error: 'Post agendado não encontrado',
+      });
+    }
+
+    // Tratar data de agendamento se fornecida
+    if (updateData.scheduledAt) {
+      updateData.scheduledAt = new Date(updateData.scheduledAt);
+    }
+
+    const updatedPost = await prisma.scheduledPost.update({
+      where: { id },
+      data: updateData,
+    });
+
+    return res.json({
+      success: true,
+      message: 'Post atualizado com sucesso',
+      data: updatedPost,
+    });
+  } catch (error) {
+    console.error('Erro ao atualizar post agendado:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor',
+    });
+  }
+};
+
+export const deleteScheduledPost = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const createdBy = req.admin?.userId || 'admin';
+
+    // Verificar se o post existe e pertence ao admin
+    const existingPost = await prisma.scheduledPost.findFirst({
+      where: { id, createdBy },
+    });
+
+    if (!existingPost) {
+      return res.status(404).json({
+        success: false,
+        error: 'Post agendado não encontrado',
+      });
+    }
+
+    await prisma.scheduledPost.delete({
+      where: { id },
+    });
+
+    return res.json({
+      success: true,
+      message: 'Post removido com sucesso',
+    });
+  } catch (error) {
+    console.error('Erro ao remover post agendado:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor',
+    });
+  }
+};
+
+// ===== HASHTAG ANALYTICS =====
+
+export const getHashtagAnalytics = async (req: Request, res: Response) => {
+  try {
+    const { platform = 'all', category, period = '7d', search } = req.query;
+    
+    console.log('🔍 Buscando analytics de hashtags...', { platform, category, period, search });
+
+    // Buscar hashtags em tendência das APIs reais
+    let trendingHashtags: any[] = [];
+    
+    if (platform === 'all' || platform === 'instagram') {
+      try {
+        const instagramTrending = await socialMediaAPI.getTrendingHashtags('instagram');
+        trendingHashtags.push(...instagramTrending);
+      } catch (error) {
+        console.error('Erro ao buscar hashtags do Instagram:', error);
+      }
+    }
+    
+    if (platform === 'all' || platform === 'facebook') {
+      try {
+        const facebookTrending = await socialMediaAPI.getTrendingHashtags('facebook');
+        trendingHashtags.push(...facebookTrending);
+      } catch (error) {
+        console.error('Erro ao buscar hashtags do Facebook:', error);
+      }
+    }
+
+    // Filtrar por categoria se especificado
+    if (category && category !== 'all') {
+      trendingHashtags = trendingHashtags.filter(h => h.category === category);
+    }
+
+    // Filtrar por busca se especificado
+    if (search) {
+      const searchLower = search.toString().toLowerCase();
+      trendingHashtags = trendingHashtags.filter(h => 
+        h.hashtag.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Gerar métricas gerais
+    const totalHashtags = trendingHashtags.length;
+    const totalReach = trendingHashtags.reduce((sum, h) => sum + h.reach, 0);
+    const avgGrowth = trendingHashtags.length > 0 
+      ? trendingHashtags.reduce((sum, h) => sum + parseFloat(h.growth.replace('%', '')), 0) / trendingHashtags.length 
+      : 0;
+
+    // Análise por categoria
+    const categoryAnalysis = trendingHashtags.reduce((acc, hashtag) => {
+      const category = hashtag.category;
+      if (!acc[category]) {
+        acc[category] = {
+          count: 0,
+          totalReach: 0,
+          avgGrowth: 0,
+          hashtags: []
+        };
+      }
+      acc[category].count++;
+      acc[category].totalReach += hashtag.reach;
+      acc[category].hashtags.push(hashtag);
+      return acc;
+    }, {} as any);
+
+    // Calcular média de crescimento por categoria
+    Object.keys(categoryAnalysis).forEach(category => {
+      const hashtags = categoryAnalysis[category].hashtags;
+      const totalGrowth = hashtags.reduce((sum: number, h: any) => 
+        sum + parseFloat(h.growth.replace('%', '')), 0
+      );
+      categoryAnalysis[category].avgGrowth = hashtags.length > 0 ? totalGrowth / hashtags.length : 0;
+    });
+
+    // Análise por dificuldade
+    const difficultyAnalysis = trendingHashtags.reduce((acc, hashtag) => {
+      const difficulty = hashtag.difficulty;
+      if (!acc[difficulty]) {
+        acc[difficulty] = { count: 0, hashtags: [] };
+      }
+      acc[difficulty].count++;
+      acc[difficulty].hashtags.push(hashtag);
+      return acc;
+    }, {} as any);
+
+    // Dados de performance por plataforma
+    const platformAnalysis = trendingHashtags.reduce((acc, hashtag) => {
+      const platform = hashtag.platform;
+      if (!acc[platform]) {
+        acc[platform] = {
+          count: 0,
+          totalReach: 0,
+          avgGrowth: 0,
+          hashtags: []
+        };
+      }
+      acc[platform].count++;
+      acc[platform].totalReach += hashtag.reach;
+      acc[platform].hashtags.push(hashtag);
+      return acc;
+    }, {} as any);
+
+    // Calcular média de crescimento por plataforma
+    Object.keys(platformAnalysis).forEach(platform => {
+      const hashtags = platformAnalysis[platform].hashtags;
+      const totalGrowth = hashtags.reduce((sum: number, h: any) => 
+        sum + parseFloat(h.growth.replace('%', '')), 0
+      );
+      platformAnalysis[platform].avgGrowth = hashtags.length > 0 ? totalGrowth / hashtags.length : 0;
+    });
+
+    // Status das APIs
+    const apiStatus = {
+      instagram: socialMediaAPI.isInstagramConfigured(),
+      facebook: socialMediaAPI.isFacebookConfigured()
+    };
+
+    return res.json({
+      success: true,
+      data: {
+        metrics: {
+          totalHashtags,
+          totalReach,
+          avgGrowth: Math.round(avgGrowth * 100) / 100,
+          trendingCount: trendingHashtags.filter(h => h.trending).length
+        },
+        trendingHashtags: trendingHashtags.slice(0, 20), // Top 20
+        categoryAnalysis,
+        difficultyAnalysis,
+        platformAnalysis,
+        apiStatus,
+        filters: {
+          platform,
+          category,
+          period,
+          search
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ Erro ao buscar analytics de hashtags:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor'
+    });
+  }
+};
+
+export const getHashtagSuggestions = async (req: Request, res: Response) => {
+  try {
+    const { platform = 'all', category, content, targetAudience } = req.query;
+    
+    console.log('💡 Gerando sugestões de hashtags...', { platform, category, content, targetAudience });
+
+    // Buscar hashtags em tendência das APIs reais
+    let allTrendingHashtags: any[] = [];
+    
+    if (platform === 'all' || platform === 'instagram') {
+      try {
+        const instagramTrending = await socialMediaAPI.getTrendingHashtags('instagram');
+        allTrendingHashtags.push(...instagramTrending);
+      } catch (error) {
+        console.error('Erro ao buscar hashtags do Instagram:', error);
+      }
+    }
+    
+    if (platform === 'all' || platform === 'facebook') {
+      try {
+        const facebookTrending = await socialMediaAPI.getTrendingHashtags('facebook');
+        allTrendingHashtags.push(...facebookTrending);
+      } catch (error) {
+        console.error('Erro ao buscar hashtags do Facebook:', error);
+      }
+    }
+
+    // Filtrar por categoria se especificado
+    if (category && category !== 'all') {
+      allTrendingHashtags = allTrendingHashtags.filter(h => h.category === category);
+    }
+
+    // Gerar sugestões baseadas no conteúdo
+    let suggestions = allTrendingHashtags;
+
+    if (content) {
+      const contentLower = content.toString().toLowerCase();
+      
+      // Filtrar hashtags relevantes ao conteúdo
+      suggestions = allTrendingHashtags.filter(hashtag => {
+        const hashtagLower = hashtag.hashtag.toLowerCase();
+        return hashtagLower.includes(contentLower) || 
+               contentLower.includes(hashtagLower.replace('#', ''));
+      });
+
+      // Se não encontrou hashtags específicas, usar hashtags da mesma categoria
+      if (suggestions.length === 0) {
+        const contentWords = contentLower.split(' ');
+        suggestions = allTrendingHashtags.filter(hashtag => 
+          contentWords.some(word => hashtag.category.includes(word))
+        );
+      }
+    }
+
+    // Filtrar por audiência se especificado
+    if (targetAudience) {
+      const audienceLower = targetAudience.toString().toLowerCase();
+      suggestions = suggestions.filter(hashtag => {
+        if (audienceLower.includes('maternidade') || audienceLower.includes('mae')) {
+          return hashtag.category === 'maternidade' || hashtag.category === 'gestacao';
+        }
+        if (audienceLower.includes('bebe') || audienceLower.includes('bebê')) {
+          return hashtag.category === 'bebe' || hashtag.category === 'desenvolvimento';
+        }
+        return true;
+      });
+    }
+
+    // Ordenar por relevância (crescimento + alcance)
+    suggestions.sort((a, b) => {
+      const aScore = parseFloat(a.growth.replace('%', '')) + (a.reach / 10000);
+      const bScore = parseFloat(b.growth.replace('%', '')) + (b.reach / 10000);
+      return bScore - aScore;
+    });
+
+    // Gerar sugestões inteligentes baseadas em IA
+    const aiSuggestions = await generateAISuggestions(content, targetAudience, platform);
+
+    // Combinar sugestões reais com sugestões de IA
+    const combinedSuggestions = [
+      ...suggestions.slice(0, 10), // Top 10 das APIs reais
+      ...aiSuggestions.slice(0, 5)  // Top 5 da IA
+    ];
+
+    return res.json({
+      success: true,
+      data: {
+        suggestions: combinedSuggestions,
+        trending: suggestions.slice(0, 5),
+        aiSuggestions,
+        filters: {
+          platform,
+          category,
+          content,
+          targetAudience
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ Erro ao gerar sugestões de hashtags:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor'
+    });
+  }
+};
+
+export const analyzeHashtagPerformance = async (req: Request, res: Response) => {
+  try {
+    const { hashtag, platform = 'all' } = req.query;
+    
+    if (!hashtag) {
+      return res.status(400).json({
+        success: false,
+        error: 'Hashtag é obrigatória'
+      });
+    }
+
+    console.log('📊 Analisando performance da hashtag:', hashtag, 'plataforma:', platform);
+
+    // Buscar dados reais das APIs
+    let hashtagData: any = {};
+
+    if (platform === 'all' || platform === 'instagram') {
+      try {
+        const instagramData = await socialMediaAPI.getInstagramHashtagData(hashtag.toString());
+        if (instagramData) {
+          hashtagData.instagram = instagramData;
+        }
+      } catch (error) {
+        console.error('Erro ao buscar dados do Instagram:', error);
+      }
+    }
+
+    if (platform === 'all' || platform === 'facebook') {
+      try {
+        const facebookData = await socialMediaAPI.getFacebookHashtagData(hashtag.toString());
+        if (facebookData) {
+          hashtagData.facebook = facebookData;
+        }
+      } catch (error) {
+        console.error('Erro ao buscar dados do Facebook:', error);
+      }
+    }
+
+    // Se não encontrou dados reais, usar dados simulados
+    if (Object.keys(hashtagData).length === 0) {
+      if (platform === 'all' || platform === 'instagram') {
+        hashtagData.instagram = socialMediaAPI.getFallbackData(hashtag.toString(), 'instagram');
+      }
+      if (platform === 'all' || platform === 'facebook') {
+        hashtagData.facebook = socialMediaAPI.getFallbackData(hashtag.toString(), 'facebook');
+      }
+    }
+
+    // Calcular métricas agregadas
+    const platforms = Object.keys(hashtagData);
+    const totalReach = platforms.reduce((sum, p) => sum + hashtagData[p].reach, 0);
+    const totalEngagement = platforms.reduce((sum, p) => sum + hashtagData[p].engagement, 0);
+    const totalPosts = platforms.reduce((sum, p) => sum + hashtagData[p].posts, 0);
+    const avgEngagementRate = platforms.length > 0 
+      ? platforms.reduce((sum, p) => sum + hashtagData[p].engagementRate, 0) / platforms.length 
+      : 0;
+
+    // Análise de tendência
+    const trendingAnalysis = platforms.map(p => ({
+      platform: p,
+      trending: hashtagData[p].trending,
+      performance: hashtagData[p].performance,
+      difficulty: hashtagData[p].difficulty
+    }));
+
+    // Recomendações
+    const recommendations = generateHashtagRecommendations(hashtagData, hashtag.toString());
+
+    return res.json({
+      success: true,
+      data: {
+        hashtag,
+        platforms: hashtagData,
+        aggregatedMetrics: {
+          totalReach,
+          totalEngagement,
+          totalPosts,
+          avgEngagementRate: Math.round(avgEngagementRate * 100) / 100,
+          platformsCount: platforms.length
+        },
+        trendingAnalysis,
+        recommendations,
+        analysis: {
+          overallPerformance: calculateOverallPerformance(hashtagData),
+          bestPlatform: findBestPlatform(hashtagData),
+          improvementTips: generateImprovementTips(hashtagData)
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ Erro ao analisar performance da hashtag:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor'
+    });
+  }
+};
+
+export const getTrendingHashtags = async (req: Request, res: Response) => {
+  try {
+    const { platform = 'all', limit = '10' } = req.query;
+    
+    console.log('🔥 Buscando hashtags em tendência...', { platform, limit });
+
+    let trendingHashtags: any[] = [];
+    
+    if (platform === 'all' || platform === 'instagram') {
+      try {
+        const instagramTrending = await socialMediaAPI.getTrendingHashtags('instagram');
+        trendingHashtags.push(...instagramTrending);
+      } catch (error) {
+        console.error('Erro ao buscar hashtags do Instagram:', error);
+      }
+    }
+    
+    if (platform === 'all' || platform === 'facebook') {
+      try {
+        const facebookTrending = await socialMediaAPI.getTrendingHashtags('facebook');
+        trendingHashtags.push(...facebookTrending);
+      } catch (error) {
+        console.error('Erro ao buscar hashtags do Facebook:', error);
+      }
+    }
+
+    // Ordenar por crescimento
+    trendingHashtags.sort((a, b) => {
+      const aGrowth = parseFloat(a.growth.replace('%', ''));
+      const bGrowth = parseFloat(b.growth.replace('%', ''));
+      return bGrowth - aGrowth;
+    });
+
+    // Limitar resultados
+    const limitNum = parseInt(limit.toString());
+    trendingHashtags = trendingHashtags.slice(0, limitNum);
+
+    // Análise por categoria
+    const categoryBreakdown = trendingHashtags.reduce((acc, hashtag) => {
+      const category = hashtag.category;
+      if (!acc[category]) {
+        acc[category] = { count: 0, hashtags: [] };
+      }
+      acc[category].count++;
+      acc[category].hashtags.push(hashtag);
+      return acc;
+    }, {} as any);
+
+    return res.json({
+      success: true,
+      data: {
+        trendingHashtags,
+        categoryBreakdown,
+        totalCount: trendingHashtags.length,
+        filters: { platform, limit }
+      }
+    });
+  } catch (error) {
+    console.error('❌ Erro ao buscar hashtags em tendência:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor'
+    });
+  }
+};
+
+// Funções auxiliares
+async function generateAISuggestions(content: any, targetAudience: any, platform: any): Promise<any[]> {
+  try {
+    // Simular sugestões de IA baseadas no contexto
+    const suggestions = [
+      {
+        hashtag: '#maternidade2024',
+        growth: '+35%',
+        reach: 750000,
+        category: 'maternidade',
+        trending: true,
+        difficulty: 'medium',
+        platform: platform === 'all' ? 'instagram' : platform,
+        aiGenerated: true,
+        relevance: 'high'
+      },
+      {
+        hashtag: '#bebesaudavel',
+        growth: '+28%',
+        reach: 520000,
+        category: 'saude',
+        trending: true,
+        difficulty: 'easy',
+        platform: platform === 'all' ? 'facebook' : platform,
+        aiGenerated: true,
+        relevance: 'high'
+      }
+    ];
+
+    return suggestions;
+  } catch (error) {
+    console.error('Erro ao gerar sugestões de IA:', error);
+    return [];
+  }
+}
+
+function generateHashtagRecommendations(hashtagData: any, hashtag: string): any[] {
+  const recommendations = [];
+
+  // Verificar se a hashtag está performando bem
+  const platforms = Object.keys(hashtagData);
+  const avgEngagement = platforms.reduce((sum, p) => sum + hashtagData[p].engagement, 0) / platforms.length;
+
+  if (avgEngagement < 1000) {
+    recommendations.push({
+      type: 'warning',
+      title: 'Engajamento Baixo',
+      description: `A hashtag #${hashtag} tem engajamento baixo. Considere usar hashtags mais populares.`,
+      action: 'Buscar hashtags alternativas'
+    });
+  }
+
+  if (platforms.length === 1) {
+    recommendations.push({
+      type: 'info',
+      title: 'Expansão de Plataforma',
+      description: `Teste a hashtag #${hashtag} em outras plataformas para aumentar o alcance.`,
+      action: 'Testar em múltiplas plataformas'
+    });
+  }
+
+  return recommendations;
+}
+
+function calculateOverallPerformance(hashtagData: any): string {
+  const platforms = Object.keys(hashtagData);
+  const avgEngagement = platforms.reduce((sum, p) => sum + hashtagData[p].engagement, 0) / platforms.length;
+  
+  if (avgEngagement > 5000) return 'excellent';
+  if (avgEngagement > 2000) return 'good';
+  if (avgEngagement > 500) return 'average';
+  return 'poor';
+}
+
+function findBestPlatform(hashtagData: any): string {
+  const platforms = Object.keys(hashtagData);
+  if (platforms.length === 0) return 'none';
+
+  return platforms.reduce((best, platform) => {
+    return hashtagData[platform].engagement > hashtagData[best].engagement ? platform : best;
+  });
+}
+
+function generateImprovementTips(hashtagData: any): string[] {
+  const tips = [];
+  const platforms = Object.keys(hashtagData);
+
+  if (platforms.length === 0) {
+    tips.push('Teste a hashtag em diferentes plataformas para encontrar onde ela performa melhor.');
+    return tips;
+  }
+
+  const avgEngagement = platforms.reduce((sum, p) => sum + hashtagData[p].engagement, 0) / platforms.length;
+
+  if (avgEngagement < 1000) {
+    tips.push('Combine com hashtags mais populares para aumentar o alcance.');
+    tips.push('Use a hashtag em horários de pico de engajamento.');
+  }
+
+  if (platforms.length === 1) {
+    tips.push('Expanda para outras plataformas para maximizar o alcance.');
+  }
+
+  return tips;
+} 

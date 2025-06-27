@@ -41,6 +41,16 @@ export async function generateMarketingContent(
   } = {}
 ): Promise<any> {
   try {
+    // Padronizar o type recebido
+    type = (type || '').trim().toLowerCase();
+    const tiposAceitos = [
+      'post', 'ad', 'video_script', 'argument', 'hashtag_research', 'chat', 'video', 'link'
+    ];
+    if (!tiposAceitos.includes(type)) {
+      console.error(`[IA] Tipo de conteúdo não suportado:`, type, '| Body:', { type, platform, targetAudience, ...options });
+      throw new Error(`Tipo de conteúdo não suportado: ${type}. Aceitos: ${tiposAceitos.join(', ')}`);
+    }
+
     const { category, specificTopic, tone, duration, format } = options;
     
     // Prompt base do sistema

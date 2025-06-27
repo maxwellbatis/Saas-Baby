@@ -535,17 +535,52 @@ export const AdminMarketing: React.FC = () => {
     }
   };
 
+  // Função utilitária para padronizar valores
+  const normalizeValue = (value: string) => value ? value.trim().toLowerCase() : '';
+  const tiposAceitos = [
+    'post', 'ad', 'video_script', 'argument', 'hashtag_research', 'chat', 'video', 'link'
+  ];
+  const plataformasAceitas = [
+    'instagram', 'facebook', 'tiktok', 'whatsapp', 'google_ads', 'youtube'
+  ];
+  const publicosAceitos = [
+    'gestantes', 'maes_bebes', 'maes_criancas'
+  ];
+
   // Função para gerar conteúdo com IA
   const handleGenerateContent = async () => {
     setIsGenerating(true);
     try {
-      const response = await adminMarketing.generateContentWithAI(aiGeneratorForm);
+      // Normalizar valores antes de enviar
+      const type = normalizeValue(aiGeneratorForm.type);
+      const platform = normalizeValue(aiGeneratorForm.platform);
+      const targetAudience = normalizeValue(aiGeneratorForm.targetAudience);
+      const payload = {
+        ...aiGeneratorForm,
+        type,
+        platform,
+        targetAudience
+      };
+      console.log('Enviando para IA:', payload);
+      if (!tiposAceitos.includes(type)) {
+        toast({ title: "Tipo inválido", description: "Selecione um tipo de conteúdo válido.", variant: "destructive" });
+        setIsGenerating(false);
+        return;
+      }
+      if (!plataformasAceitas.includes(platform)) {
+        toast({ title: "Plataforma inválida", description: "Selecione uma plataforma válida.", variant: "destructive" });
+        setIsGenerating(false);
+        return;
+      }
+      if (!publicosAceitos.includes(targetAudience)) {
+        toast({ title: "Público-alvo inválido", description: "Selecione um público válido.", variant: "destructive" });
+        setIsGenerating(false);
+        return;
+      }
+      const response = await adminMarketing.generateContentWithAI(payload);
       if (response.success) {
         setAiGeneratedContent(response.data);
-        
-        // Salvar automaticamente na biblioteca digital
         await handleSaveGeneratedContent(response.data);
-        
         toast({
           title: "Conteúdo Gerado e Salvo!",
           description: "O conteúdo foi gerado com IA e salvo automaticamente na biblioteca digital.",
@@ -818,29 +853,42 @@ export const AdminMarketing: React.FC = () => {
   const handleGenerateAIPost = async () => {
     setAIPostLoading(true);
     try {
-      // Chamar endpoint Gemini/backend
+      const type = 'post';
+      const platform = normalizeValue(aiPostForm.plataforma);
+      const targetAudience = normalizeValue(aiPostForm.publico);
+      if (!plataformasAceitas.includes(platform)) {
+        toast({ title: "Plataforma inválida", description: "Selecione uma plataforma válida.", variant: "destructive" });
+        setAIPostLoading(false);
+        return;
+      }
+      if (!publicosAceitos.includes(targetAudience)) {
+        toast({ title: "Público-alvo inválido", description: "Selecione um público válido.", variant: "destructive" });
+        setAIPostLoading(false);
+        return;
+      }
       const res = await adminMarketing.generateContentWithAI({
-        type: 'post',
+        type,
+        platform,
+        targetAudience,
         ...aiPostForm
       });
-      // Preencher formulário de criação de post com resultado da IA
       setDigitalLibraryForm({
         title: res.title || '',
         description: res.description || '',
-        platform: aiPostForm.plataforma,
+        platform,
         category: aiPostForm.categoria,
         imageUrl: res.imageUrl || aiPostForm.imagem,
         caption: res.caption || '',
         hashtags: res.hashtags || aiPostForm.hashtags,
         cta: res.cta || aiPostForm.cta,
-        targetAudience: aiPostForm.publico,
+        targetAudience,
         contentType: 'post',
         isActive: true,
         sortOrder: 0,
       });
       setShowAIPostModal(false);
       setDigitalLibraryType('post');
-      setShowDigitalLibraryModal(true); // Abre modal de criação de post já preenchido
+      setShowDigitalLibraryModal(true);
     } catch (err: any) {
       toast({ title: 'Erro ao gerar post com IA', description: err.message, variant: 'destructive' });
     } finally {
@@ -852,30 +900,43 @@ export const AdminMarketing: React.FC = () => {
   const handleGenerateAIAd = async () => {
     setAIAdLoading(true);
     try {
-      // Chamar endpoint Gemini/backend
+      const type = 'ad';
+      const platform = normalizeValue(aiAdForm.plataforma);
+      const targetAudience = normalizeValue(aiAdForm.publico);
+      if (!plataformasAceitas.includes(platform)) {
+        toast({ title: "Plataforma inválida", description: "Selecione uma plataforma válida.", variant: "destructive" });
+        setAIAdLoading(false);
+        return;
+      }
+      if (!publicosAceitos.includes(targetAudience)) {
+        toast({ title: "Público-alvo inválido", description: "Selecione um público válido.", variant: "destructive" });
+        setAIAdLoading(false);
+        return;
+      }
       const res = await adminMarketing.generateContentWithAI({
-        type: 'ad',
+        type,
+        platform,
+        targetAudience,
         ...aiAdForm
       });
-      // Preencher formulário de criação de anúncio com resultado da IA
       setDigitalLibraryForm({
         title: res.title || '',
         description: res.description || '',
-        platform: aiAdForm.plataforma,
+        platform,
         adType: aiAdForm.tipoAnuncio,
         copyShort: res.copyShort || '',
         copyLong: res.copyLong || res.description || '',
         headline: res.headline || res.title || '',
         cta: res.cta || aiAdForm.cta,
         imageUrl: res.imageUrl || aiAdForm.imagem,
-        targetAudience: aiAdForm.publico,
+        targetAudience,
         interests: aiAdForm.interesses ? aiAdForm.interesses.split(',').map(i => i.trim()) : [],
         budget: aiAdForm.orcamento ? parseFloat(aiAdForm.orcamento) : undefined,
         isActive: true,
       });
       setShowAIAdModal(false);
       setDigitalLibraryType('ad');
-      setShowDigitalLibraryModal(true); // Abre modal de criação de anúncio já preenchido
+      setShowDigitalLibraryModal(true);
     } catch (err: any) {
       toast({ title: 'Erro ao gerar anúncio com IA', description: err.message, variant: 'destructive' });
     } finally {
@@ -886,6 +947,7 @@ export const AdminMarketing: React.FC = () => {
   // 5. HANDLER PARA CHAT INTELIGENTE
   const handleChatMessage = async (type: string, message: string) => {
     try {
+      const typeNorm = 'chat';
       // Mapear tipos para plataformas padrão
       const platformMap = {
         posts: 'instagram',
@@ -894,8 +956,6 @@ export const AdminMarketing: React.FC = () => {
         arguments: 'whatsapp',
         links: 'google_ads'
       };
-
-      // Mapear tipos para público-alvo padrão
       const audienceMap = {
         posts: 'maes_bebes',
         ads: 'maes_bebes',
@@ -903,22 +963,25 @@ export const AdminMarketing: React.FC = () => {
         arguments: 'gestantes',
         links: 'maes_bebes'
       };
-
-      // Chamar IA com parâmetros corretos
+      const platform = platformMap[type as keyof typeof platformMap] || 'instagram';
+      const targetAudience = audienceMap[type as keyof typeof audienceMap] || 'maes_bebes';
+      if (!plataformasAceitas.includes(platform)) {
+        return { success: false, content: 'Plataforma inválida.' };
+      }
+      if (!publicosAceitos.includes(targetAudience)) {
+        return { success: false, content: 'Público-alvo inválido.' };
+      }
       const res = await adminMarketing.generateContentWithAI({
-        type: 'chat',
-        platform: platformMap[type as keyof typeof platformMap] || 'instagram',
-        targetAudience: audienceMap[type as keyof typeof audienceMap] || 'maes_bebes',
+        type: typeNorm,
+        platform,
+        targetAudience,
         specificTopic: message,
         category: type
       });
-
-      // Retornar a resposta para ser adicionada ao chat
       return {
         success: true,
         content: res.data?.content || 'Resposta gerada com sucesso!'
       };
-
     } catch (err: any) {
       console.error('Erro no chat:', err);
       return {

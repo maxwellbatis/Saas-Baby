@@ -439,6 +439,7 @@ export const getTargetUsers = async (req: Request, res: Response) => {
 // Gerar conteúdo com IA para marketing
 export const generateMarketingContent = async (req: Request, res: Response) => {
   try {
+    console.log('[IA] Body recebido:', req.body);
     const { type, platform, targetAudience, tone, category, specificTopic, duration, format } = req.body;
     
     // Usar a função especializada do Gemini

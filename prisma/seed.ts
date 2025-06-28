@@ -604,13 +604,16 @@ async function main() {
     },
   ];
 
-  for (const item of shopItems) {
+  // Comentar temporariamente a criação dos produtos de seed devido a mudanças no schema
+  /*
+  for (const produto of produtosSeed) {
     await prisma.shopItem.upsert({
-      where: { id: item.id },
-      update: item,
-      create: item,
+      where: { id: produto.id },
+      update: produto,
+      create: produto,
     });
   }
+  */
 
   // Criar missões diárias
   const dailyMissions = [
@@ -1296,14 +1299,6 @@ Texto: "Seu marco ficou registrado para sempre!"`,
       stock: 50,
     },
   ].filter(p => !!p.categoryId);
-
-  for (const produto of produtosSeed) {
-    await prisma.shopItem.upsert({
-      where: { id: produto.id },
-      update: produto,
-      create: produto,
-    });
-  }
 
   console.log('🎉 Seed concluído com sucesso!');
 

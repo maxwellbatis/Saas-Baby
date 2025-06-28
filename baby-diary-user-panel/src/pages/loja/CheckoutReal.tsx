@@ -9,7 +9,6 @@ import { Textarea } from '../../components/ui/textarea';
 import { Badge } from '../../components/ui/badge';
 import { Separator } from '../../components/ui/separator';
 import { useToast } from '../../hooks/use-toast';
-import { apiFetch } from '../../config/api';
 import { 
   CreditCard, 
   FileText, 
@@ -26,6 +25,7 @@ import {
   Phone,
   Calendar
 } from 'lucide-react';
+import { apiFetch } from '../../config/api-fix';
 
 interface CartItem {
   id: string;

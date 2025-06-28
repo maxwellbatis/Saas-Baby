@@ -9,6 +9,13 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    proxy: {
+      '/api': {
+        target: 'https://api.babydiary.shop',
+        changeOrigin: true,
+        secure: true,
+      }
+    }
   },
   plugins: [
     react(),

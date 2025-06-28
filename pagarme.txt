@@ -1,0 +1,905 @@
+Introdução
+Bem vindo a API Reference da Pagar.me !
+
+
+A API Pagar.me foi desenvolvida de acordo com os melhores padrões REST.
+
+As operações são feitas por requisições aos endpoints, de acordo com os verbos HTTP, com corpos de mensagem em JSON. As respostas podem ser interpretadas através do código de status HTTP. Isso permite que quaisquer aplicações consumam a API de forma simples e clara, independente da linguagem utilizada.
+
+Para facilitar ainda mais a integração, fornecemos SDKs em todas as principais linguagens de programação. Saiba mais sobre as nossas SDKs.
+
+Também oferecemos uma chave de testes na API para que a integração seja feita com testes a vontade, sem se preocupar com cobranças reais nos cartões de crédito utilizados.
+
+
+Segurança
+Normas PCI Compliance
+
+
+Para manter a segurança na troca de mensagens é necessário que nossos servidores sejam liberados no seu ambiente. Recomendamos fortemente que você libere o domínio: api.pagar.me. Caso não seja possível a liberação do domínio, segue abaixo a lista de IP's que devem ser liberados:
+
+🚧
+IPs
+
+52.186.34.80/28
+104.45.183.192/28
+52.186.34.84
+
+Além disso, por sermos uma empresa com certficado PCI Compliance precisamos manter a segurança na troca de informações com a nossa API. Seguem as configurações aceitas:
+
+🚧
+Protocolos aceitos
+
+TLS 1.2
+TLS 1.3 (O Pagar.me recomenda fortemente a utilização deste protocolo)
+
+🚧
+Hashs Codes
+
+SHA256
+SHA384
+SHA512
+
+🚧
+Cipher Suites
+
+Com criptografia igual ou superior a 128 bits.
+
+📘
+Certificados Digitais SSL
+
+O Pagar.me faz uso de uma tecnologia que provisiona de forma automática os certificados digitais das aplicações dos seus domínios.
+
+Esses certificados tem validade de 90 dias e por isso, recomendamos sempre aos clientes, o envio das transações para o nome (FQDN) dos endpoints das nossas APIs.
+
+Não é recomendado o pinning de certificado, com a chave pública.
+
+
+IP Allowlist
+É possível configurar uma lista de endereços de IP que terão permissão para acessar o sistema Pagar.me utilizando a nossa funcionalidade de IP Allowlist.
+
+Ao cadastrar os seus IPs, outros endereços serão bloqueados assim aumentando a segurança de sua integração, permitindo apenas conexões de fontes confiáveis.
+
+📘
+Formatos aceitos
+
+IPs: xxx.xxx.xxx.xxx;
+
+Intervalo de IPs (suporta formatos IPv4 e IPv6):
+
+xxx.xxx.x.x
+xxx.xxx.x.x/xx
+192.168.0.10 - 192.168.10.20
+2001:db8:3333:4444:5555:6666:7777:8888
+fe80::/10
+Para cadastrar a IP Allowlist, é só seguir o passo a passo em nosso Guides - IP Allowlist
+
+
+Rate Limit
+O Rate limit controla o número de solicitações que um cliente pode fazer em um período de tempo específico em nossa API. Essa prática ajuda a manter a estabilidade da aplicação.
+
+Rate Limit - Tabela de quantidade máxima de requisições por minuto em cada endpoint:
+
+Endpoint/Recurso	Metodo	Rate Limit por minuto
+/charges	GET	200
+/charges/*	GET	200
+/charges/{{charge_id}}	DELETE	Somente para PIX: Após a 10° tentativa de cancelamento de uma mesma cobrança, permitimos somente uma nova tentativa a cada 15 minutos.
+/orders	GET	200
+/orders/*	GET	200
+/recipients	GET	100
+/recipients/*	GET	150
+/subscriptions	GET	200
+/subscriptions/*	GET	200
+/invoices	GET	200
+/invoices/*	GET	200
+/customers	GET	200
+/customers/*	GET	200
+/hooks	GET	50
+/hooks/*	GET	50
+/payables	GET	700
+/balance/operations	GET	300
+
+Autenticação
+Obtendo sua Chave de API
+
+
+Antes de começar, você precisa obter suas chaves de API.
+Para isso, siga os seguintes passos:
+1 - Acesse este link e faça login com seu usuário,
+2 - Após acessar o Dash, navegue até a área de Desenvolvimento e em seguida clique em Chaves.
+
+📘
+Clientes integrados na versão anterior da API
+
+Caso você já seja cliente Pagar.me e esteja integrado na versão anterior da API, entre em contato com o nosso time de suporte.
+
+🚧
+Endpoints para teste e produção
+
+As chamadas de testes e de produção devem ser feitas para o mesmo endpoint: https://api.pagar.me/core/v5.
+
+O que definirá se a transação irá utilizar o nosso simulador ou se seguirá o fluxo de produção é o tipo da Chave de API enviada.
+
+Tipos de Chave
+Nós disponibilizaremos 02 chaves para que você possa realizar testes:
+
+Exemplo de prefixo da Chave Secreta de Sandbox: sk_test_*
+Exemplo de prefixo da Chave Pública de Sandbox: pk_test_*
+Após o fechamento do contrato o cliente receberá as chaves do ambiente de produção:
+
+Exemplo de prefixo da Chave Secreta de Produção: sk_*
+Exemplo de prefixo da Chave Pública de Produção: pk_*
+Autorização Basic Auth
+Para se autenticar conosco você deve enviar a Chave de API no cabeçalho Authorization, seguindo o padrão da HTTP Basic Authentication.
+
+Node.js
+
+var fs = require('fs');
+const request = require("request");
+var body = JSON.parse(fs.readFileSync('body.json', 'utf8'));
+
+var options = {                 
+    method: 'POST',             
+    uri: 'https://api.pagar.me/core/v5/orders',                    
+    headers: {               
+      'Authorization': 'Basic ' + Buffer.from("sk_test_*:").toString('base64'),
+      'Content-Type': 'application/json'              
+    },
+    json : body
+};    
+
+request(options, function(error, response, body) {  
+    console.log(response.body);
+});
+📘
+Como utilizar a SecretKey
+
+Para montar a requisição Basic Auth, você deve utilizar a SecretKey da seguinte maneira:
+User: SecretKey
+Password: vazio
+
+📘
+Chave Pública de API (PK)
+
+Essas chaves serão utilizadas para representar a sua loja na integração com o checkout.
+
+❗️
+NÃO COMPARTILHE SUAS CHAVES DE API
+
+A sua chave da API é SECRETA e não deve ser compartilhada com terceiros.
+
+Erros
+HTTP Status Codes
+
+A nossa API valida cada um dos campos enviados na requisição antes de prosseguir com a criação, consulta ou gerenciamento dos pedidos, transações e recursos.
+
+Utilizamos os códigos de resposta convencionais do HTTP para indicar o sucesso ou a falha de uma requisição. Sendo assim, códigos 2xx indicam sucesso, 4xx indicam erros por algum dado informado incorretamente (por exemplo, algum campo obrigatório não enviado ou um cartão sem data de validade) e 5xx indicando erros nos servidores do Pagar.me.
+
+Tabela dos HTTP Status Code:
+
+Código	Status	Definição
+200	OK	Sucesso
+400	Bad Request	Requisição inválida
+401	Unauthorized	Chave de API inválida
+403	Forbidden	Bloqueio por IP/Domínio
+404	Not Found	O recurso solicitado não existe
+412	Precondition Failed	Parâmetros válidos mas a requisição falhou
+422	Unprocessable Entity	Parâmetros inválidos
+429	Too Many Requests	Quantidade de requisições realizadas pelo IP maior que o permitido pela Pagar.me
+500	Internal Server Error	Ocorreu um erro interno
+Possíveis erros
+404 - Not Found
+
+{
+    "message": "Customer not found."
+}
+"Cliente não encontrado": Ocorre quando não identificamos o objeto customer ou customer_id na requisição de criação do pedido.
+
+422 - Unprocessable Entity
+
+{
+    "message": "The request is invalid.",
+    "errors": {
+        "order.customer.name": [
+            "The name field is required."
+        ]
+    },
+  ...
+"O campo nome é obrigatório": Ocorre quando não identificamos o campo name dentro do objeto customer. É necessário adicionar o nome do cliente aos dados informados na requisição de requisição de criação do pedido.
+
+422 - Unprocessable Entity
+
+{
+    "message": "The request is invalid.",
+    "errors": {
+        "order.payments[0].credit_card.card": [
+            "The number field is not a valid card number"
+        ]
+    },
+  ...
+"O campo do número não é um número de cartão válido": Ocorre quando o campo number dentro do objeto card não é um número de cartão válido. É necessário revisar o número do cartão informado na requisição de criação do pedido.
+
+422 - Unprocessable Entity
+
+{
+    "message": "The request is invalid.",
+    "errors": {
+        "card.number": [
+            "The field number must be a string with a minimum length of 13 and a maximum length of 19."
+        ]
+    },
+  ...
+"O número do campo deve ser uma string com comprimento mínimo de 13 e máximo de 19": Ocorre quando o campo number tem a quantidade de caracteres incorreta. É necessário revisar o número do cartão informado na requisição de criação do cartão.
+
+422 - Unprocessable Entity
+
+{
+    "message": "The request is invalid.",
+    "errors": {
+        "order.items": [
+            "The items field is required"
+        ]
+    },
+  ...
+"O campo itens é obrigatório": Ocorre quando não encontramos o objeto items na requisição. Para realizar a criação de um pedido, é obrigatório informar os itens.
+
+Possíveis erros - Integração PSP
+422 - Unprocessable Entity
+
+...               
+"gateway_response": {
+    "code": "412",
+    "errors": [
+        {
+            "message": "At least one customer phone is required."
+        }
+    ]
+},
+  ...
+"É necessário pelo menos um telefone do cliente": O erro ocorre quando não encontramos o objeto phones dentro do objeto customer. Para clientes Pagar.me PSP é obrigatório enviar o telefone dentro junto aos dados do cliente. Mais sobre o objeto phones.
+
+📘
+Dados obrigatórios PSP x Gateway
+
+A integração PSP ou Gateway afeta os dados necessários para efetuar certas solicitações, como a criação de um pedido.
+
+Portanto, leve em consideração o seu modelo de negócios ao seguir as orientações da nossa Referência da API e consultar a assistência de nossas equipes de suporte.
+
+Paginação
+
+A API Pagar.me tem suporte a buscas em massa através dos métodos list. Deste modo, você pode listar compradores, assinaturas, pedidos e diversos outros objetos do Pagar.me. Todos esses métodos de listagem possuem uma estrutura em comum, que é a de paginação.
+
+JSON
+
+{
+  "data": [...],
+  "paging": {
+    "total": 11,
+    "previous": null,
+    "next": "{url}?page=2&size=10"
+  }
+}
+
+Metadata
+A maioria dos nossos objetos - como customer, card, address, subscription, plan, order, charge e invoice - possuem o parâmetro metadata, pelo qual você consegue armazenar dados chave-valor.
+
+Metadados são interessantes para o armazenamento estruturado de dados complementares relacionados a algum objeto. Um exemplo seria adição do nome do pai de um cliente para ter essa informação em sua carteira de clientes.
+
+JSON
+
+{
+  ...
+  "metadata": {
+    "meu_campo1": "valor1",
+    "meu_campo2": "valor2"
+  }
+}
+Updated almost 2 years ago
+
+Paginação
+
+Telefones
+O objeto phones possui os seguintes atributos:
+
+Atributos	Tipo	Descrição
+home_phone	object	Telefone residencial.
+mobile_phone	object	Telefone móvel.
+Tanto o home_phone quanto o mobile_phone são compostos pelos seguintes atributos:
+
+Atributos	Tipo	Descrição
+country_code	string	Código do País (Apenas numérico).
+area_code	string	Código da área (Apenas numérico).
+number	string	Número do telefone (Apenas numérico).
+JSON
+
+"phones": {
+  "home_phone": {
+    "country_code": "55",
+    "number": "000000000",
+    "area_code": "21"
+  },
+  "mobile_phone": {
+    "country_code": "55",
+    "number": "000000000",
+    "area_code": "21"
+  }
+}
+Updated almost 4 years ago
+
+Metadata
+
+Entregas
+O objeto shipping contém informações referentes à entrega do produto ao comprador, e possui os seguintes atributos:
+
+Atributos	Tipo	Descrição
+amount	integer	Valor da entrega.
+description	string	Descrição da entrega.
+recipient_name	string	Destinatário da entrega.
+recipient_phone	string	Telefone do destinatário.
+address	object	Endereço de entrega. Saiba mais sobre endereços.
+max_delivery_date	string	Data de entrega máxima.
+estimated_delivery_date	string	Data de entrega estimada.
+type	string	Tipo de entrega.
+JSON
+
+"shipping" : {
+    "amount": 100,
+    "description": "Express Shipping",
+    "recipient_name": "Tony Stark",
+    "recipient_phone": "24586787867",
+    "address": {
+        "line_1": "10880, Malibu Point, Malibu Central",
+        "zip_code": "90265",
+        "city": "Malibu",
+        "state": "CA",
+        "country": "US"
+    },
+    "max_delivery_date": "2022-07-31",
+  	"estimated_delivery_date": "2022-07-30",
+    "type": "Express"
+ }
+Updated almost 2 years ago
+
+Facilitadores de pagamento (Dados de Subadquirente)
+Por determinação do Banco Central e das bandeiras os cliente de E-commerce que se enquadram na categoria de Facilitadores de Pagamento deverão enviar dados referentes aos seus sub credenciados em cada requisição transacional.
+
+O objeto SubMerchant possibilita o envio de informação de sub credenciados.
+Um SubMerchant possui os seguintes atributos:
+
+Atributos	Tipo	Descrição
+SubMerchant	object	Dados de sub credenciador
+Merchant_Category_Code	string	MCC do subcredenciado - Código de categoria do estabelecimento comercial. Limite de quatro dígitos.
+Payment_Facilitator_Code	string	Código de identificação do Facilitador de pagamentos cadastrado com as bandeiras
+Code	string	Código de identificação do sub credenciado para o facilitador de pagamentos
+Name	string	Nome do sub credenciado.
+Legal_name	string	Razão social do sub credenciado.
+Observação: Campo será disponibilizado até o dia 04/04
+Document	string	CPF ou CNPJ do sub credenciado.
+Type	string	Tipo de sub credenciado. Valores possíveis: individual e company.
+Phones	object	Telefones do sub credenciado.
+Phone_Type	string	Tipo do telefone do sub credenciado.
+Coutry_code	string	Código do País (Apenas numérico).
+Area_code	string	Código da área (Apenas numérico).
+Number	string	Número do telefone (Apenas numérico).
+Address	object	Endereço do sub credenciado.
+Country	string	País (Código do país no formato ISO 3166-1 alpha-2).
+State	string	Estado.
+(Código do estado no formato ISO 3166-2).
+City	string	Cidade.
+Neighborhood	string	Bairro.
+Street	string	Rua.
+Number	string	Número da rua.
+Complement	string	Complemento.
+Zip_Code	string	Código Postal (CEP)
+(Apenas numérico).
+Create Order
+Create Order - Checkout
+Create Subscription
+
+{
+    "submerchant": {
+        "merchant_category_code": "4444",
+        "payment_facilitator_code": "5555555",
+        "code": "code2",
+        "name": "sub tony stark",
+        "legal_name": "empresa ltda",
+        "document": "123456789",
+        "type": "individual",
+        "phone": {
+            "country_code": "55",
+            "number": "000000000",
+            "area_code": "21"
+        },
+        "address": {
+            "street": "malibu point",
+            "number": "10880",
+            "complement": "a",
+            "neighborhood": "central malibu",
+            "city": "malibu",
+            "state": "ca",
+            "country": "us",
+            "zip_code": "24210460"
+        }
+    },
+    "items": [
+        {
+            "amount": 2990,
+            "description": "chaveiro do tesseract",
+            "quantity": 1
+        }
+    ],
+    "customer": {
+        "name": "tony stark",
+        "email": "{{email}}"
+    },
+    "ip": "192.168.0.1",
+    "location": {
+        "latitude": "10",
+        "longitude": "20"
+    },
+    "session_id": "session_id_test",
+    "device": {
+        "platform": "android os"
+    },
+    "payments": [
+        {
+            "payment_method": "credit_card",
+            "credit_card": {
+                "installments": 1,
+                "statement_descriptor": "avengers",
+                "card": {
+                    "number": "4000000000000010",
+                    "holder_name": "tony stark",
+                    "exp_month": 1,
+                    "exp_year": 25,
+                    "cvv": "351",
+                    "billing_address": {
+                        "street": "malibu point",
+                        "number": "10880",
+                        "zip_code": "90265",
+                        "neighborhood": "central malibu",
+                        "city": "malibu",
+                        "state": "ca",
+                        "country": "us"
+                    }
+                }
+            }
+        }
+    ],
+    "shipping": {
+        "amount": 110,
+        "description": "teste",
+        "recipient_name": "marcelo",
+        "type": "standard",
+        "address": {
+            "street": "malibu point",
+            "number": "10882",
+            "zip_code": "90265",
+            "neighborhood": "central malibu",
+            "city": "malibu",
+            "state": "ca",
+            "country": "us"
+        }
+    }
+}
+
+Visão geral sobre Webhooks
+Sempre que ocorre um evento importante, nós disparamos uma notificação para seu servidor. Essas notificações são chamadas de webhooks. É possível configurar varios endpoints e escolher quais eventos serão disparados . O objeto webhook contêm os seguintes atributos:
+
+Atributos	Tipo	Descrição
+id	string	Código do webhook. Formato: hook_XXXXXXXXXXXXXXXX.
+url	string	Endereço do alvo.
+event	enum	Evento do webhook.
+status	enum	Status do webhook. Valores possíveis: pending, sent ou failed.
+attempts	string	Tentativas realizadas.
+last_attempt	datetime	Data da última tentativa.
+response_status	string	Código de resposta do servidor.
+response_raw	string	Resposta do servidor.
+account	object	Dados da loja.
+account.id	string	Código da loja.
+account.name	string	Nome da loja.
+data	object	Conteúdo da requisição.
+
+Exemplo de webhook
+Segue o exemplo de um webhook order.paid que nós enviamos:
+
+Webhook - order.paid
+
+{
+  "id": "hook_RyEKQO789TRpZjv5",
+  "account": {
+    "id": "acc_jZkdN857et650oNv",
+    "name": "Lojinha"
+  },
+  "type": "order.paid",
+  "created_at": "2017-06-29T20:23:47",
+  "data": {
+    "id": "or_ZdnB5BBCmYhk534R",
+    "code": "1303724",
+    "amount": 12356,
+    "currency": "BRL",
+    "closed": true,
+    "items": [
+      {
+        "id": "oi_EqnMMrbFgBf0MaN1",
+        "description": "Produto",
+        "amount": 10166,
+        "quantity": 1,
+        "status": "active",
+        "created_at": "2022-06-29T20:23:42",
+        "updated_at": "2022-06-29T20:23:42"
+      }
+    ],
+    "customer": {
+      "id": "cus_oy23JRQCM1cvzlmD",
+      "name": "FABIO ",
+      "email": "abc@teste.com",
+      "document": "09006068709",
+      "type": "individual",
+      "delinquent": false,
+      "created_at": "2022-06-29T20:23:42",
+      "updated_at": "2022-06-29T20:23:42",
+      "phones": {}
+    },
+    "shipping": {
+      "amount": 2190,
+      "description": "Economico",
+      "address": {
+        "zip_code": "90265",
+        "city": "Malibu",
+        "state": "CA",
+        "country": "US",
+        "line_1": "10880, Malibu Point, Malibu Central"
+      }
+    },
+    "status": "paid",
+    "created_at": "2022-06-29T20:23:42",
+    "updated_at": "2022-06-29T20:23:47",
+    "closed_at": "2022-06-29T20:23:44",
+    "charges": [
+      {
+        "id": "ch_d22356Jf4WuGr8no",
+        "code": "1303624",
+        "gateway_id": "da7f2304-1937-42a4-b995-0f4ea2b36264",
+        "amount": 12356,
+        "status": "paid",
+        "currency": "BRL",
+        "payment_method": "credit_card",
+        "paid_at": "2022-06-29T20:23:47",
+        "created_at": "2022-06-29T20:23:42",
+        "updated_at": "2022-06-29T20:23:47",
+        "customer": {
+          "id": "cus_oybzJRQ231cvzlmD",
+          "name": "FABIO E RACHEL ",
+          "email": "fabiomello11@gmail.com",
+          "document": "09006507709",
+          "type": "individual",
+          "delinquent": false,
+          "created_at": "2022-06-29T20:23:42",
+          "updated_at": "2022-06-29T20:23:42",
+          "phones": {}
+        },
+        "last_transaction": {
+          "id": "tran_opAqDj2390S1lKQO",
+          "transaction_type": "credit_card",
+          "gateway_id": "3b12320a-0d67-4c06-b497-6622fe9763c8",
+          "amount": 12356,
+          "status": "captured",
+          "success": true,
+          "installments": 2,
+          "acquirer_name": "redecard",
+          "acquirer_affiliation_code": "30233726",
+          "acquirer_tid": "247391236",
+          "acquirer_nsu": "247391236",
+          "acquirer_auth_code": "236689",
+          "operation_type": "capture",
+          "card": {
+            "id": "card_BjKOmahgAf0D23lw",
+            "last_four_digits": "4485",
+            "brand": "Visa",
+            "holder_name": "FABIO",
+            "exp_month": 6,
+            "exp_year": 2025,
+            "status": "active",
+            "created_at": "2022-06-29T20:23:42",
+            "updated_at": "2022-06-29T20:23:42",
+            "billing_address": {
+              "zip_code": "90265",
+              "city": "Malibu",
+              "state": "CA",
+              "country": "US",
+              "line_1": "10880, Malibu Point, Malibu Central"
+            },
+            "type": "credit"
+          },
+          "created_at": "2022-06-29T20:23:47",
+          "updated_at": "2022-06-29T20:23:47",
+          "gateway_response": {
+            "code": "200"
+          }
+        }
+      }
+    ]
+  }
+}
+
+Eventos de webhook
+Atributos	Descrição
+customer.created	Ocorre sempre que um comprador é criado.
+customer.updated	Ocorre sempre que um comprador é atualizado.
+card.created	Ocorre sempre que um cartão é criado.
+card.updated	Ocorre sempre que um cartão é atualizado.
+card.deleted	Ocorre sempre que um cartão é excluído.
+address.created	Ocorre sempre que um endereço é criado.
+address.updated	Ocorre sempre que um endereço é atualizado.
+address.deleted	Ocorre sempre que um endereço é excluído.
+card.expired	Ocorre sempre que um cartão expira a data de validade.
+plan.created	Ocorre sempre que um plano é criado.
+plan.updated	Ocorre sempre que um plano é atualizado.
+plan.deleted	Ocorre sempre que um plano é excluído.
+plan_item.created	Ocorre sempre que um item de plano é criado.
+plan_item.updated	Ocorre sempre que um item de plano é atualizado.
+plan_item.deleted	Ocorre sempre que um item de plano é excluído.
+subscription.created	Ocorre sempre que uma assinatura é criada.
+subscription.canceled	Ocorre sempre que a assinatura é cancelada.
+subscription_item.created	Ocorre sempre que um item de assinatura é criado.
+subscription_item.updated	Ocorre sempre que um item de assinatura é atualizado.
+subscription_item.deleted	Ocorre sempre que um item de assinatura é excluído.
+discount.created	Ocorre sempre que um desconto é criado.
+discount.deleted	Ocorre sempre que um desconto é excluído.
+increment.created	Ocorre sempre que um incremento é criado.
+increment.deleted	Ocorre sempre que um incremento é excluído.
+order.paid	Ocorre sempre que um pedido é pago.
+order.payment_failed	Ocorre sempre que o pagamento de um pedido falha.
+order.created	Ocorre sempre que um pedido é criado.
+order.canceled	Ocorre sempre que um pedido é cancelado.
+order_item.created	Ocorre sempre que um item do pedido é criado .
+order_item.updated	Ocorre sempre que um item do pedido é atualizado.
+order_item.deleted	Ocorre sempre que um item do pedido é excluído.
+order.closed	Ocorre sempre que um pedido é fechado.
+order.updated	Ocorre sempre que um pedido é atualizado.
+invoice.created	Ocorre sempre que uma fatura é criada.
+invoice.updated	Ocorre sempre que uma fatura é atualizada.
+invoice.paid	Ocorre sempre que uma fatura é paga.
+invoice.payment_failed	Ocorre sempre que o pagamento de uma fatura falha.
+invoice.canceled	Ocorre sempre que uma fatura é cancelada
+charge.created	Ocorre sempre que uma cobrança é criada.
+charge.updated	Ocorre sempre que uma cobrança é atualizado.
+charge.paid	Ocorre sempre que uma cobrança é paga.
+charge.payment_failed	Ocorre sempre que o pagamento de uma cobrança falha.
+charge.refunded	Ocorre sempre que uma cobrança é estornada.
+charge.pending	Ocorre sempre que uma cobrança é pendente.
+charge.processing	Ocorre sempre que uma cobrança ainda está sendo processada.
+charge.underpaid	Ocorre sempre que uma cobrança foi paga a menos.
+charge.overpaid	Ocorre sempre que uma cobrança foi paga a mais.
+charge.partial_canceled	Ocorre sempre que uma cobrança foi parcialmente cancelada.
+charge.chargedback	Ocorre sempre que uma cobrança sofre chargeback.
+usage.created	Ocorre sempre que o uso de um item no período é criado.
+usage.deleted	Ocorre sempre que o uso de um item no período é excluído.
+recipient.created	Ocorre sempre que um recebedor é criado.
+recipient.deleted	Ocorre sempre que um recebedor é excluído.
+recipient.updated	Ocorre sempre que um recebedor é atualizado.
+bank_account.created	Ocorre sempre que uma conta bancária é criada.
+bank_account.updated	Ocorre sempre que uma conta bancária é atualizada.
+bank_account.deleted	Ocorre sempre que uma conta bancária é excluído.
+seller.created	Ocorre sempre que um vendedor e criado.
+seller.updated	Ocorre sempre que um vendedor e editado.
+seller.deleted	Ocorre sempre que um vendedor e deletado.
+transfer.pending	Ocorre sempre que uma transferência esta em processo pendente.
+transfer.created	Ocorre sempre que uma transferência e criada.
+transfer.processing	Ocorre sempre que uma transferência esta em processamento.
+transfer.paid	Ocorre sempre que uma transferência e paga.
+transfer.canceled	Ocorre sempre que uma transferência e cancelada.
+transfer.failed	Ocorre sempre que uma transferência ocorre falha.
+checkout.created	Ocorre quando um checkout é criado.
+checkout.canceled	Ocorre quando um checkout é cancelado.
+checkout.closed	Ocorre quando um checkout é fechado.
+charge.antifraud_approved	Ocorre quando um pedido no antifraude é aprovado.
+charge.antifraud_reproved	Ocorre quando um pedido no antifraude é reprovado.
+charge.antifraud_manual	Ocorre quando um pedido no antifraude é marcado para análise manual.
+charge.antifraud_pending	Ocorre quando um pedido está pendente de envio para a análise do serviço de antifraude.
+Tokenizecard JS
+Devido a preocupações de segurança, não é possível transmitir dados sensíveis, como informações de cartões de pagamento, em servidores que não estejam em conformidade com o Padrão de Segurança de Dados da Indústria de Cartões de Pagamento (PCI DSS).
+
+O PCI DSS estabelece diretrizes rigorosas para proteger esses dados, e servidores não conformes estão suscetíveis a ataques de hackers, vazamentos de dados, penalidades financeiras, danos à reputação e responsabilidade legal. Portanto, oferecemos soluções que evitam a necessidade de dados sensíveis passarem diretamente pelos seus servidores.
+
+Uma dessas soluções é o 'tokenizecard.js', um script JavaScript desenvolvido pelo Pagar.me. Você pode integrá-lo à sua página de checkout sem afetar a aparência da sua loja. Desta forma, toda vez que um comprador clicar no botão para finalizar o pedido, antes mesmo que o seu sistema monte a requisição para o Pagar.me, o nosso JavaScript captura os dados do cartão, manda direto para a nossa API e a nossa API devolve um token deste cartão.
+
+O tokenizecard.js segue o seguinte fluxo:
+
+
+
+🚧
+Liberação de Domínio
+
+Para utilizar o tokenizecard.js é necessário cadastrar o domínio que fará a requisição para a Pagar.me. A liberação do domínio pode ser feita via dashboard nas configurações de conta.
+
+Integração com tokenizecard.js
+Passo 1:
+Na tag <form> insira o atributo data-pagarmecheckout-form para que o script identifique de onde serão extraídos os dados.
+
+HTML
+
+<form action="{{url de sua action}}" method="POST" data-pagarmecheckout-form>
+   </form>
+Passo 2:
+Coloque nos campos <input> do seu formulário os atributos "data-pagarmecheckout-element" correspondentes a cada um dos campos do cartão, conforme HTML abaixo. Estes serão capturados pelo script para a geração do token na submissão do formulário.
+
+HTML
+HTML Multimeios
+
+<form action="{{url de sua action}}" method="POST" data-pagarmecheckout-form>
+    <input type="text" name="holder-name" data-pagarmecheckout-element="holder_name">
+    <input type="text" name="card-number" data-pagarmecheckout-element="number">
+    <span  data-pagarmecheckout-element="brand"></span>
+    <input type="text" name="card-exp-month" data-pagarmecheckout-element="exp_month">
+    <input type="text" name="card-exp-year" data-pagarmecheckout-element="exp_year">
+    <input type="text" name="cvv" data-pagarmecheckout-element="cvv">
+    <input type="text" name="buyer-name">
+    <button type="submit">Enviar</button>
+</form>
+Quando o formulário for submetido, o script vai gerar o token e retorná-lo de duas maneiras:
+
+Através do atributo "pagarmetoken" no POST realizado.
+Inserindo um novo campo com o atributo "name=pagarmetoken" contendo o token gerado.
+No caso de multimeios, para cada um dos formulários é feita uma requisição e no final é gerado um campo com o atributo "pagarmetoken-x".
+
+👍
+Campos adicionais podem ser inseridos
+
+Quaisquer outros campos podem ser adicionados ao mesmo formulário, sem o atributodata-pagarmecheckout-element, e estes serão enviados normalmente ao seu servidor, sem a intervenção do script, como por exemplo, buyer-name.
+
+📘
+A bandeira do cartão é opcional
+
+Não é obrigatório enviar a bandeira do cartão. Se ela não for enviada, o nosso sistema irá detectá-la automaticamente.
+
+🚧
+Formatos válidos para data de expiração
+
+O campo referente a data da expiração do cartão pode ser informado de duas formas:
+
+Em campo único, marcado como "exp_date" (O formato esperado é MM-YY ou MM-YYYY)
+Em dois campos, "exp_month" e "exp_year".
+Passo 3
+Deve ser inserido no final da sua página uma tag <script> com o tokenizecard.js e o atributo data-pagarmecheckout-app-id contendo sua Chave Pública.
+
+HTML
+
+<script src="https://checkout.pagar.me/v1/tokenizecard.js"
+        data-pagarmecheckout-app-id="{{sua chave pública}}">
+    </script>
+❗️
+NÃO UTILIZE A SECRET_KEY DO LOJISTA
+
+A autenticação deste endpoint deverá ser feita exclusivamente enviando a public_key do lojista no parâmetro appId na query string. A secret_key de sua loja não deverá ser armazenada na página, tão pouco ser enviada na requisição.
+
+Passo 4:
+Depois de inserir o script é preciso iniciar a detecção dos campos com a chamada da função PagarmeCheckout.init(). O métodoinit() pode receber 02 funções de callback:
+
+success(data), para execução de qualquer lógica de validação customizada.
+fail(error), para tratamento de erros.
+Quando a função de callback success é chamada recebe por parâmetro um objeto data, que é um JSON com o token gerado e os demais campos adicionais não mapeados com data-pagarmecheckout-element. Já a função fail recebe por parâmetro os detalhes do erro ocorrido.
+
+JavaScript
+
+<script>
+        function success(data) {
+            return true;
+        };
+    
+        function fail(error) {
+            console.error(error);
+        };
+    
+        PagarmeCheckout.init(success,fail)
+    </script>
+🚧
+Chamada da função init
+
+É essencial que a chamada da função esteja no startup da aplicação. Recomendamos que a chamada seja feita no root da aplicação(index.html) porém ela pode ser feita também no init do seu framework/lib
+
+🚧
+Inclua o atributo "name" nos campos não mapeados
+
+É importante que todos os campos adicionais não mapeados possuam o atributo name, pois ele será utilizado para definir o objeto JSON de retorno.
+
+❗️
+CAMPO MAPEADOS DEVEM ESTAR NO DOM
+
+Todos os elementos mapeados pelo atributo data-pagarmecheckout-element devem estar no DOM (Document Object Model) quando a função PagarmeCheckout.init() for chamada.
+
+❗️
+ABORTANDO O ENVIO DO PEDIDO
+
+Você pode impedir o envio dos dados para os servidores da Pagar.me retornando o valor false na função success.
+
+Tokenização
+
+Caso não seja possível embarcar nosso script tokenizecard.js em sua página, você pode chamar diretamente a API de criação de tokens de cartão. Os dados de cartão deverão ser enviados para a API da Pagar.me antes de submeter o formulário para o seu servidor. Nós retornaremos um objeto token, que deverá ser utilizado em sua requisição, no lugar dos dados de cartão.
+
+❗️
+NÃO TRAFEGUE DADOS DE CARTÃO EM SEU SERVIDOR
+
+É importante que você garanta que os dados abertos de cartão (número, cvv, vencimento e nome do titular) não serão enviados para seu servidor.
+
+🚧
+O Token do cartão é temporário
+
+Os tokens de cartão tem tempo de expiração de 60 segundos, e só poderão ser usados uma única vez. Se quiser armazenar de forma permanente o cartão em nosso sistema, leia mais sobre cartões.
+
+O objeto token possui os seguinte atributos:
+
+Atributos	Tipo	Descrição
+id	string	Token do cartão. Formato: token_XXXXXXXXXXXXXXXX
+type	string	Tipo do token. Valor padrão: card.
+created_at	datetime	Data de criação do token.
+expires_at	datetime	Data de expiração do token.
+card	objeto	Dados do cartão.
+
+Checkout Pagar.Me
+Com o Checkout Pagar.me, oferecemos uma página de checkout desenvolvida por nós e hospedada em nossos servidores. Desta forma, você não precisa se preocupar em desenvolver essa interface.
+
+Integração com o Checkout
+Passo 1:
+Envie uma requisição de criação de um pedido contendo ao menos um objeto em payments com o campo payment-method : checkout. Além disso, inclua na requisição um objeto checkout com as informações referentes ao pagamento Saiba mais sobre o objeto Checkout.
+
+JSON (Request)
+
+{
+   "items":[...],
+   "customer":{...},
+   "payments":[
+      {   
+         "amount" : 3000,
+         "payment_method":"checkout",
+         "checkout": {
+            "expires_in":120,
+            "billing_address_editable" : false,
+            "customer_editable" : true,
+            "accepted_payment_methods": ["credit_card"],
+            "success_url": "https://www.pagar.me",
+            "credit_card": {...}
+         }
+      }
+   ]
+}
+Passo 2:
+A resposta da requisição de criação de pedido conterá um objeto checkout com o campo payment-url:
+
+JSON (Response)
+
+{
+    "id": "or_GqAlNNOsDLcAlvbP",
+    "code": "LKKMFJPU9M",
+    "amount": 3000,
+    "currency": "BRL",
+    "closed": false,
+    "items": [...],
+    "customer": {...},
+    "status": "pending",
+    "created_at": "2018-03-28T18:48:49Z",
+    "updated_at": "2018-03-28T18:48:49Z",
+    "checkouts": [
+        {
+            "id": "chk_ON0Q6MU8EIWGY386",
+            "amount": 3000,
+            "status": "open",
+            "success_url": "https://www.pagar.me",
+            "payment_url": "https://api.pagar.me/checkout/v5/orders/chk_ON0Q6MU8EIWGY386",
+            "customer_editable": true,
+            "billing_address_editable": true,
+            "skip_checkout_success_page": false,
+            "created_at": "2018-03-28T18:48:49Z",
+            "updated_at": "2018-03-28T18:48:49Z",
+            "expires_at": "2018-03-28T20:48:49Z",
+            "accepted_payment_methods": ["credit_card"],
+            "customer": {...},
+            "credit_card": {...},
+            "billing_address": {...},
+            "shippable": false,
+            "currency": "BRL",
+            "metadata": {...}
+        }
+    ]
+}
+Esta URL deverá ser disponibilizada ao comprador por sua aplicação. Ao acessar a URL o comprador será redirecionado para o ambiente do Pagar.me para a realização do pagamento. 

@@ -62,6 +62,7 @@ model User {
   purchases     UserPurchase[]
   missions      UserMission[]
   events        UserEvent[]
+  pedidos       Pedido[]
 }
 
 // MODELOS DE ADMINISTRAÇÃO
@@ -656,16 +657,31 @@ model ShopItem {
   name        String
   description String
   type        String   // theme, feature, bonus, cosmetic
-  category    String   // premium, basic, seasonal
+  category    String   // premium, basic, seasonal (deprecado, usar categoryId)
   price       Int      // Pontos necessários
   imageUrl    String?
   isActive    Boolean  @default(true)
   isLimited   Boolean  @default(false)
-  stock       Int?     // Quantidade limitada (null = ilimitado)
+  stock       Int?
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   purchases   UserPurchase[]
+  // Novas relações
+  categoryId  String?
+  categoryObj Category? @relation(fields: [categoryId], references: [id])
+  tags        ShopItemTag[]
+  // Campos avançados para e-commerce
+  gallery     Json?    // Galeria de imagens (array de URLs)
+  promoPrice  Int?     // Preço promocional em centavos
+  coupon      String?  // Código de cupom
+  promoStart  DateTime? // Início da promoção
+  promoEnd    DateTime? // Fim da promoção
+  mainImage   String?  // Imagem principal destacada
+  isPromo     Boolean? @default(false) // Produto está em promoção
+  // Campos para variações e código do produto
+  sku         String?  // Código do produto (SKU)
+  variations  Json?    // Variações flexíveis do produto (cor, tamanho, peso, etc.)
 }
 
 model UserPurchase {
@@ -892,4 +908,69 @@ model ScheduledPost {
   createdBy   String   // Admin que criou
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Pedido {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  status         String   // pending, paid, failed, canceled
+  pagarmeOrderId String?  // ID do pedido no Pagar.Me
+  amount         Int      // valor total em centavos
+  items          Json     // lista de produtos
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// ===== CATEGORIAS E TAGS DA LOJA =====
+model Category {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  description String?
+  isActive    Boolean    @default(true)
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  shopItems   ShopItem[]
+}
+
+model Tag {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  description String?
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  shopItems   ShopItemTag[]
+}
+
+model ShopItemTag {
+  shopItemId String
+  tagId      String
+  shopItem   ShopItem @relation(fields: [shopItemId], references: [id])
+  tag        Tag      @relation(fields: [tagId], references: [id])
+  @@id([shopItemId, tagId])
+}
+
+// ===== BANNERS DA LOJA =====
+model Banner {
+  id          String   @id @default(cuid())
+  title       String
+  subtitle    String?
+  description String
+  imageUrl    String
+  bgGradient  String?  // Classe CSS do gradiente
+  ctaText     String   // Texto do botão
+  ctaLink     String   // Link do botão
+  badge       String?  // Texto do badge
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  startDate   DateTime?
+  endDate     DateTime?
+  targetUrl   String?  // URL de destino (produto, categoria, etc.)
+  targetType  String?  // product, category, external
+  targetId    String?  // ID do produto/categoria
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String   // ID do admin que criou
 }

@@ -2,7 +2,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
-import { Baby, Image, User, Calendar, Trophy, TrendingUp, Clock, Heart, Utensils, Bath, Puzzle, Pill, Activity as ActivityIcon, Bot, CheckCircle, Share2 } from "lucide-react";
+import { Baby, Image, User, Calendar, Trophy, TrendingUp, Clock, Heart, Utensils, Bath, Puzzle, Pill, Activity as ActivityIcon, Bot, CheckCircle, Share2, ShoppingBag } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, BarChart, Bar } from "recharts";
@@ -770,6 +770,29 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           </div>
+          {/* Banner dinâmico (placeholder) */}
+          <div className="w-full mb-6">
+            <div className="w-full h-32 md:h-40 bg-gradient-to-r from-pink-200 to-blue-200 rounded-xl flex items-center justify-center shadow-lg overflow-hidden relative">
+              <span className="text-lg md:text-2xl font-bold text-gray-700">[Banner Promocional da Loja]</span>
+              {/* Aqui pode ser um carrossel de banners futuramente */}
+            </div>
+          </div>
+          {/* Card Loja melhorado */}
+          <Card
+            className="hover:shadow-2xl transition-shadow border-2 border-pink-400 bg-pink-50 flex flex-col items-center justify-center text-center p-6 md:p-8 mb-4 cursor-pointer max-w-md mx-auto"
+            onClick={() => navigate('/loja')}
+          >
+            <CardHeader className="flex flex-col items-center justify-center">
+              <ShoppingBag className="w-14 h-14 text-pink-500 mb-2" />
+              <CardTitle className="text-2xl md:text-3xl font-bold text-pink-700 mb-1">Loja</CardTitle>
+              <CardDescription className="text-base md:text-lg text-pink-600 mb-2">Tudo para o seu bebê em um só lugar</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button size="lg" className="w-full bg-pink-500 hover:bg-pink-600 text-white text-lg py-3 rounded-xl shadow-md">
+                Acessar Loja
+              </Button>
+            </CardContent>
+          </Card>
           {/* Statistics Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 animate-fade-in">
             <Card className="glass-card border-0 shadow-lg">

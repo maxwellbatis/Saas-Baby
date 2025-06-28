@@ -37,6 +37,9 @@ const Activities = () => {
   
   const [activities, setActivities] = useState<Activity[]>([]);
   const queryClient = useQueryClient();
+
+  const baby = babies?.[0];
+
   const fetchActivities = async () => {
     if (!baby) return [];
     const token = localStorage.getItem("token");
@@ -47,6 +50,7 @@ const Activities = () => {
     const data = await response.json();
     return data.data.activities || [];
   };
+
   const {
     data: activitiesData = [],
     isLoading: activitiesLoading,
@@ -68,8 +72,6 @@ const Activities = () => {
   const [achievementData, setAchievementData] = useState(null);
   const prevLevelRef = useRef<number | null>(null);
   const prevBadgesRef = useRef<string[]>([]);
-
-  const baby = babies?.[0];
 
   const handleSuccess = () => {
     refetchActivities();

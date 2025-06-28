@@ -181,6 +181,8 @@ export const AdminMarketing: React.FC = () => {
   const { toast } = useToast();
   
   const queryClient = useQueryClient();
+  // Adicione antes dos useQuerys:
+  const [activeTab, setActiveTab] = useState('campaigns');
   // Busca de campanhas com React Query
   const {
     data: campaigns = [],
@@ -194,12 +196,55 @@ export const AdminMarketing: React.FC = () => {
       return res.data || [];
     },
     staleTime: 1000 * 60 * 10,
+    enabled: activeTab === 'campaigns', // Lazy loading: só busca quando a aba está ativa
   });
+
+  // Lazy loading para biblioteca digital
+  const {
+    data: digitalLibraryData = {},
+    isLoading: digitalLibraryLoading,
+    error: digitalLibraryError,
+    refetch: refetchDigitalLibrary,
+  } = useQuery({
+    queryKey: ['adminMarketingDigitalLibrary'],
+    queryFn: async () => {
+      // Aqui você pode agrupar as buscas de posts, ads, videos, arguments, links
+      const posts = await adminMarketing.getSocialMediaPosts();
+      const ads = await adminMarketing.getAdvertisements();
+      const videos = await adminMarketing.getVideoContents();
+      const argumentsData = await adminMarketing.getSalesArguments();
+      const links = await adminMarketing.getAffiliateLinks();
+      return { posts: posts.data || [], ads: ads.data || [], videos: videos.data || [], arguments: argumentsData.data || [], links: links.data || [] };
+    },
+    staleTime: 1000 * 60 * 10,
+    enabled: activeTab === 'digital-library', // Lazy loading: só busca quando a aba está ativa
+  });
+
+  // Lazy loading para analytics
+  const {
+    data: analyticsData,
+    isLoading: analyticsLoading,
+    error: analyticsError,
+    refetch: refetchAnalytics,
+  } = useQuery({
+    queryKey: ['marketingAnalytics'],
+    queryFn: async () => {
+      const response = await adminMarketing.getAnalytics('30d');
+      return response.data;
+    },
+    staleTime: 1000 * 60 * 5,
+    enabled: activeTab === 'analytics', // Lazy loading: só busca quando a aba está ativa
+  });
+
+  // Lazy loading para calendário editorial
+  // (adicione aqui se houver uma query específica para o calendário)
+
+  // Lazy loading para hashtag analytics
+  // (adicione aqui se houver uma query específica para hashtag analytics)
 
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editingId, setEditingId] = useState<string>('');
-  const [activeTab, setActiveTab] = useState('campaigns');
   const [form, setForm] = useState({
     name: '',
     type: 'email',
@@ -222,11 +267,11 @@ export const AdminMarketing: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiGeneratedContent, setAiGeneratedContent] = useState<any>(null);
   const [aiGeneratorForm, setAiGeneratorForm] = useState({
-    type: '',
-    platform: '',
-    targetAudience: '',
-    tone: '',
-    category: '',
+    type: 'post',
+    platform: 'instagram',
+    targetAudience: 'maes_bebes',
+    tone: 'amigavel',
+    category: 'emocional',
     specificTopic: '',
     duration: undefined as number | undefined
   });
@@ -1462,7 +1507,7 @@ export const AdminMarketing: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium">Tipo de Conteúdo</label>
-                <Select value={aiGeneratorForm.type} onValueChange={(value) => setAiGeneratorForm({...aiGeneratorForm, type: value})}>
+                <Select value={aiGeneratorForm.type || 'post'} onValueChange={(value) => setAiGeneratorForm({...aiGeneratorForm, type: value})}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
@@ -1478,7 +1523,7 @@ export const AdminMarketing: React.FC = () => {
 
               <div>
                 <label className="text-sm font-medium">Plataforma</label>
-                <Select value={aiGeneratorForm.platform} onValueChange={(value) => setAiGeneratorForm({...aiGeneratorForm, platform: value})}>
+                <Select value={aiGeneratorForm.platform || 'instagram'} onValueChange={(value) => setAiGeneratorForm({...aiGeneratorForm, platform: value})}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a plataforma" />
                   </SelectTrigger>
@@ -1495,7 +1540,7 @@ export const AdminMarketing: React.FC = () => {
 
               <div>
                 <label className="text-sm font-medium">Público-Alvo</label>
-                <Select value={aiGeneratorForm.targetAudience} onValueChange={(value) => setAiGeneratorForm({...aiGeneratorForm, targetAudience: value})}>
+                <Select value={aiGeneratorForm.targetAudience || 'maes_bebes'} onValueChange={(value) => setAiGeneratorForm({...aiGeneratorForm, targetAudience: value})}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o público" />
                   </SelectTrigger>
@@ -1509,7 +1554,7 @@ export const AdminMarketing: React.FC = () => {
 
               <div>
                 <label className="text-sm font-medium">Tom</label>
-                <Select value={aiGeneratorForm.tone} onValueChange={(value) => setAiGeneratorForm({...aiGeneratorForm, tone: value})}>
+                <Select value={aiGeneratorForm.tone || 'amigavel'} onValueChange={(value) => setAiGeneratorForm({...aiGeneratorForm, tone: value})}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o tom" />
                   </SelectTrigger>
@@ -1528,7 +1573,7 @@ export const AdminMarketing: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium">Categoria</label>
-                <Select value={aiGeneratorForm.category} onValueChange={(value) => setAiGeneratorForm({...aiGeneratorForm, category: value})}>
+                <Select value={aiGeneratorForm.category || 'emocional'} onValueChange={(value) => setAiGeneratorForm({...aiGeneratorForm, category: value})}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a categoria" />
                   </SelectTrigger>
@@ -1772,7 +1817,7 @@ export const AdminMarketing: React.FC = () => {
               </div>
               <div>
                 <label className="text-sm font-medium">Plataforma</label>
-                <Select value={aiPostForm.plataforma} onValueChange={v => setAIPostForm(f => ({ ...f, plataforma: v }))}>
+                <Select value={aiPostForm.plataforma || 'Facebook'} onValueChange={v => setAIPostForm(f => ({ ...f, plataforma: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Facebook">Facebook</SelectItem>
@@ -1784,7 +1829,7 @@ export const AdminMarketing: React.FC = () => {
               </div>
               <div>
                 <label className="text-sm font-medium">Tom</label>
-                <Select value={aiPostForm.tom} onValueChange={v => setAIPostForm(f => ({ ...f, tom: v }))}>
+                <Select value={aiPostForm.tom || 'amigável'} onValueChange={v => setAIPostForm(f => ({ ...f, tom: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="amigável">Amigável</SelectItem>
@@ -1860,7 +1905,7 @@ export const AdminMarketing: React.FC = () => {
               </div>
               <div>
                 <label className="text-sm font-medium">Plataforma</label>
-                <Select value={aiAdForm.plataforma} onValueChange={v => setAIAdForm(f => ({ ...f, plataforma: v }))}>
+                <Select value={aiAdForm.plataforma || 'Facebook'} onValueChange={v => setAIAdForm(f => ({ ...f, plataforma: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Facebook">Facebook</SelectItem>
@@ -1872,7 +1917,7 @@ export const AdminMarketing: React.FC = () => {
               </div>
               <div>
                 <label className="text-sm font-medium">Tipo de Anúncio</label>
-                <Select value={aiAdForm.tipoAnuncio} onValueChange={v => setAIAdForm(f => ({ ...f, tipoAnuncio: v }))}>
+                <Select value={aiAdForm.tipoAnuncio || 'image'} onValueChange={v => setAIAdForm(f => ({ ...f, tipoAnuncio: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="image">Imagem</SelectItem>
@@ -1884,7 +1929,7 @@ export const AdminMarketing: React.FC = () => {
               </div>
               <div>
                 <label className="text-sm font-medium">Tom</label>
-                <Select value={aiAdForm.tom} onValueChange={v => setAIAdForm(f => ({ ...f, tom: v }))}>
+                <Select value={aiAdForm.tom || 'persuasivo'} onValueChange={v => setAIAdForm(f => ({ ...f, tom: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="persuasivo">Persuasivo</SelectItem>

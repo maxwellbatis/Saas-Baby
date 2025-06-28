@@ -4,7 +4,19 @@ import { generateGeminiContent, generateMarketingContent as generateMarketingCon
 import { uploadImage, uploadMedia } from '@/config/cloudinary';
 import multer from 'multer';
 import { socialMediaAPI } from '@/services/socialMediaAPI.service';
-const upload = multer();
+
+// Configurar multer para upload de arquivos
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100MB
+  },
+  fileFilter: (req, file, cb) => {
+    console.log('🔍 Multer fileFilter:', file.originalname, file.mimetype, file.size);
+    cb(null, true);
+  }
+});
 
 // Listar campanhas
 export const listCampaigns = async (req: Request, res: Response) => {
@@ -940,12 +952,24 @@ export const uploadDigitalMedia = [
   upload.single('file'),
   async (req: any, res: any) => {
     try {
+      console.log('📤 Upload iniciado');
+      console.log('📋 Headers:', req.headers);
+      console.log('📁 Files:', req.file);
+      
       if (!req.file) {
+        console.log('❌ Nenhum arquivo recebido');
         return res.status(400).json({ 
           success: false, 
           error: 'Arquivo não enviado' 
         });
       }
+
+      console.log('✅ Arquivo recebido:', {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        buffer: req.file.buffer ? 'Buffer presente' : 'Buffer ausente'
+      });
 
       // Validar tipo de arquivo
       const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
@@ -953,6 +977,7 @@ export const uploadDigitalMedia = [
       const allowedTypes = [...allowedImageTypes, ...allowedVideoTypes];
 
       if (!allowedTypes.includes(req.file.mimetype)) {
+        console.log('❌ Tipo de arquivo não suportado:', req.file.mimetype);
         return res.status(400).json({
           success: false,
           error: 'Tipo de arquivo não suportado. Tipos aceitos: JPEG, PNG, WebP, GIF, MP4, AVI, MOV, WMV, FLV'
@@ -965,6 +990,7 @@ export const uploadDigitalMedia = [
       const maxSize = allowedImageTypes.includes(req.file.mimetype) ? maxImageSize : maxVideoSize;
 
       if (req.file.size > maxSize) {
+        console.log('❌ Arquivo muito grande:', req.file.size, '>', maxSize);
         const maxSizeMB = maxSize / (1024 * 1024);
         return res.status(400).json({
           success: false,
@@ -976,10 +1002,14 @@ export const uploadDigitalMedia = [
       const isVideo = allowedVideoTypes.includes(req.file.mimetype);
       const folder = isVideo ? 'baby-diary/marketing/videos' : 'baby-diary/marketing/images';
 
-      // Fazer upload para o Cloudinary
-      const result = await uploadImage(req.file, folder);
+      console.log('📁 Pasta de destino:', folder);
 
-      return res.json({ 
+      // Fazer upload para o Cloudinary
+      console.log('☁️ Iniciando upload para Cloudinary...');
+      const result = await uploadImage(req.file, folder);
+      console.log('✅ Upload para Cloudinary concluído:', result);
+
+      const response = {
         success: true, 
         data: {
           url: result.secureUrl, 
@@ -989,9 +1019,12 @@ export const uploadDigitalMedia = [
           size: req.file.size,
           mimetype: req.file.mimetype
         }
-      });
+      };
+
+      console.log('📤 Resposta final:', response);
+      return res.json(response);
     } catch (error) {
-      console.error('Erro ao fazer upload de mídia:', error);
+      console.error('💥 Erro ao fazer upload de mídia:', error);
       return res.status(500).json({ 
         success: false, 
         error: 'Erro ao fazer upload de mídia',

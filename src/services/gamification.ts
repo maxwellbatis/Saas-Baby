@@ -534,11 +534,16 @@ export class GamificationService {
   // SISTEMA DE RESGATE MANUAL - LOJA DE RECOMPENSAS
 
   /**
-   * Obtém itens da loja disponíveis
+   * Obtém itens da loja disponíveis (apenas produtos de gamificação)
    */
   static async getShopItems(): Promise<any[]> {
     return await prisma.shopItem.findMany({
-      where: { isActive: true },
+      where: { 
+        isActive: true,
+        type: {
+          in: ['theme', 'feature', 'bonus', 'cosmetic']
+        }
+      },
       orderBy: { sortOrder: 'asc' },
     });
   }

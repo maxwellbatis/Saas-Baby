@@ -497,6 +497,14 @@ async function main() {
       isActive: true,
       isLimited: false,
       sortOrder: 1,
+      sku: 'THEME-PINK-001',
+      variations: [
+        {
+          type: 'Intensidade',
+          options: ['Suave', 'Médio', 'Forte'],
+          required: true
+        }
+      ]
     },
     {
       id: 'blue_theme',
@@ -509,6 +517,14 @@ async function main() {
       isActive: true,
       isLimited: false,
       sortOrder: 2,
+      sku: 'THEME-BLUE-001',
+      variations: [
+        {
+          type: 'Intensidade',
+          options: ['Suave', 'Médio', 'Forte'],
+          required: true
+        }
+      ]
     },
     {
       id: 'export_feature',
@@ -521,6 +537,14 @@ async function main() {
       isActive: true,
       isLimited: false,
       sortOrder: 3,
+      sku: 'FEATURE-EXPORT-001',
+      variations: [
+        {
+          type: 'Formato',
+          options: ['PDF', 'CSV', 'JSON'],
+          required: true
+        }
+      ]
     },
     {
       id: 'backup_feature',
@@ -533,6 +557,14 @@ async function main() {
       isActive: true,
       isLimited: false,
       sortOrder: 4,
+      sku: 'FEATURE-BACKUP-001',
+      variations: [
+        {
+          type: 'Frequência',
+          options: ['Diário', 'Semanal', 'Mensal'],
+          required: true
+        }
+      ]
     },
     {
       id: 'points_bonus',
@@ -546,6 +578,8 @@ async function main() {
       isLimited: true,
       stock: 100,
       sortOrder: 5,
+      sku: 'BONUS-POINTS-050',
+      variations: undefined // Sem variações
     },
     {
       id: 'gold_badge',
@@ -559,6 +593,14 @@ async function main() {
       isLimited: true,
       stock: 50,
       sortOrder: 6,
+      sku: 'COSMETIC-BADGE-GOLD',
+      variations: [
+        {
+          type: 'Tamanho',
+          options: ['Pequeno', 'Médio', 'Grande'],
+          required: true
+        }
+      ]
     },
   ];
 
@@ -1129,7 +1171,200 @@ Texto: "Seu marco ficou registrado para sempre!"`,
 
   console.log(`✅ ${scheduledPosts.length} posts agendados criados`);
 
+  // Seed das categorias da loja com emoji
+  const categoriasLoja = [
+    { name: 'Cuidados com o bebê', description: 'Produtos para cuidados diários do bebê', isActive: true, sortOrder: 1, emoji: '🍼' },
+    { name: 'Para a mamãe', description: 'Produtos para gestantes e mães', isActive: true, sortOrder: 2, emoji: '🤱' },
+    { name: 'Primeiros meses', description: 'Itens essenciais para os primeiros meses', isActive: true, sortOrder: 3, emoji: '👶' },
+    { name: 'Presentes e datas especiais', description: 'Sugestões para presentear', isActive: true, sortOrder: 4, emoji: '🎁' },
+    { name: 'Digitais e cursos', description: 'Produtos digitais e cursos online', isActive: true, sortOrder: 5, emoji: '💻' },
+  ];
+
+  for (const cat of categoriasLoja) {
+    await prisma.category.upsert({
+      where: { name: cat.name },
+      update: { description: cat.description, isActive: cat.isActive, sortOrder: cat.sortOrder },
+      create: { name: cat.name, description: cat.description, isActive: cat.isActive, sortOrder: cat.sortOrder },
+    });
+  }
+  console.log('✅ Categorias da loja criadas/atualizadas!');
+
+  // Buscar categorias para associar os produtos corretamente
+  const categoriasSeed = await prisma.category.findMany({
+    where: { name: { in: [
+      'Cuidados com o bebê',
+      'Para a mamãe',
+      'Primeiros meses',
+      'Presentes e datas especiais',
+      'Digitais e cursos',
+    ] } }
+  });
+
+  // Mapear nome para id
+  const catMap = Object.fromEntries(categoriasSeed.map(c => [c.name, c.id]));
+
+  // Produtos de seed para cada categoria
+  const produtosSeed = [
+    {
+      id: 'kit_higiene_baby',
+      name: 'Kit Higiene Baby',
+      description: 'Kit completo para cuidados diários do bebê: escova, pente, cortador de unhas e toalhinha.',
+      type: 'product',
+      category: 'Cuidados com o bebê',
+      price: 12990,
+      promoPrice: 9990,
+      isPromo: true,
+      imageUrl: 'https://res.cloudinary.com/dtsxoky7o/image/upload/v1751067997/baby-diary/marketing/images/kit-higiene-baby.jpg',
+      mainImage: 'https://res.cloudinary.com/dtsxoky7o/image/upload/v1751067997/baby-diary/marketing/images/kit-higiene-baby.jpg',
+      gallery: [
+        'https://res.cloudinary.com/dtsxoky7o/image/upload/v1751067997/baby-diary/marketing/images/kit-higiene-baby.jpg'
+      ],
+      categoryId: catMap['Cuidados com o bebê'],
+      isActive: true,
+      stock: 20,
+    },
+    {
+      id: 'cinta_pos_parto_confort',
+      name: 'Cinta Pós-Parto Confort',
+      description: 'Cinta modeladora confortável para o pós-parto, com ajuste anatômico e tecido respirável.',
+      type: 'product',
+      category: 'Para a mamãe',
+      price: 8990,
+      promoPrice: 6990,
+      isPromo: true,
+      imageUrl: 'https://res.cloudinary.com/dtsxoky7o/image/upload/v1751067997/baby-diary/marketing/images/cinta-pos-parto.jpg',
+      mainImage: 'https://res.cloudinary.com/dtsxoky7o/image/upload/v1751067997/baby-diary/marketing/images/cinta-pos-parto.jpg',
+      gallery: [
+        'https://res.cloudinary.com/dtsxoky7o/image/upload/v1751067997/baby-diary/marketing/images/cinta-pos-parto.jpg'
+      ],
+      categoryId: catMap['Para a mamãe'],
+      isActive: true,
+      stock: 15,
+    },
+    {
+      id: 'body_algodao_primeiros_meses',
+      name: 'Body Algodão Primeiros Meses',
+      description: 'Body 100% algodão, macio e antialérgico, ideal para os primeiros meses do bebê.',
+      type: 'product',
+      category: 'Primeiros meses',
+      price: 4990,
+      promoPrice: 3990,
+      isPromo: true,
+      imageUrl: 'https://res.cloudinary.com/dtsxoky7o/image/upload/v1751067997/baby-diary/marketing/images/body-primeiros-meses.jpg',
+      mainImage: 'https://res.cloudinary.com/dtsxoky7o/image/upload/v1751067997/baby-diary/marketing/images/body-primeiros-meses.jpg',
+      gallery: [
+        'https://res.cloudinary.com/dtsxoky7o/image/upload/v1751067997/baby-diary/marketing/images/body-primeiros-meses.jpg'
+      ],
+      categoryId: catMap['Primeiros meses'],
+      isActive: true,
+      stock: 30,
+    },
+    {
+      id: 'kit_presente_maternidade',
+      name: 'Kit Presente Maternidade',
+      description: 'Kit presente especial com manta, naninha e cartão personalizado para datas comemorativas.',
+      type: 'product',
+      category: 'Presentes e datas especiais',
+      price: 15990,
+      promoPrice: 12990,
+      isPromo: true,
+      imageUrl: 'https://res.cloudinary.com/dtsxoky7o/image/upload/v1751067997/baby-diary/marketing/images/kit-presente-maternidade.jpg',
+      mainImage: 'https://res.cloudinary.com/dtsxoky7o/image/upload/v1751067997/baby-diary/marketing/images/kit-presente-maternidade.jpg',
+      gallery: [
+        'https://res.cloudinary.com/dtsxoky7o/image/upload/v1751067997/baby-diary/marketing/images/kit-presente-maternidade.jpg'
+      ],
+      categoryId: catMap['Presentes e datas especiais'],
+      isActive: true,
+      stock: 10,
+    },
+    {
+      id: 'curso_primeiros_socorros',
+      name: 'Curso Online: Primeiros Socorros para Bebês',
+      description: 'Curso digital completo com vídeo-aulas e certificado, para pais e cuidadores.',
+      type: 'product',
+      category: 'Digitais e cursos',
+      price: 7990,
+      promoPrice: 4990,
+      isPromo: true,
+      imageUrl: 'https://res.cloudinary.com/dtsxoky7o/image/upload/v1751067997/baby-diary/marketing/images/curso-primeiros-socorros.jpg',
+      mainImage: 'https://res.cloudinary.com/dtsxoky7o/image/upload/v1751067997/baby-diary/marketing/images/curso-primeiros-socorros.jpg',
+      gallery: [
+        'https://res.cloudinary.com/dtsxoky7o/image/upload/v1751067997/baby-diary/marketing/images/curso-primeiros-socorros.jpg'
+      ],
+      categoryId: catMap['Digitais e cursos'],
+      isActive: true,
+      stock: 50,
+    },
+  ].filter(p => !!p.categoryId);
+
+  for (const produto of produtosSeed) {
+    await prisma.shopItem.upsert({
+      where: { id: produto.id },
+      update: produto,
+      create: produto,
+    });
+  }
+
   console.log('🎉 Seed concluído com sucesso!');
+
+  // ===== CRIAR BANNERS DE EXEMPLO =====
+  console.log('🎨 Criando banners de exemplo...');
+  
+  const banners = [
+    {
+      title: 'Produtos Essenciais para Bebês',
+      subtitle: 'Tudo que você precisa para o seu pequeno',
+      description: 'Descubra nossa seleção completa de produtos essenciais para bebês, desde roupas até brinquedos educativos.',
+      imageUrl: 'https://images.unsplash.com/photo-1555252333-9f8e92e65df9?w=800&h=400&fit=crop',
+      bgGradient: 'bg-gradient-to-r from-pink-400 to-purple-500',
+      ctaText: 'Ver Produtos',
+      ctaLink: '/loja',
+      badge: 'Novo',
+      isActive: true,
+      sortOrder: 1,
+      targetUrl: '/loja',
+      targetType: 'external',
+      createdBy: 'system'
+    },
+    {
+      title: 'Ofertas Especiais para Mães',
+      subtitle: 'Descontos exclusivos até 50%',
+      description: 'Aproveite nossas ofertas especiais em produtos selecionados para mães e bebês.',
+      imageUrl: 'https://images.unsplash.com/photo-1519689680058-324335c77eba?w=800&h=400&fit=crop',
+      bgGradient: 'bg-gradient-to-r from-blue-400 to-indigo-500',
+      ctaText: 'Ver Ofertas',
+      ctaLink: '/loja?promo=true',
+      badge: 'Promoção',
+      isActive: true,
+      sortOrder: 2,
+      targetUrl: '/loja?promo=true',
+      targetType: 'external',
+      createdBy: 'system'
+    },
+    {
+      title: 'Produtos Orgânicos e Naturais',
+      subtitle: 'Cuidado especial para o seu bebê',
+      description: 'Produtos orgânicos e naturais para cuidar da saúde e bem-estar do seu bebê.',
+      imageUrl: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&h=400&fit=crop',
+      bgGradient: 'bg-gradient-to-r from-green-400 to-teal-500',
+      ctaText: 'Descobrir',
+      ctaLink: '/loja/categoria/organicos',
+      badge: 'Orgânico',
+      isActive: true,
+      sortOrder: 3,
+      targetUrl: '/loja/categoria/organicos',
+      targetType: 'category',
+      targetId: 'organicos',
+      createdBy: 'system'
+    }
+  ];
+
+  for (const banner of banners) {
+    await prisma.banner.create({
+      data: banner
+    });
+  }
+  console.log(`✅ ${banners.length} banners criados com sucesso!`);
 }
 
 main()

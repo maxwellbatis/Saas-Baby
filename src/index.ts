@@ -8,6 +8,7 @@ import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { specs, swaggerUi } from './config/swagger';
 import paymentRoutes, { webhookRouter } from './routes/payments';
+import pagarmeWebhookRouter from './routes/pagarme-webhook';
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -26,6 +27,7 @@ import notificationRoutes from './routes/notifications';
 import healthRoutes from './routes/health';
 import gamificationRoutes from './routes/gamification';
 import marketingRoutes from './routes/marketing';
+import shopRoutes from './routes/shop';
 
 // Importar middlewares
 import { authenticateUser, authenticateAdmin } from './middlewares/auth';
@@ -75,6 +77,9 @@ if (process.env.NODE_ENV === 'development') {
 // Rota do webhook do Stripe (deve vir antes dos middlewares de parsing!)
 app.use('/api/webhook/stripe', webhookRouter);
 
+// Rota do webhook do Pagar.Me (público, sem autenticação)
+app.use('/api/webhook/pagarme', pagarmeWebhookRouter);
+
 // Middlewares de parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -114,6 +119,7 @@ app.use('/api/admin', authenticateAdmin, adminRoutes);
 app.use('/api/admin/marketing', authenticateAdmin, marketingRoutes);
 app.use('/api/user', authenticateUser, userRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/shop', shopRoutes);
 
 // Outras rotas de pagamento (com autenticação)
 app.use('/api/payments', authenticateUser, paymentRoutes);

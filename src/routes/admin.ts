@@ -10,6 +10,12 @@ import emailService from '../services/email.service';
 import { NotificationService } from '@/services/notification.service';
 import { z } from 'zod';
 import * as adminController from '@/controllers/admin.controller';
+import {
+  getAllShopItems, getShopItemById, createShopItem, updateShopItem, deleteShopItem,
+  getAllCategories, getCategoryById, createCategory, updateCategory, deleteCategory,
+  getAllTags, getTagById, createTag, updateTag, deleteTag,
+  getAllBanners, getBannerById, createBanner, updateBanner, deleteBanner
+} from '../controllers/shop.controller';
 
 const router = Router();
 const notificationService = new NotificationService();
@@ -3290,5 +3296,39 @@ const bulkNotificationSchema = z.object({
   body: z.string().min(1, 'Corpo é obrigatório'),
   data: z.record(z.any()).optional()
 });
+
+// Rotas de produtos da loja (admin)
+router.get('/shop-items', authenticateAdmin, getAllShopItems);
+router.get('/shop-items/:id', authenticateAdmin, getShopItemById);
+router.post('/shop-items', authenticateAdmin, createShopItem);
+router.put('/shop-items/:id', authenticateAdmin, updateShopItem);
+router.delete('/shop-items/:id', authenticateAdmin, deleteShopItem);
+
+// Rotas de categorias da loja (admin)
+router.get('/categories', authenticateAdmin, getAllCategories);
+router.get('/categories/:id', authenticateAdmin, getCategoryById);
+router.post('/categories', authenticateAdmin, createCategory);
+router.put('/categories/:id', authenticateAdmin, updateCategory);
+router.delete('/categories/:id', authenticateAdmin, deleteCategory);
+
+// Rotas de tags da loja (admin)
+router.get('/tags', authenticateAdmin, getAllTags);
+router.get('/tags/:id', authenticateAdmin, getTagById);
+router.post('/tags', authenticateAdmin, createTag);
+router.put('/tags/:id', authenticateAdmin, updateTag);
+router.delete('/tags/:id', authenticateAdmin, deleteTag);
+
+// ===== GERENCIAMENTO DE PEDIDOS =====
+router.get('/pedidos', authenticateAdmin, adminController.getAllPedidosAdmin);
+router.get('/pedidos/:id', authenticateAdmin, adminController.getPedidoByIdAdmin);
+router.put('/pedidos/:id', authenticateAdmin, adminController.updatePedidoAdmin);
+router.delete('/pedidos/:id', authenticateAdmin, adminController.deletePedidoAdmin);
+
+// ================= ROTAS DE BANNERS =================
+router.get('/banners', authenticateAdmin, getAllBanners);
+router.get('/banners/:id', authenticateAdmin, getBannerById);
+router.post('/banners', authenticateAdmin, createBanner);
+router.put('/banners/:id', authenticateAdmin, updateBanner);
+router.delete('/banners/:id', authenticateAdmin, deleteBanner);
 
 export default router; 

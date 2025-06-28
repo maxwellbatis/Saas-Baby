@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import prisma from '@/config/database';
 import { getPublicPlans } from '@/controllers/public.controller';
+import { getActiveBanners } from '@/controllers/shop.controller';
 
 const router = Router();
 
@@ -79,7 +80,7 @@ router.get('/stats', async (req, res) => {
       prisma.memory.count(),
     ]);
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         totalUsers,
@@ -89,11 +90,195 @@ router.get('/stats', async (req, res) => {
     });
   } catch (error) {
     console.error('Erro ao buscar estatísticas:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Erro interno do servidor',
     });
   }
 });
+
+// ===== ROTAS DA LOJA PÚBLICA =====
+
+// Buscar produtos em destaque (com promoção) - DEVE VIR ANTES DA ROTA COM PARÂMETRO
+router.get('/shop-items/featured', async (req, res) => {
+  try {
+    const { limit = 8 } = req.query;
+
+    const items = await prisma.shopItem.findMany({
+      where: {
+        isActive: true,
+        isPromo: true,
+        type: {
+          notIn: ['theme', 'feature', 'bonus', 'cosmetic'] // Excluir produtos de gamificação
+        }
+      },
+      include: {
+        categoryObj: true,
+        tags: { include: { tag: true } }
+      },
+      orderBy: { sortOrder: 'asc' },
+      take: parseInt(limit as string)
+    });
+
+    return res.json({
+      success: true,
+      data: items
+    });
+  } catch (error) {
+    console.error('Erro ao buscar produtos em destaque:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor'
+    });
+  }
+});
+
+// Listar todos os produtos ativos da loja
+router.get('/shop-items', async (req, res) => {
+  try {
+    const { category, search, sort = 'name', order = 'asc', limit = 50, offset = 0, isPromo } = req.query;
+
+    const where: any = {
+      isActive: true,
+      type: {
+        notIn: ['theme', 'feature', 'bonus', 'cosmetic'] // Excluir produtos de gamificação
+      }
+    };
+
+    // Filtro por categoria
+    if (category) {
+      where.categoryObj = {
+        id: category as string
+      };
+    }
+
+    // Filtro por promoção
+    if (isPromo !== undefined) {
+      where.isPromo = isPromo === 'true';
+    }
+
+    // Busca por nome ou descrição
+    if (search) {
+      where.OR = [
+        { name: { contains: search as string, mode: 'insensitive' } },
+        { description: { contains: search as string, mode: 'insensitive' } }
+      ];
+    }
+
+    const items = await prisma.shopItem.findMany({
+      where,
+      include: {
+        categoryObj: true,
+        tags: { include: { tag: true } }
+      },
+      orderBy: { [sort as string]: order as 'asc' | 'desc' },
+      take: parseInt(limit as string),
+      skip: parseInt(offset as string)
+    });
+
+    const total = await prisma.shopItem.count({ where });
+
+    return res.json({
+      success: true,
+      data: items,
+      pagination: {
+        total,
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+        hasMore: total > parseInt(offset as string) + items.length
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao buscar produtos da loja:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor'
+    });
+  }
+});
+
+// Buscar produto específico por ID
+router.get('/shop-items/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const item = await prisma.shopItem.findFirst({
+      where: {
+        id,
+        isActive: true,
+        type: {
+          notIn: ['theme', 'feature', 'bonus', 'cosmetic'] // Excluir produtos de gamificação
+        }
+      },
+      include: {
+        categoryObj: true,
+        tags: { include: { tag: true } }
+      }
+    });
+
+    if (!item) {
+      return res.status(404).json({
+        success: false,
+        error: 'Produto não encontrado'
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: item
+    });
+  } catch (error) {
+    console.error('Erro ao buscar produto:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor'
+    });
+  }
+});
+
+// Listar categorias ativas
+router.get('/categories', async (req, res) => {
+  try {
+    const categories = await prisma.category.findMany({
+      where: { isActive: true },
+      orderBy: { sortOrder: 'asc' }
+    });
+
+    return res.json({
+      success: true,
+      data: categories
+    });
+  } catch (error) {
+    console.error('Erro ao buscar categorias:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor'
+    });
+  }
+});
+
+// Listar categorias da loja (alias para categories)
+router.get('/shop-categories', async (req, res) => {
+  try {
+    const categories = await prisma.category.findMany({
+      where: { isActive: true },
+      orderBy: { sortOrder: 'asc' }
+    });
+
+    return res.json({
+      success: true,
+      data: categories
+    });
+  } catch (error) {
+    console.error('Erro ao buscar categorias da loja:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor'
+    });
+  }
+});
+
+// Buscar banners ativos da loja
+router.get('/banners', getActiveBanners);
 
 export default router; 

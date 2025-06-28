@@ -652,4 +652,211 @@ export const updateLandingPageContent = async (req: Request, res: Response) => {
       error: 'Erro interno do servidor',
     });
   }
+};
+
+// ===== GERENCIAMENTO DE PEDIDOS =====
+
+// Listar todos os pedidos (admin)
+export const getAllPedidosAdmin = async (req: Request, res: Response) => {
+  try {
+    const { 
+      page = '1', 
+      limit = '10', 
+      status = '', 
+      userId = '',
+      dateFrom = '',
+      dateTo = '',
+      search = ''
+    } = req.query;
+    
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    const skip = (pageNum - 1) * limitNum;
+
+    let where: any = {};
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (userId) {
+      where.userId = userId;
+    }
+
+    if (dateFrom || dateTo) {
+      where.createdAt = {};
+      if (dateFrom) {
+        where.createdAt.gte = new Date(dateFrom as string);
+      }
+      if (dateTo) {
+        where.createdAt.lte = new Date(dateTo as string);
+      }
+    }
+
+    // Busca por ID do pedido ou pagarmeOrderId
+    if (search) {
+      where.OR = [
+        { id: { contains: search as string, mode: 'insensitive' } },
+        { pagarmeOrderId: { contains: search as string, mode: 'insensitive' } }
+      ];
+    }
+
+    const pedidos = await prisma.pedido.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      skip,
+      take: limitNum,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const total = await prisma.pedido.count({ where });
+
+    return res.json({
+      success: true,
+      data: {
+        pedidos,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          pages: Math.ceil(total / limitNum),
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Erro ao buscar pedidos:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor',
+    });
+  }
+};
+
+// Buscar pedido por ID (admin)
+export const getPedidoByIdAdmin = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    const pedido = await prisma.pedido.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (!pedido) {
+      return res.status(404).json({
+        success: false,
+        error: 'Pedido não encontrado',
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: pedido,
+    });
+  } catch (error) {
+    console.error('Erro ao buscar pedido:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor',
+    });
+  }
+};
+
+// Atualizar pedido (admin)
+export const updatePedidoAdmin = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status, pagarmeOrderId, amount, items } = req.body;
+
+    const pedido = await prisma.pedido.findUnique({
+      where: { id },
+    });
+
+    if (!pedido) {
+      return res.status(404).json({
+        success: false,
+        error: 'Pedido não encontrado',
+      });
+    }
+
+    const pedidoAtualizado = await prisma.pedido.update({
+      where: { id },
+      data: {
+        status: status || pedido.status,
+        pagarmeOrderId: pagarmeOrderId || pedido.pagarmeOrderId,
+        amount: amount || pedido.amount,
+        items: items || pedido.items,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    return res.json({
+      success: true,
+      data: pedidoAtualizado,
+      message: 'Pedido atualizado com sucesso',
+    });
+  } catch (error) {
+    console.error('Erro ao atualizar pedido:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor',
+    });
+  }
+};
+
+// Deletar pedido (admin)
+export const deletePedidoAdmin = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const pedido = await prisma.pedido.findUnique({
+      where: { id },
+    });
+
+    if (!pedido) {
+      return res.status(404).json({
+        success: false,
+        error: 'Pedido não encontrado',
+      });
+    }
+
+    await prisma.pedido.delete({
+      where: { id },
+    });
+
+    return res.json({
+      success: true,
+      message: 'Pedido deletado com sucesso',
+    });
+  } catch (error) {
+    console.error('Erro ao deletar pedido:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor',
+    });
+  }
 }; 

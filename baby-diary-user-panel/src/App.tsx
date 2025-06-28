@@ -24,6 +24,7 @@ import Rewards from './pages/Rewards';
 import Growth from './pages/Growth';
 import Business from "./pages/Business";
 import AcceptFamilyInvite from './pages/AcceptFamilyInvite';
+import MeusPedidos from './pages/MeusPedidos';
 
 // Admin pages
 import { AdminLogin } from "./pages/admin/AdminLogin";
@@ -37,6 +38,9 @@ import { AdminNotifications } from "./pages/admin/AdminNotifications";
 import { AdminSettings } from "./pages/admin/AdminSettings";
 import { AdminMilestones } from "./pages/admin/AdminMilestones";
 import { AdminMarketing } from "./pages/admin/AdminMarketing";
+import { AdminPedidos } from "./pages/admin/AdminPedidos";
+import LojaRoutes from './pages/loja';
+import AdminLoja from './pages/admin/loja';
 
 const queryClient = new QueryClient();
 
@@ -68,9 +72,10 @@ function App() {
                     <Route path="/milestones" element={<ProtectedRoute requireBaby={false}><Milestones /></ProtectedRoute>} />
                     <Route path="/activities" element={<ProtectedRoute requireBaby={false}><Activities /></ProtectedRoute>} />
                     <Route path="/health" element={<ProtectedRoute requireBaby={false}><Health /></ProtectedRoute>} />
-                    <Route path="/settings" element={<ProtectedRoute requireBaby={false}><Settings /></ProtectedRoute>} />
                     <Route path="/rewards" element={<ProtectedRoute requireBaby={false}><Rewards /></ProtectedRoute>} />
-                    <Route path="/growth" element={<ProtectedRoute requireBaby={false}><Growth /></ProtectedRoute>} />
+                    <Route path="/settings" element={<ProtectedRoute requireBaby={false}><Settings /></ProtectedRoute>} />
+                    <Route path="/meus-pedidos" element={<ProtectedRoute requireBaby={false}><MeusPedidos /></ProtectedRoute>} />
+                    <Route path="/loja/*" element={<ProtectedRoute requireBaby={false}><LojaRoutes /></ProtectedRoute>} />
 
                     {/* Rotas do painel administrativo */}
                     <Route path="/admin/login" element={<AdminLogin />} />
@@ -83,6 +88,8 @@ function App() {
                     <Route path="/admin/notifications" element={<ProtectedAdminRoute><AdminLayout><AdminNotifications /></AdminLayout></ProtectedAdminRoute>} />
                     <Route path="/admin/settings" element={<ProtectedAdminRoute><AdminLayout><AdminSettings /></AdminLayout></ProtectedAdminRoute>} />
                     <Route path="/admin/marketing" element={<ProtectedAdminRoute><AdminLayout><AdminMarketing /></AdminLayout></ProtectedAdminRoute>} />
+                    <Route path="/admin/loja" element={<ProtectedAdminRoute><AdminLayout><AdminLoja /></AdminLayout></ProtectedAdminRoute>} />
+                    <Route path="/admin/pedidos" element={<ProtectedAdminRoute><AdminLayout><AdminPedidos /></AdminLayout></ProtectedAdminRoute>} />
 
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />

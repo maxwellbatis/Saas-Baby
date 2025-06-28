@@ -20,7 +20,8 @@ import {
   Settings, 
   Baby,
   Palette,
-  LogOut
+  LogOut,
+  ShoppingBag
 } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/button';
@@ -57,6 +58,11 @@ const AppSidebar = () => {
       icon: Activity,
     },
     {
+      title: "Loja",
+      url: "/loja",
+      icon: ShoppingBag,
+    },
+    {
       title: "Configurações",
       url: "/settings",
       icon: Settings,
@@ -91,7 +97,11 @@ const AppSidebar = () => {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton 
                     asChild
-                    isActive={location.pathname === item.url}
+                    isActive={
+                      item.url === '/loja'
+                        ? location.pathname.startsWith('/loja')
+                        : location.pathname === item.url
+                    }
                   >
                     <button onClick={() => navigate(item.url)} className="w-full">
                       <item.icon />

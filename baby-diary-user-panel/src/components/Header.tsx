@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { User, Baby, LogOut, Shield } from "lucide-react";
+import { User, Baby, LogOut, Shield, Package } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -40,6 +40,15 @@ const Header = ({ showAuth = true }: HeaderProps) => {
             {user ? (
               <div className="flex items-center space-x-3">
                 <NotificationBell />
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => navigate('/meus-pedidos')}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <Package className="w-4 h-4 mr-1.5" />
+                  Meus Pedidos
+                </Button>
                 <div className="flex items-center space-x-2 bg-baby-pink rounded-full px-3 py-2 cursor-pointer" onClick={() => navigate('/settings')}>
                   {user.avatarUrl ? (
                     <img 

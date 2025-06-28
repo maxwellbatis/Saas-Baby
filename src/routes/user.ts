@@ -5,6 +5,8 @@ import { checkBabyLimit, verifyBabyOwnership, checkMemoryLimit, checkMilestoneLi
 import { GamificationService } from '@/services/gamification';
 import { NotificationService } from '../services/notification.service';
 import { Prisma } from '@prisma/client';
+import { getAllPedidos, getPedidoById, createPedido, updatePedido, deletePedido } from '../controllers/pedido.controller';
+import { authenticateUser } from '../middlewares/auth';
 
 const router = Router();
 
@@ -2830,5 +2832,12 @@ router.post('/family/accept', async (req, res) => {
     return res.status(500).json({ success: false, error: 'Erro ao aceitar convite' });
   }
 });
+
+// Rotas de pedidos (após as rotas de usuário)
+router.get('/pedidos', authenticateUser, getAllPedidos);
+router.get('/pedidos/:id', authenticateUser, getPedidoById);
+router.post('/pedidos', authenticateUser, createPedido);
+router.put('/pedidos/:id', authenticateUser, updatePedido);
+router.delete('/pedidos/:id', authenticateUser, deletePedido);
 
 export default router;

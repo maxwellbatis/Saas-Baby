@@ -17,7 +17,9 @@ import {
   CreditCard,
   Bell,
   Shield,
-  Megaphone
+  Megaphone,
+  ShoppingBag,
+  Package
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { 
@@ -40,6 +42,8 @@ const navigation = [
   { name: 'Planos', href: '/admin/plans', icon: CreditCard },
   { name: 'Gamificação', href: '/admin/gamification', icon: BarChart3 },
   { name: 'Marketing', href: '/admin/marketing', icon: Megaphone },
+  { name: 'Loja', href: '/admin/loja', icon: ShoppingBag },
+  { name: 'Pedidos', href: '/admin/pedidos', icon: Package },
   { name: 'Notificações', href: '/admin/notifications', icon: Bell },
   { name: 'Configurações', href: '/admin/settings', icon: Settings },
 ];

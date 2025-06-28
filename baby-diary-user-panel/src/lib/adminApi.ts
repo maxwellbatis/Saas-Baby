@@ -7,17 +7,27 @@ export const adminApi = axios.create({
   timeout: API_CONFIG.TIMEOUT,
 });
 
+console.log('🔧 Configuração adminApi:', {
+  baseURL: API_CONFIG.BASE_URL,
+  timeout: API_CONFIG.TIMEOUT
+});
+
 // Interceptor para adicionar token de admin automaticamente
 adminApi.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('adminToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('🔑 Token admin encontrado:', token.substring(0, 20) + '...');
+    } else {
+      console.log('⚠️ Nenhum token admin encontrado');
     }
     console.log('🌐 Requisição admin:', config.method?.toUpperCase(), config.url);
+    console.log('📋 Headers:', config.headers);
     return config;
   },
   (error) => {
+    console.error('❌ Erro na requisição admin:', error);
     return Promise.reject(error);
   }
 );
@@ -30,11 +40,24 @@ adminApi.interceptors.response.use(
   },
   (error) => {
     console.log('❌ Erro admin:', error.response?.status, error.config?.url, error.message);
+    
+    // Log detalhado do erro
+    if (error.response) {
+      console.log('📄 Resposta de erro:', {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data,
+        headers: error.response.headers
+      });
+    }
+    
     if (error.response?.status === 401) {
       // Token expirado ou inválido
+      console.log('🔒 Token inválido, redirecionando para login...');
       localStorage.removeItem('adminToken');
       window.location.href = '/admin/login';
     }
+    
     return Promise.reject(error);
   }
 );
@@ -488,6 +511,101 @@ export const adminNotifications = {
   send: async (data: any) => {
     const response = await adminApi.post('/admin/notifications/send', data);
     return response.data;
+  },
+};
+
+export const adminShop = {
+  getCategories: async () => {
+    const response = await adminApi.get('/admin/categories');
+    return response.data;
+  },
+  getTags: async () => {
+    const response = await adminApi.get('/admin/tags');
+    return response.data;
+  }
+};
+
+// Funções para gerenciamento de pedidos (admin)
+export const adminPedidos = {
+  getAll: async (params?: any) => {
+    const queryParams = params ? new URLSearchParams(params).toString() : '';
+    const response = await adminApi.get(`/admin/pedidos${queryParams ? `?${queryParams}` : ''}`);
+    return response.data;
+  },
+
+  getById: async (id: string) => {
+    const response = await adminApi.get(`/admin/pedidos/${id}`);
+    return response.data;
+  },
+
+  update: async (id: string, data: any) => {
+    const response = await adminApi.put(`/admin/pedidos/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: string) => {
+    const response = await adminApi.delete(`/admin/pedidos/${id}`);
+    return response.data;
+  }
+};
+
+// ================= BANNERS =================
+export const adminBanners = {
+  // Listar todos os banners
+  getAll: async () => {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/admin/banners`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+      },
+    });
+    return response.json();
+  },
+
+  // Buscar banner por ID
+  getById: async (id: string) => {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/admin/banners/${id}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+      },
+    });
+    return response.json();
+  },
+
+  // Criar banner
+  create: async (data: any) => {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/admin/banners`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  // Atualizar banner
+  update: async (id: string, data: any) => {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/admin/banners/${id}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  // Deletar banner
+  delete: async (id: string) => {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/admin/banners/${id}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+      },
+    });
+    return response.json();
   },
 };
 

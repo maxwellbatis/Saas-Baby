@@ -42,15 +42,15 @@ services:
       DATABASE_URL: postgresql://babydiary_user:dev_password@postgres-dev:5432/babydiary_dev
       REDIS_URL: redis://redis-dev:6379
       JWT_SECRET: dev_jwt_secret
-      STRIPE_SECRET_KEY: sk_test_...
-      STRIPE_WEBHOOK_SECRET: whsec_test_...
-      SENDGRID_API_KEY: SG_test_...
-      CLOUDINARY_CLOUD_NAME: dev_cloud_name
-      CLOUDINARY_API_KEY: dev_api_key
-      CLOUDINARY_API_SECRET: dev_api_secret
-      FIREBASE_PROJECT_ID: dev_project_id
+      STRIPE_SECRET_KEY: sua_chave_secreta_stripe_aqui
+      STRIPE_WEBHOOK_SECRET: seu_webhook_secret_aqui
+      SENDGRID_API_KEY: sua_chave_sendgrid_aqui
+      CLOUDINARY_CLOUD_NAME: seu_cloud_name_aqui
+      CLOUDINARY_API_KEY: sua_api_key_aqui
+      CLOUDINARY_API_SECRET: sua_api_secret_aqui
+      FIREBASE_PROJECT_ID: seu_project_id_aqui
       FIREBASE_PRIVATE_KEY: "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-      FIREBASE_CLIENT_EMAIL: firebase-adminsdk-...@dev-project.iam.gserviceaccount.com
+      FIREBASE_CLIENT_EMAIL: firebase-adminsdk-...@seu-project.iam.gserviceaccount.com
       FRONTEND_URL: http://localhost:5173
       ADMIN_URL: http://localhost:5173/admin
       PORT: 3000

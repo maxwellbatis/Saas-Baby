@@ -27,7 +27,11 @@ import {
   getOrderStatus,
   getUserOrders,
   cancelOrder,
-  checkoutRealValidation
+  checkoutRealValidation,
+  // Novas funções de checkout usando Stripe
+  createStripeOrder,
+  processStripeWebhook,
+  getStripeOrderStatus
 } from '../controllers/shop.controller';
 
 const router = Router();
@@ -74,5 +78,16 @@ router.get('/orders', authenticateUser, getUserOrders);
 
 // Cancelar pedido
 router.delete('/orders/:orderId', authenticateUser, cancelOrder);
+
+// ===== ROTAS PARA STRIPE =====
+
+// Criar pedido usando Stripe
+router.post('/stripe/create-order', authenticateUser, createStripeOrder);
+
+// Webhook do Stripe para pedidos da loja
+router.post('/stripe/webhook', processStripeWebhook);
+
+// Buscar status do pedido Stripe
+router.get('/stripe/order-status/:sessionId', authenticateUser, getStripeOrderStatus);
 
 export default router; 

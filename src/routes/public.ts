@@ -197,24 +197,46 @@ router.get('/shop-items', async (req, res) => {
   }
 });
 
-// Buscar produto específico por ID
+// Buscar produto específico por ID ou slug
 router.get('/shop-items/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const item = await prisma.shopItem.findFirst({
-      where: {
-        id,
-        isActive: true,
-        type: {
-          notIn: ['theme', 'feature', 'bonus', 'cosmetic'] // Excluir produtos de gamificação
+    // Verificar se é um ID numérico ou slug
+    const isNumeric = /^\d+$/.test(id);
+    
+    let item;
+    if (isNumeric) {
+      // Buscar por ID numérico
+      item = await prisma.shopItem.findFirst({
+        where: {
+          id: parseInt(id),
+          isActive: true,
+          type: {
+            notIn: ['theme', 'feature', 'bonus', 'cosmetic'] // Excluir produtos de gamificação
+          }
+        },
+        include: {
+          categoryObj: true,
+          tags: { include: { tag: true } }
         }
-      },
-      include: {
-        categoryObj: true,
-        tags: { include: { tag: true } }
-      }
-    });
+      });
+    } else {
+      // Buscar por slug
+      item = await prisma.shopItem.findFirst({
+        where: {
+          slug: id,
+          isActive: true,
+          type: {
+            notIn: ['theme', 'feature', 'bonus', 'cosmetic'] // Excluir produtos de gamificação
+          }
+        },
+        include: {
+          categoryObj: true,
+          tags: { include: { tag: true } }
+        }
+      });
+    }
 
     if (!item) {
       return res.status(404).json({

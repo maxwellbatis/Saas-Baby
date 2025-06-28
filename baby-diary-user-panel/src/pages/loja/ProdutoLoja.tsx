@@ -89,7 +89,8 @@ const styles = `
 
 // Interface para produto da API
 interface Produto {
-  id: string;
+  id: number;
+  slug: string;
   name: string;
   description?: string;
   price: number;
@@ -173,7 +174,7 @@ const getProductImage = (produto: Produto | null) => {
 
 const ProdutoLoja: React.FC = () => {
   const navigate = useNavigate();
-  const { produtoId } = useParams();
+  const { slug } = useParams();
   const [produto, setProduto] = useState<Produto | null>(null);
   const [produtosRelacionados, setProdutosRelacionados] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -187,12 +188,12 @@ const ProdutoLoja: React.FC = () => {
 
   useEffect(() => {
     const fetchProduto = async () => {
-      if (!produtoId) return;
+      if (!slug) return;
       
       try {
         setLoading(true);
         const [produtoRes, relacionadosRes] = await Promise.all([
-          apiFetch(`/public/shop-items/${produtoId}`, { cache: 'no-store' }),
+          apiFetch(`/public/shop-items/${slug}`, { cache: 'no-store' }),
           apiFetch('/public/shop-items?limit=6', { cache: 'no-store' })
         ]);
         
@@ -209,7 +210,7 @@ const ProdutoLoja: React.FC = () => {
     };
 
     fetchProduto();
-  }, [produtoId]);
+  }, [slug]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -731,7 +732,7 @@ const ProdutoLoja: React.FC = () => {
                     </div>
                     <button
                       className="w-full bg-pink-500 hover:bg-pink-600 text-white py-2 rounded-xl font-semibold transition"
-                      onClick={() => navigate(`/loja/produto/${prod.id}`)}
+                      onClick={() => navigate(`/loja/produto/${prod.slug}`)}
                     >
                       Ver produto
                     </button>

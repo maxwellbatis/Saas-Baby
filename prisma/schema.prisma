@@ -653,7 +653,8 @@ model GamificationRanking {
 
 // SISTEMA DE RESGATE MANUAL - LOJA DE RECOMPENSAS
 model ShopItem {
-  id          String   @id @default(cuid())
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique // URL amigável baseada no nome
   name        String
   description String
   type        String   // theme, feature, bonus, cosmetic
@@ -688,7 +689,7 @@ model UserPurchase {
   id          String   @id @default(cuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id])
-  itemId      String
+  itemId      Int
   item        ShopItem @relation(fields: [itemId], references: [id])
   pointsSpent Int
   purchasedAt DateTime @default(now())
@@ -914,10 +915,14 @@ model Pedido {
   id             String   @id @default(cuid())
   userId         String
   user           User     @relation(fields: [userId], references: [id])
-  status         String   // pending, paid, failed, canceled
-  pagarmeOrderId String?  // ID do pedido no Pagar.Me
-  amount         Int      // valor total em centavos
+  status         String   // pending, paid, failed, canceled, refunded
+  paymentMethod  String?  // stripe, pagarme
+  paymentId      String?  // ID do pagamento (Stripe Payment Intent ou Pagar.me Order)
+  totalAmount    Float    // valor total em reais
+  customerInfo   Json?    // informações do cliente
+  shippingAddress Json?   // endereço de entrega
   items          Json     // lista de produtos
+  metadata       Json?    // dados adicionais (session ID, etc.)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
@@ -945,11 +950,14 @@ model Tag {
 }
 
 model ShopItemTag {
-  shopItemId String
-  tagId      String
-  shopItem   ShopItem @relation(fields: [shopItemId], references: [id])
-  tag        Tag      @relation(fields: [tagId], references: [id])
-  @@id([shopItemId, tagId])
+  id          String   @id @default(cuid())
+  shopItemId  Int
+  shopItem    ShopItem @relation(fields: [shopItemId], references: [id])
+  tagId       String
+  tag         Tag      @relation(fields: [tagId], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@unique([shopItemId, tagId])
 }
 
 // ===== BANNERS DA LOJA =====

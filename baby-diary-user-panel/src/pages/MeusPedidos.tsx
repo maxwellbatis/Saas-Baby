@@ -19,7 +19,7 @@ import {
 interface Pedido {
   id: string;
   status: string;
-  amount: number;
+  totalAmount: number;
   items: Array<{
     productId: string;
     name: string;
@@ -29,7 +29,7 @@ interface Pedido {
   }>;
   createdAt: string;
   updatedAt: string;
-  pagarmeOrderId?: string;
+  paymentId?: string;
   paymentMethod?: string;
   shippingAddress?: any;
 }
@@ -215,7 +215,7 @@ const MeusPedidos: React.FC = () => {
                           </span>
                           <span className="flex items-center gap-1">
                             <DollarSign className="w-4 h-4" />
-                            {formatPrice(pedido.amount)}
+                            {formatPrice(pedido.totalAmount)}
                           </span>
                         </div>
                       </div>

@@ -26,7 +26,7 @@ interface ProdutoListProps {
   produtos: Produto[];
   loading: boolean;
   onEdit: (produto: Produto) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: number) => void;
 }
 
 const ProdutoList: React.FC<ProdutoListProps> = ({ produtos, loading, onEdit, onDelete }) => {
@@ -137,6 +137,8 @@ const ProdutoList: React.FC<ProdutoListProps> = ({ produtos, loading, onEdit, on
                   {produto.sku && (
                     <div className="text-xs text-gray-500 font-mono mt-1">SKU: {produto.sku}</div>
                   )}
+                  <div className="text-xs text-gray-400 font-mono select-all">ID: {produto.id}</div>
+                  <div className="text-xs text-gray-400 font-mono select-all">Slug: {produto.slug}</div>
                   <div className="flex items-center gap-2 mt-2">
                     {getStatusBadge(produto.isActive)}
                     {getPromoBadge(produto.isPromo || false)}
@@ -225,6 +227,7 @@ const ProdutoList: React.FC<ProdutoListProps> = ({ produtos, loading, onEdit, on
             <TableHeader>
               <TableRow>
                 <TableHead>Imagem</TableHead>
+                <TableHead>ID</TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>SKU</TableHead>
                 <TableHead>Categoria</TableHead>
@@ -247,6 +250,7 @@ const ProdutoList: React.FC<ProdutoListProps> = ({ produtos, loading, onEdit, on
                       />
                     </div>
                   </TableCell>
+                  <TableCell className="font-mono text-xs text-gray-500">{produto.id}</TableCell>
                   <TableCell className="font-medium">{produto.name}</TableCell>
                   <TableCell>{produto.sku}</TableCell>
                   <TableCell>

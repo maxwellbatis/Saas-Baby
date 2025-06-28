@@ -27,7 +27,8 @@ import { useToast } from '../../../hooks/use-toast';
 
 // Tipo base do produto (expandido para incluir gallery)
 export interface Produto {
-  id: string;
+  id: number;
+  slug: string;
   name: string;
   description?: string;
   price: number;
@@ -132,7 +133,7 @@ const AdminProdutos: React.FC = () => {
     }
   };
 
-  const handleDeletarProduto = async (id: string) => {
+  const handleDeletarProduto = async (id: number) => {
     if (!window.confirm('Tem certeza que deseja deletar este produto?')) return;
     setLoading(true);
     setError(null);

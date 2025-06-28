@@ -447,6 +447,235 @@ export class StripeService {
       console.error('Erro ao processar invoice payment failed:', error);
     }
   }
+
+  // ===== MÉTODOS PARA PEDIDOS DA LOJA =====
+
+  // Criar sessão de checkout para pedido da loja
+  async createShopOrderCheckoutSession(
+    userId: string,
+    items: Array<{ productId: number; quantity: number }>,
+    customerInfo: {
+      name: string;
+      email: string;
+      phone: string;
+      cpf: string;
+    },
+    shippingAddress: {
+      street: string;
+      number: string;
+      complement?: string;
+      neighborhood: string;
+      city: string;
+      state: string;
+      zipCode: string;
+    },
+    successUrl: string,
+    cancelUrl: string
+  ) {
+    try {
+      // Buscar usuário
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        throw new Error('Usuário não encontrado');
+      }
+
+      // Buscar produtos
+      const productIds = items.map(item => item.productId);
+      const products = await prisma.shopItem.findMany({
+        where: { id: { in: productIds } },
+      });
+
+      if (products.length !== items.length) {
+        throw new Error('Alguns produtos não foram encontrados');
+      }
+
+      // Criar ou buscar cliente no Stripe
+      let customerId = user.stripeCustomerId;
+      if (!customerId) {
+        const customer = await this.createCustomer(user.email, user.name || customerInfo.name);
+        customerId = customer.id;
+
+        // Atualizar usuário com o customer ID
+        await prisma.user.update({
+          where: { id: userId },
+          data: { stripeCustomerId: customerId },
+        });
+      }
+
+      // Preparar line items para o Stripe
+      const lineItems = items.map(item => {
+        const product = products.find(p => p.id === item.productId);
+        if (!product) {
+          throw new Error(`Produto ${item.productId} não encontrado`);
+        }
+
+        return {
+          price_data: {
+            currency: 'brl',
+            product_data: {
+              name: product.name,
+              description: product.description,
+              images: product.mainImage ? [product.mainImage] : undefined,
+            },
+            unit_amount: Math.round(product.price), // Preço em centavos
+          },
+          quantity: item.quantity,
+        };
+      });
+
+      // Criar sessão de checkout
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: lineItems,
+        mode: 'payment', // Modo de pagamento único (não assinatura)
+        customer: customerId,
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        allow_promotion_codes: true,
+        billing_address_collection: 'required',
+        shipping_address_collection: {
+          allowed_countries: ['BR'],
+        },
+        metadata: {
+          user_id: userId,
+          source: 'baby_diary_shop',
+          customer_name: customerInfo.name,
+          customer_phone: customerInfo.phone,
+          customer_cpf: customerInfo.cpf,
+          shipping_street: shippingAddress.street,
+          shipping_number: shippingAddress.number,
+          shipping_complement: shippingAddress.complement || '',
+          shipping_neighborhood: shippingAddress.neighborhood,
+          shipping_city: shippingAddress.city,
+          shipping_state: shippingAddress.state,
+          shipping_zip_code: shippingAddress.zipCode,
+        },
+      });
+
+      return session;
+    } catch (error) {
+      console.error('Erro ao criar sessão de checkout da loja:', error);
+      throw error;
+    }
+  }
+
+  // Processar pagamento de pedido da loja
+  async processShopOrderPayment(sessionId: string) {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      
+      if (session.payment_status !== 'paid') {
+        throw new Error('Pagamento não foi realizado');
+      }
+
+      // Extrair dados do metadata
+      const metadata = session.metadata;
+      if (!metadata) {
+        throw new Error('Metadata da sessão não encontrado');
+      }
+
+      // Verificar se userId existe
+      if (!metadata.user_id) {
+        throw new Error('User ID não encontrado no metadata');
+      }
+
+      // Criar pedido no banco de dados
+      const order = await prisma.pedido.create({
+        data: {
+          userId: metadata.user_id,
+          status: 'paid',
+          paymentMethod: 'stripe',
+          paymentId: session.payment_intent as string,
+          totalAmount: session.amount_total ? session.amount_total / 100 : 0, // Converter de centavos
+          customerInfo: {
+            name: metadata.customer_name || '',
+            email: session.customer_email || '',
+            phone: metadata.customer_phone || '',
+            cpf: metadata.customer_cpf || '',
+          },
+          shippingAddress: {
+            street: metadata.shipping_street || '',
+            number: metadata.shipping_number || '',
+            complement: metadata.shipping_complement || '',
+            neighborhood: metadata.shipping_neighborhood || '',
+            city: metadata.shipping_city || '',
+            state: metadata.shipping_state || '',
+            zipCode: metadata.shipping_zip_code || '',
+          },
+          items: session.line_items?.data.map(item => ({
+            productId: parseInt(item.price?.product as string) || 0,
+            quantity: item.quantity || 1,
+            price: item.amount_total ? item.amount_total / 100 : 0,
+          })) || [],
+          metadata: {
+            stripe_session_id: sessionId,
+            source: 'stripe',
+          },
+        } as any,
+      });
+
+      return order;
+    } catch (error) {
+      console.error('Erro ao processar pagamento do pedido:', error);
+      throw error;
+    }
+  }
+
+  // Buscar pedido por ID do Stripe
+  async getOrderByStripeSessionId(sessionId: string) {
+    try {
+      const order = await prisma.pedido.findFirst({
+        where: {
+          metadata: {
+            path: ['stripe_session_id'],
+            equals: sessionId,
+          } as any,
+        } as any,
+      });
+
+      return order;
+    } catch (error) {
+      console.error('Erro ao buscar pedido por session ID:', error);
+      throw error;
+    }
+  }
+
+  // Reembolsar pedido
+  async refundOrder(paymentIntentId: string, amount?: number) {
+    try {
+      const refundData: any = {
+        payment_intent: paymentIntentId,
+      };
+
+      if (amount) {
+        refundData.amount = Math.round(amount * 100); // Converter para centavos
+      }
+
+      const refund = await stripe.refunds.create(refundData);
+
+      // Atualizar status do pedido
+      await prisma.pedido.updateMany({
+        where: {
+          paymentId: paymentIntentId,
+        } as any,
+        data: {
+          status: 'refunded',
+          metadata: {
+            refund_id: refund.id,
+            refunded_at: new Date().toISOString(),
+          } as any,
+        } as any,
+      });
+
+      return refund;
+    } catch (error) {
+      console.error('Erro ao reembolsar pedido:', error);
+      throw error;
+    }
+  }
 }
 
 export default new StripeService(); 

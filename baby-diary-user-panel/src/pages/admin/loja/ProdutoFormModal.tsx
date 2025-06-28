@@ -184,6 +184,9 @@ const ProdutoFormModal: React.FC<ProdutoFormModalProps> = ({ open, onClose, onSa
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-2xl shadow-lg overflow-y-auto max-h-[90vh]">
         <h2 className="text-xl font-bold mb-4">{produto ? 'Editar Produto' : 'Novo Produto'}</h2>
+        {form.id && (
+          <div className="mb-2 text-xs text-gray-500 font-mono select-all">ID do Produto: {form.id}</div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-medium">Nome</label>

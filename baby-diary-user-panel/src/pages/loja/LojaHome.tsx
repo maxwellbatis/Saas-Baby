@@ -243,7 +243,8 @@ const banners = [
 
 // Interface para produtos da API
 interface Produto {
-  id: string;
+  id: number;
+  slug: string;
   name: string;
   description?: string;
   price: number;
@@ -404,27 +405,36 @@ const LojaHome: React.FC = () => {
         }
         
         // Buscar categorias
-        const categoriasResponse = await apiFetch('/public/shop-categories');
+        const categoriasResponse = await apiFetch('/public/categories');
         if (categoriasResponse.success) {
           setCategorias(categoriasResponse.data);
         }
         
         // Buscar produtos em destaque
-        const destaqueResponse = await apiFetch('/public/shop-items?isPromo=true&limit=8');
+        const destaqueResponse = await apiFetch('/public/shop-items?limit=8');
         if (destaqueResponse.success) {
+          console.log('🛍️ Produtos em destaque carregados:', destaqueResponse.data);
           setProdutosDestaque(destaqueResponse.data);
+        } else {
+          console.error('❌ Erro ao carregar produtos em destaque:', destaqueResponse);
         }
         
         // Buscar produtos em promoção
         const promocaoResponse = await apiFetch('/public/shop-items?isPromo=true&limit=6');
         if (promocaoResponse.success) {
+          console.log('🏷️ Produtos em promoção carregados:', promocaoResponse.data);
           setProdutosPromocao(promocaoResponse.data);
+        } else {
+          console.error('❌ Erro ao carregar produtos em promoção:', promocaoResponse);
         }
         
         // Buscar produtos novos
-        const novosResponse = await apiFetch('/public/shop-items?sort=createdAt&order=desc&limit=6');
+        const novosResponse = await apiFetch('/public/shop-items?limit=6');
         if (novosResponse.success) {
+          console.log('🆕 Produtos novos carregados:', novosResponse.data);
           setProdutosNovos(novosResponse.data);
+        } else {
+          console.error('❌ Erro ao carregar produtos novos:', novosResponse);
         }
         
       } catch (error) {
@@ -786,7 +796,7 @@ const LojaHome: React.FC = () => {
                   </div>
                   <button
                     className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold transition"
-                    onClick={() => navigate(`/loja/produto/${prod.id}`)}
+                    onClick={() => navigate(`/loja/produto/${prod.slug}`)}
                   >
                     Ver detalhes
                   </button>
@@ -858,7 +868,7 @@ const LojaHome: React.FC = () => {
                   </div>
                   <button
                     className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold transition"
-                    onClick={() => navigate(`/loja/produto/${prod.id}`)}
+                    onClick={() => navigate(`/loja/produto/${prod.slug}`)}
                   >
                     Ver detalhes
                   </button>
@@ -929,7 +939,7 @@ const LojaHome: React.FC = () => {
                   </div>
                   <button
                     className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold transition"
-                    onClick={() => navigate(`/loja/produto/${prod.id}`)}
+                    onClick={() => navigate(`/loja/produto/${prod.slug}`)}
                   >
                     Ver detalhes
                   </button>

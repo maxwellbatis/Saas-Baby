@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -25,7 +26,7 @@ import {
   Phone,
   Calendar
 } from 'lucide-react';
-import { apiFetch } from '../../config/api-fix';
+import { apiFetch } from '../../config/api';
 
 interface CartItem {
   id: string;
@@ -66,9 +67,9 @@ interface CheckoutData {
 
 interface OrderResponse {
   orderId: string;
-  pagarmeOrderId: string;
+  paymentId: string;
   status: string;
-  amount: number;
+  totalAmount: number;
   paymentUrl?: string;
   qrCode?: any;
   boletoUrl?: string;
@@ -79,6 +80,20 @@ const CheckoutReal: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
+  
+  // Verificar se o usuário está autenticado
+  useEffect(() => {
+    if (!isAuthenticated) {
+      toast({
+        title: 'Login necessário',
+        description: 'Você precisa estar logado para finalizar a compra.',
+        variant: 'destructive'
+      });
+      navigate('/login', { state: { from: '/loja/checkout-real' } });
+      return;
+    }
+  }, [isAuthenticated, navigate, toast]);
   
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -171,26 +186,10 @@ const CheckoutReal: React.FC = () => {
       newErrors.zipCode = 'CEP é obrigatório';
     }
 
-    // Validar cartão se necessário
-    if (checkoutData.payment_method === 'credit_card') {
-      if (!checkoutData.card_data?.number) {
-        newErrors.cardNumber = 'Número do cartão é obrigatório';
-      }
-      if (!checkoutData.card_data?.holder_name) {
-        newErrors.cardHolder = 'Nome do titular é obrigatório';
-      }
-      if (!checkoutData.card_data?.exp_month) {
-        newErrors.cardExpMonth = 'Mês de expiração é obrigatório';
-      }
-      if (!checkoutData.card_data?.exp_year) {
-        newErrors.cardExpYear = 'Ano de expiração é obrigatório';
-      }
-      if (!checkoutData.card_data?.cvv) {
-        newErrors.cardCvv = 'CVV é obrigatório';
-      }
-    }
+    // NÃO validar cartão de crédito para Stripe Checkout!
 
     setErrors(newErrors);
+    console.log('Erros de validação:', newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
@@ -198,69 +197,77 @@ const CheckoutReal: React.FC = () => {
   const handleCheckout = async () => {
     if (!validateForm()) {
       toast({
-        title: 'Erro de validação',
-        description: 'Por favor, corrija os erros no formulário',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    if (cartItems.length === 0) {
-      toast({
-        title: 'Carrinho vazio',
-        description: 'Adicione produtos ao carrinho antes de finalizar',
+        title: 'Dados incompletos',
+        description: 'Por favor, preencha todos os campos obrigatórios.',
         variant: 'destructive'
       });
       return;
     }
 
     setLoading(true);
-
     try {
+      // Montar o payload para o Stripe
+      const payload = {
+        items: cartItems.map(item => ({
+          productId: parseInt(item.id),
+          quantity: item.quantity
+        })),
+        customerInfo: {
+          name: checkoutData.customer.name,
+          email: checkoutData.customer.email,
+          phone: checkoutData.customer.phone,
+          cpf: checkoutData.customer.document
+        },
+        shippingAddress: {
+          street: checkoutData.shipping_address.street,
+          number: checkoutData.shipping_address.number,
+          complement: checkoutData.shipping_address.complement,
+          neighborhood: checkoutData.shipping_address.neighborhood,
+          city: checkoutData.shipping_address.city,
+          state: checkoutData.shipping_address.state,
+          zipCode: checkoutData.shipping_address.zip_code
+        }
+      };
+
+      console.log('Enviando payload para Stripe:', payload);
+
+      // Verificar se o usuário está autenticado
       const token = localStorage.getItem('token');
       if (!token) {
         toast({
-          title: 'Não autenticado',
-          description: 'Faça login para continuar',
+          title: 'Sessão expirada',
+          description: 'Faça login novamente para finalizar a compra.',
           variant: 'destructive'
         });
-        navigate('/login');
+        setLoading(false);
         return;
       }
 
-      const payload = {
-        items: cartItems.map(item => ({
-          productId: item.id,
-          quantity: item.quantity,
-          variations: item.variations
-        })),
-        ...checkoutData
-      };
-
-      const result = await apiFetch('/shop/checkout/create-order', {
+      // Enviar para o endpoint do Stripe com o token no header
+      const result = await apiFetch('/shop/stripe/create-order', {
         method: 'POST',
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
       });
 
-      if (result.success) {
-        setOrderData(result.data);
-        setOrderCreated(true);
-        
-        // Limpar carrinho
-        localStorage.removeItem('cart');
-        
-        toast({
-          title: 'Pedido criado com sucesso!',
-          description: 'Aguarde o processamento do pagamento'
-        });
+      if (result.success && result.data?.url) {
+        window.location.href = result.data.url;
+        return;
       } else {
-        throw new Error(result.error || 'Erro ao criar pedido');
+        toast({
+          title: 'Erro ao criar pedido',
+          description: result.error || 'Tente novamente.',
+          variant: 'destructive'
+        });
       }
-    } catch (error: any) {
-      console.error('Erro no checkout:', error);
+    } catch (err) {
+      console.error('Erro no checkout:', err);
       toast({
-        title: 'Erro no checkout',
-        description: error.message || 'Erro interno do servidor',
+        title: 'Erro ao processar checkout',
+        description: 'Ocorreu um erro inesperado.',
         variant: 'destructive'
       });
     } finally {
@@ -300,30 +307,7 @@ const CheckoutReal: React.FC = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Detalhes do Pedido */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  Detalhes do Pedido
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">ID do Pedido:</span>
-                  <span className="font-medium">{orderData.orderId}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Status:</span>
-                  <Badge variant={orderData.status === 'paid' ? 'default' : 'secondary'}>
-                    {orderData.status === 'paid' ? 'Pago' : 'Pendente'}
-                  </Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Total:</span>
-                  <span className="font-bold text-lg">{formatPrice(orderData.amount)}</span>
-                </div>
-              </CardContent>
-            </Card>
+
 
             {/* Instruções de Pagamento */}
             <Card>
@@ -601,188 +585,6 @@ const CheckoutReal: React.FC = () => {
                     <p className="text-red-500 text-sm mt-1">{errors.zipCode}</p>
                   )}
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Método de Pagamento */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="w-5 h-5" />
-                  Método de Pagamento
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div
-                    className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
-                      checkoutData.payment_method === 'credit_card'
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => setCheckoutData(prev => ({ ...prev, payment_method: 'credit_card' }))}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <CreditCard className="w-5 h-5" />
-                      <span className="font-medium">Cartão de Crédito</span>
-                    </div>
-                    <p className="text-sm text-gray-600">Pague com cartão de crédito</p>
-                  </div>
-
-                  <div
-                    className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
-                      checkoutData.payment_method === 'boleto'
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => setCheckoutData(prev => ({ ...prev, payment_method: 'boleto' }))}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <FileText className="w-5 h-5" />
-                      <span className="font-medium">Boleto</span>
-                    </div>
-                    <p className="text-sm text-gray-600">Pague com boleto bancário</p>
-                  </div>
-
-                  <div
-                    className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
-                      checkoutData.payment_method === 'pix'
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => setCheckoutData(prev => ({ ...prev, payment_method: 'pix' }))}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <QrCode className="w-5 h-5" />
-                      <span className="font-medium">PIX</span>
-                    </div>
-                    <p className="text-sm text-gray-600">Pague com PIX</p>
-                  </div>
-                </div>
-
-                {/* Dados do Cartão */}
-                {checkoutData.payment_method === 'credit_card' && (
-                  <div className="space-y-4 border-t pt-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="cardNumber">Número do Cartão *</Label>
-                        <Input
-                          id="cardNumber"
-                          value={checkoutData.card_data?.number || ''}
-                          onChange={(e) => setCheckoutData(prev => ({
-                            ...prev,
-                            card_data: { ...prev.card_data, number: e.target.value }
-                          }))}
-                          className={errors.cardNumber ? 'border-red-500' : ''}
-                        />
-                        {errors.cardNumber && (
-                          <p className="text-red-500 text-sm mt-1">{errors.cardNumber}</p>
-                        )}
-                      </div>
-                      <div>
-                        <Label htmlFor="cardHolder">Nome do Titular *</Label>
-                        <Input
-                          id="cardHolder"
-                          value={checkoutData.card_data?.holder_name || ''}
-                          onChange={(e) => setCheckoutData(prev => ({
-                            ...prev,
-                            card_data: { ...prev.card_data, holder_name: e.target.value }
-                          }))}
-                          className={errors.cardHolder ? 'border-red-500' : ''}
-                        />
-                        {errors.cardHolder && (
-                          <p className="text-red-500 text-sm mt-1">{errors.cardHolder}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <Label htmlFor="expMonth">Mês *</Label>
-                        <Select
-                          value={checkoutData.card_data?.exp_month || ''}
-                          onValueChange={(value) => setCheckoutData(prev => ({
-                            ...prev,
-                            card_data: { ...prev.card_data, exp_month: value }
-                          }))}
-                        >
-                          <SelectTrigger className={errors.cardExpMonth ? 'border-red-500' : ''}>
-                            <SelectValue placeholder="MM" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
-                              <SelectItem key={month} value={month.toString().padStart(2, '0')}>
-                                {month.toString().padStart(2, '0')}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {errors.cardExpMonth && (
-                          <p className="text-red-500 text-sm mt-1">{errors.cardExpMonth}</p>
-                        )}
-                      </div>
-                      <div>
-                        <Label htmlFor="expYear">Ano *</Label>
-                        <Select
-                          value={checkoutData.card_data?.exp_year || ''}
-                          onValueChange={(value) => setCheckoutData(prev => ({
-                            ...prev,
-                            card_data: { ...prev.card_data, exp_year: value }
-                          }))}
-                        >
-                          <SelectTrigger className={errors.cardExpYear ? 'border-red-500' : ''}>
-                            <SelectValue placeholder="AAAA" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() + i).map(year => (
-                              <SelectItem key={year} value={year.toString()}>
-                                {year}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {errors.cardExpYear && (
-                          <p className="text-red-500 text-sm mt-1">{errors.cardExpYear}</p>
-                        )}
-                      </div>
-                      <div>
-                        <Label htmlFor="cvv">CVV *</Label>
-                        <Input
-                          id="cvv"
-                          value={checkoutData.card_data?.cvv || ''}
-                          onChange={(e) => setCheckoutData(prev => ({
-                            ...prev,
-                            card_data: { ...prev.card_data, cvv: e.target.value }
-                          }))}
-                          className={errors.cardCvv ? 'border-red-500' : ''}
-                        />
-                        {errors.cardCvv && (
-                          <p className="text-red-500 text-sm mt-1">{errors.cardCvv}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="installments">Parcelas</Label>
-                      <Select
-                        value={checkoutData.installments.toString()}
-                        onValueChange={(value) => setCheckoutData(prev => ({
-                          ...prev,
-                          installments: parseInt(value)
-                        }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Array.from({ length: 12 }, (_, i) => i + 1).map(installment => (
-                            <SelectItem key={installment} value={installment.toString()}>
-                              {installment}x de {formatPrice(calculateTotal() / installment)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
           </div>

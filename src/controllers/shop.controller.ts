@@ -3,6 +3,9 @@ import prisma from '@/config/database';
 import { createPagarmeOrder, getPagarmeOrder, cancelPagarmeOrder, PagarmeOrder, PagarmeCustomer, PagarmeAddress, PagarmeItem, PagarmePayment, PagarmeShipping } from '../config/pagarme';
 import { validationResult } from 'express-validator';
 import { body } from 'express-validator';
+import { PrismaClient } from '@prisma/client';
+
+const prismaClient = new PrismaClient();
 
 // ================= PRODUTOS =================
 // Listar todos os produtos
@@ -21,11 +24,38 @@ export const getAllShopItems = async (req: Request, res: Response) => {
   }
 };
 
-// Buscar produto por ID
+// Buscar produto por ID ou slug
 export const getShopItemById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const item = await prisma.shopItem.findUnique({ where: { id } });
+    
+    if (!id) {
+      return res.status(400).json({ success: false, error: 'ID não fornecido' });
+    }
+
+    const isNumeric = /^\d+$/.test(id);
+    
+    let item;
+    if (isNumeric) {
+      // Buscar por ID numérico
+      item = await prisma.shopItem.findUnique({ 
+        where: { id: parseInt(id) },
+        include: {
+          categoryObj: true,
+          tags: { include: { tag: true } }
+        }
+      });
+    } else {
+      // Buscar por slug
+      item = await prisma.shopItem.findUnique({ 
+        where: { slug: id },
+        include: {
+          categoryObj: true,
+          tags: { include: { tag: true } }
+        }
+      });
+    }
+    
     if (!item) {
       return res.status(404).json({ success: false, error: 'Produto não encontrado' });
     }
@@ -34,6 +64,63 @@ export const getShopItemById = async (req: Request, res: Response) => {
     return res.status(500).json({ success: false, error: 'Erro ao buscar produto' });
   }
 };
+
+// Buscar produto por slug
+export const getShopItemBySlug = async (req: Request, res: Response) => {
+  try {
+    const { slug } = req.params;
+    
+    const item = await prisma.shopItem.findUnique({ 
+      where: { slug },
+      include: {
+        categoryObj: true,
+        tags: { include: { tag: true } }
+      }
+    });
+    
+    if (!item) {
+      return res.status(404).json({ success: false, error: 'Produto não encontrado' });
+    }
+    return res.json({ success: true, data: item });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Erro ao buscar produto' });
+  }
+};
+
+// Função para gerar slug a partir do nome
+function generateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+    .replace(/[^a-z0-9\s-]/g, '') // Remove caracteres especiais
+    .replace(/\s+/g, '-') // Substitui espaços por hífens
+    .replace(/-+/g, '-') // Remove hífens duplicados
+    .trim()
+    .replace(/^-+|-+$/g, ''); // Remove hífens no início e fim
+}
+
+// Função para gerar slug único
+async function generateUniqueSlug(name: string): Promise<string> {
+  let slug = generateSlug(name);
+  let counter = 1;
+  let uniqueSlug = slug;
+
+  while (true) {
+    const existing = await prismaClient.shopItem.findUnique({
+      where: { slug: uniqueSlug }
+    });
+
+    if (!existing) {
+      break;
+    }
+
+    uniqueSlug = `${slug}-${counter}`;
+    counter++;
+  }
+
+  return uniqueSlug;
+}
 
 // Criar produto
 export const createShopItem = async (req: Request, res: Response) => {
@@ -60,6 +147,8 @@ export const createShopItem = async (req: Request, res: Response) => {
       isPromo = false
     } = req.body;
 
+    const slug = await generateUniqueSlug(name);
+
     const shopItem = await prisma.shopItem.create({
       data: {
         name,
@@ -79,7 +168,8 @@ export const createShopItem = async (req: Request, res: Response) => {
         promoStart,
         promoEnd,
         mainImage,
-        isPromo
+        isPromo,
+        slug
       }
     });
 
@@ -106,6 +196,11 @@ export const createShopItem = async (req: Request, res: Response) => {
 export const updateShopItem = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    
+    if (!id) {
+      return res.status(400).json({ success: false, error: 'ID não fornecido' });
+    }
+    
     const {
       name,
       description,
@@ -128,8 +223,23 @@ export const updateShopItem = async (req: Request, res: Response) => {
       isPromo
     } = req.body;
 
+    // Buscar produto atual para verificar se o nome mudou
+    const currentProduct = await prisma.shopItem.findUnique({
+      where: { id: parseInt(id) }
+    });
+
+    if (!currentProduct) {
+      return res.status(404).json({ success: false, error: 'Produto não encontrado' });
+    }
+
+    // Gerar novo slug se o nome mudou
+    let slug = currentProduct.slug;
+    if (name && name !== currentProduct.name) {
+      slug = await generateUniqueSlug(name);
+    }
+
     const shopItem = await prisma.shopItem.update({
-      where: { id },
+      where: { id: parseInt(id) },
       data: {
         name,
         description,
@@ -148,7 +258,8 @@ export const updateShopItem = async (req: Request, res: Response) => {
         promoStart,
         promoEnd,
         mainImage,
-        isPromo
+        isPromo,
+        slug
       }
     });
 
@@ -156,13 +267,13 @@ export const updateShopItem = async (req: Request, res: Response) => {
     if (tags) {
       // Remover tags existentes
       await prisma.shopItemTag.deleteMany({
-        where: { shopItemId: id }
+        where: { shopItemId: parseInt(id) }
       });
 
       // Adicionar novas tags
       if (tags.length > 0) {
         const tagConnections = tags.map((tagId: string) => ({
-          shopItemId: id,
+          shopItemId: parseInt(id),
           tagId
         }));
 
@@ -183,7 +294,12 @@ export const updateShopItem = async (req: Request, res: Response) => {
 export const deleteShopItem = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    await prisma.shopItem.delete({ where: { id } });
+    
+    if (!id) {
+      return res.status(400).json({ success: false, error: 'ID não fornecido' });
+    }
+    
+    await prisma.shopItem.delete({ where: { id: parseInt(id) } });
     return res.json({ success: true, message: 'Produto deletado com sucesso' });
   } catch (error) {
     return res.status(500).json({ success: false, error: 'Erro ao deletar produto' });
@@ -569,7 +685,7 @@ export const createRealOrder = async (req: Request, res: Response) => {
         amount: itemTotal,
         description: product.name,
         quantity: item.quantity,
-        code: product.id // Usar ID do produto como código
+        code: product.id.toString() // Converter ID para string
       });
     }
 
@@ -683,14 +799,14 @@ export const createRealOrder = async (req: Request, res: Response) => {
       data: {
         userId: req.user.userId,
         status: 'pending',
-        pagarmeOrderId: pagarmeOrder.id,
-        amount: totalAmount,
+        paymentId: pagarmeOrder.id,
+        totalAmount: totalAmount,
         items: items.map((item: any) => ({
           productId: item.productId,
           quantity: item.quantity,
           price: products.find(p => p.id === item.productId)?.price || 0
         }))
-      }
+      } as any,
     });
 
     // Atualizar estoque dos produtos
@@ -706,17 +822,16 @@ export const createRealOrder = async (req: Request, res: Response) => {
 
     console.log('✅ Pedido criado com sucesso:', {
       localOrderId: localOrder.id,
-      pagarmeOrderId: pagarmeOrder.id,
-      amount: totalAmount
+      paymentId: pagarmeOrder.id,
+      totalAmount: totalAmount
     });
 
     return res.json({
       success: true,
       data: {
         orderId: localOrder.id,
-        pagarmeOrderId: pagarmeOrder.id,
         status: pagarmeOrder.status,
-        amount: totalAmount,
+        totalAmount: totalAmount,
         paymentUrl: pagarmeOrder.charges?.[0]?.last_transaction?.url,
         qrCode: pagarmeOrder.charges?.[0]?.last_transaction?.qr_code,
         boletoUrl: pagarmeOrder.charges?.[0]?.last_transaction?.url,
@@ -761,9 +876,9 @@ export const getOrderStatus = async (req: Request, res: Response) => {
     }
 
     // Se tem ID do Pagar.me, buscar status atualizado
-    if (localOrder.pagarmeOrderId) {
+    if ((localOrder as any).paymentId) {
       try {
-        const pagarmeOrder = await getPagarmeOrder(localOrder.pagarmeOrderId);
+        const pagarmeOrder = await getPagarmeOrder((localOrder as any).paymentId);
         
         // Atualizar status no banco se mudou
         if (pagarmeOrder.status !== localOrder.status) {
@@ -779,7 +894,7 @@ export const getOrderStatus = async (req: Request, res: Response) => {
           data: {
             orderId: localOrder.id,
             status: pagarmeOrder.status,
-            amount: localOrder.amount,
+            totalAmount: (localOrder as any).totalAmount,
             items: localOrder.items,
             createdAt: localOrder.createdAt,
             updatedAt: localOrder.updatedAt,
@@ -801,7 +916,7 @@ export const getOrderStatus = async (req: Request, res: Response) => {
       data: {
         orderId: localOrder.id,
         status: localOrder.status,
-        amount: localOrder.amount,
+        totalAmount: (localOrder as any).totalAmount,
         items: localOrder.items,
         createdAt: localOrder.createdAt,
         updatedAt: localOrder.updatedAt
@@ -881,9 +996,9 @@ export const cancelOrder = async (req: Request, res: Response) => {
     }
 
     // Cancelar no Pagar.me se tiver ID
-    if (localOrder.pagarmeOrderId) {
+    if ((localOrder as any).paymentId) {
       try {
-        await cancelPagarmeOrder(localOrder.pagarmeOrderId);
+        await cancelPagarmeOrder((localOrder as any).paymentId);
       } catch (pagarmeError) {
         console.error('Erro ao cancelar no Pagar.me:', pagarmeError);
       }
@@ -922,4 +1037,190 @@ export const cancelOrder = async (req: Request, res: Response) => {
 };
 
 // Exportar validação para uso nas rotas
-export { checkoutRealValidation }; 
+export { checkoutRealValidation };
+
+// ===== MÉTODOS PARA STRIPE =====
+
+// Criar pedido usando Stripe
+export const createStripeOrder = async (req: Request, res: Response) => {
+  try {
+    console.log('🔍 createStripeOrder - Iniciando...');
+    console.log('🔍 Headers:', req.headers);
+    console.log('🔍 User:', req.user);
+    console.log('🔍 Body:', req.body);
+
+    if (!req.user) {
+      console.log('❌ Usuário não autenticado');
+      return res.status(401).json({
+        success: false,
+        error: 'Usuário não autenticado',
+      });
+    }
+
+    const { items, customerInfo, shippingAddress, successUrl, cancelUrl } = req.body;
+
+    console.log('🔍 Dados recebidos:', { items, customerInfo, shippingAddress, successUrl, cancelUrl });
+
+    // Validações básicas
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      console.log('❌ Items inválidos:', items);
+      return res.status(400).json({
+        success: false,
+        error: 'Items são obrigatórios e devem ser um array não vazio',
+      });
+    }
+
+    if (!customerInfo || !shippingAddress) {
+      console.log('❌ Dados do cliente ou endereço ausentes:', { customerInfo, shippingAddress });
+      return res.status(400).json({
+        success: false,
+        error: 'Informações do cliente e endereço de entrega são obrigatórios',
+      });
+    }
+
+    // URLs padrão se não fornecidas
+    const finalSuccessUrl = successUrl || `${process.env.FRONTEND_URL || 'http://localhost:8080'}/loja/success`;
+    const finalCancelUrl = cancelUrl || `${process.env.FRONTEND_URL || 'http://localhost:8080'}/loja/cancel`;
+
+    // Importar o serviço Stripe
+    const { StripeService } = await import('../services/stripe.service');
+    const stripeService = new StripeService();
+
+    // Criar sessão de checkout
+    const session = await stripeService.createShopOrderCheckoutSession(
+      req.user.userId,
+      items,
+      customerInfo,
+      shippingAddress,
+      finalSuccessUrl,
+      finalCancelUrl
+    );
+
+    console.log('✅ Sessão de checkout Stripe criada:', session.id);
+
+    return res.json({
+      success: true,
+      data: {
+        sessionId: session.id,
+        url: session.url,
+        orderId: session.id, // Para compatibilidade com frontend
+      },
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao criar pedido Stripe:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Erro interno do servidor',
+    });
+  }
+};
+
+// Processar webhook do Stripe para pedidos da loja
+export const processStripeWebhook = async (req: Request, res: Response) => {
+  try {
+    const sig = req.headers['stripe-signature'];
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    if (!sig || !webhookSecret) {
+      console.error('❌ Webhook secret ou assinatura não configurados');
+      return res.status(400).json({
+        success: false,
+        error: 'Configuração de webhook ausente',
+      });
+    }
+
+    // Importar Stripe
+    const Stripe = (await import('stripe')).default;
+    const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: '2023-10-16',
+    });
+
+    let event: any;
+
+    try {
+      event = stripeInstance.webhooks.constructEvent(req.body, sig, webhookSecret);
+    } catch (err: any) {
+      console.error(`❌ Erro na verificação da assinatura do webhook: ${err.message}`);
+      return res.status(400).json({
+        success: false,
+        error: `Webhook Error: ${err.message}`,
+      });
+    }
+
+    // Processar apenas eventos de checkout da loja
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object;
+      
+      // Verificar se é um pedido da loja (não assinatura)
+      if (session.mode === 'payment' && session.metadata?.source === 'baby_diary_shop') {
+        console.log('🔄 Processando pedido da loja via Stripe:', session.id);
+        
+        const { StripeService } = await import('../services/stripe.service');
+        const stripeService = new StripeService();
+        
+        await stripeService.processShopOrderPayment(session.id);
+        
+        console.log('✅ Pedido da loja processado com sucesso:', session.id);
+      }
+    }
+
+    return res.json({ received: true });
+  } catch (error: any) {
+    console.error('❌ Erro ao processar webhook Stripe:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor',
+    });
+  }
+};
+
+// Buscar status do pedido Stripe
+export const getStripeOrderStatus = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Usuário não autenticado',
+      });
+    }
+
+    const { sessionId } = req.params;
+
+    if (!sessionId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Session ID é obrigatório',
+      });
+    }
+
+    // Importar Stripe
+    const Stripe = (await import('stripe')).default;
+    const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: '2023-10-16',
+    });
+
+    // Buscar sessão no Stripe
+    const session = await stripeInstance.checkout.sessions.retrieve(sessionId);
+
+    // Buscar pedido no banco
+    const { StripeService } = await import('../services/stripe.service');
+    const stripeService = new StripeService();
+    const order = await stripeService.getOrderByStripeSessionId(sessionId);
+
+    return res.json({
+      success: true,
+      data: {
+        session,
+        order,
+        status: session.payment_status,
+        url: session.url,
+      },
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao buscar status do pedido Stripe:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Erro interno do servidor',
+    });
+  }
+}; 

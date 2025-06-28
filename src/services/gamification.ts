@@ -553,7 +553,7 @@ export class GamificationService {
    */
   static async purchaseItem(userId: string, itemId: string): Promise<any> {
     const item = await prisma.shopItem.findUnique({
-      where: { id: itemId },
+      where: { id: parseInt(itemId) },
     });
 
     if (!item || !item.isActive) {
@@ -583,7 +583,7 @@ export class GamificationService {
     // Verificar estoque se for limitado
     if (item.isLimited && item.stock !== null) {
       const purchasedCount = await prisma.userPurchase.count({
-        where: { itemId },
+        where: { itemId: parseInt(itemId) },
       });
 
       if (purchasedCount >= item.stock) {
@@ -594,7 +594,7 @@ export class GamificationService {
     // Verificar se já comprou (para itens únicos ou bônus)
     if (item.type === 'theme' || item.type === 'feature' || item.type === 'bonus') {
       const alreadyPurchased = await prisma.userPurchase.findFirst({
-        where: { userId, itemId },
+        where: { userId, itemId: parseInt(itemId) },
       });
       if (alreadyPurchased) {
         throw new Error('Item já comprado');
@@ -605,7 +605,7 @@ export class GamificationService {
     const purchase = await prisma.userPurchase.create({
       data: {
         userId,
-        itemId,
+        itemId: parseInt(itemId),
         pointsSpent: item.price,
       },
     });

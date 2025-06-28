@@ -28,8 +28,8 @@ interface Pedido {
     email: string;
   };
   status: string;
-  pagarmeOrderId?: string;
-  amount: number;
+  paymentId?: string;
+  totalAmount: number;
   items: any[];
   createdAt: string;
   updatedAt: string;
@@ -60,7 +60,7 @@ export const AdminPedidos: React.FC = () => {
   const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null);
   const [editForm, setEditForm] = useState({
     status: 'pending',
-    pagarmeOrderId: ''
+    paymentId: ''
   });
 
   const fetchPedidos = async () => {
@@ -116,7 +116,7 @@ export const AdminPedidos: React.FC = () => {
     setSelectedPedido(pedido);
     setEditForm({
       status: pedido.status || 'pending',
-      pagarmeOrderId: pedido.pagarmeOrderId || ''
+      paymentId: pedido.paymentId || ''
     });
     setShowEditModal(true);
   };
@@ -329,7 +329,7 @@ export const AdminPedidos: React.FC = () => {
                         {getStatusBadge(pedido.status)}
                       </TableCell>
                       <TableCell className="font-medium">
-                        {formatCurrency(pedido.amount)}
+                        {formatCurrency(pedido.totalAmount)}
                       </TableCell>
                       <TableCell>
                         <div className="text-sm">
@@ -428,12 +428,12 @@ export const AdminPedidos: React.FC = () => {
                 </div>
                 <div>
                   <label className="text-sm font-medium">Valor Total</label>
-                  <p className="text-lg font-bold">{formatCurrency(selectedPedido.amount)}</p>
+                  <p className="text-lg font-bold">{formatCurrency(selectedPedido.totalAmount)}</p>
                 </div>
-                {selectedPedido.pagarmeOrderId && (
+                {selectedPedido.paymentId && (
                   <div>
                     <label className="text-sm font-medium">ID Pagar.Me</label>
-                    <p className="text-sm font-mono">{selectedPedido.pagarmeOrderId}</p>
+                    <p className="text-sm font-mono">{selectedPedido.paymentId}</p>
                   </div>
                 )}
                 <div>
@@ -496,8 +496,8 @@ export const AdminPedidos: React.FC = () => {
             <div>
               <label className="text-sm font-medium">ID Pagar.Me (opcional)</label>
               <Input
-                value={editForm.pagarmeOrderId}
-                onChange={(e) => setEditForm(prev => ({ ...prev, pagarmeOrderId: e.target.value }))}
+                value={editForm.paymentId}
+                onChange={(e) => setEditForm(prev => ({ ...prev, paymentId: e.target.value }))}
                 placeholder="ID do pedido no Pagar.Me"
               />
             </div>

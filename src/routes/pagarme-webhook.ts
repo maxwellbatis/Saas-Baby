@@ -89,7 +89,7 @@ async function handleOrderPaid(data: any) {
 
     // Buscar pedido no banco local
     const localOrder = await prisma.pedido.findFirst({
-      where: { pagarmeOrderId: orderId }
+      where: { paymentId: orderId } as any
     });
 
     if (!localOrder) {
@@ -126,7 +126,7 @@ async function handleOrderCanceled(data: any) {
     console.log('❌ Pedido cancelado:', orderId);
 
     const localOrder = await prisma.pedido.findFirst({
-      where: { pagarmeOrderId: orderId }
+      where: { paymentId: orderId } as any
     });
 
     if (!localOrder) {
@@ -170,7 +170,7 @@ async function handleOrderFailed(data: any) {
     console.log('❌ Pedido falhou:', orderId);
 
     const localOrder = await prisma.pedido.findFirst({
-      where: { pagarmeOrderId: orderId }
+      where: { paymentId: orderId } as any
     });
 
     if (!localOrder) {
@@ -216,7 +216,7 @@ async function handleChargePaid(data: any) {
 
     // Buscar pedido pelo ID da cobrança
     const localOrder = await prisma.pedido.findFirst({
-      where: { pagarmeOrderId: orderId }
+      where: { paymentId: orderId } as any
     });
 
     if (!localOrder) {
@@ -248,7 +248,7 @@ async function handleChargeCanceled(data: any) {
     console.log('❌ Cobrança cancelada:', chargeId, 'Pedido:', orderId);
 
     const localOrder = await prisma.pedido.findFirst({
-      where: { pagarmeOrderId: orderId }
+      where: { paymentId: orderId } as any
     });
 
     if (!localOrder) {
@@ -293,7 +293,7 @@ async function handleChargeFailed(data: any) {
     console.log('❌ Cobrança falhou:', chargeId, 'Pedido:', orderId);
 
     const localOrder = await prisma.pedido.findFirst({
-      where: { pagarmeOrderId: orderId }
+      where: { paymentId: orderId } as any
     });
 
     if (!localOrder) {

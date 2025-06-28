@@ -43,18 +43,18 @@ export const createPedido = async (req: Request, res: Response) => {
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Usuário não autenticado' });
     }
-    const { status, pagarmeOrderId, amount, items } = req.body;
-    if (!amount || !items) {
+    const { status, paymentId, totalAmount, items } = req.body;
+    if (!totalAmount || !items) {
       return res.status(400).json({ success: false, error: 'Valor e itens são obrigatórios' });
     }
     const pedido = await prisma.pedido.create({
       data: {
         userId,
         status: status || 'pending',
-        pagarmeOrderId,
-        amount,
+        paymentId,
+        totalAmount,
         items,
-      },
+      } as any,
     });
     return res.status(201).json({ success: true, data: pedido });
   } catch (error) {
@@ -74,10 +74,10 @@ export const updatePedido = async (req: Request, res: Response) => {
     if (!pedido || pedido.userId !== userId) {
       return res.status(404).json({ success: false, error: 'Pedido não encontrado' });
     }
-    const { status, pagarmeOrderId, amount, items } = req.body;
+    const { status, paymentId, totalAmount, items } = req.body;
     const pedidoAtualizado = await prisma.pedido.update({
       where: { id },
-      data: { status, pagarmeOrderId, amount, items },
+      data: { status, paymentId, totalAmount, items } as any,
     });
     return res.json({ success: true, data: pedidoAtualizado });
   } catch (error) {

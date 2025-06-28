@@ -4,7 +4,8 @@ import { apiFetch } from '../../config/api';
 
 // Interface para produtos da API
 interface Produto {
-  id: string;
+  id: number;
+  slug: string;
   name: string;
   description?: string;
   price: number;
@@ -211,7 +212,7 @@ const CategoriaLoja: React.FC = () => {
               </div>
               <button
                 className="bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-full font-semibold shadow-md text-sm w-full"
-                onClick={() => navigate(`/loja/produto/${prod.id}`)}
+                onClick={() => navigate(`/loja/produto/${prod.slug}`)}
               >
                 Ver mais
               </button>

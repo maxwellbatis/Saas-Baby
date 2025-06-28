@@ -693,11 +693,11 @@ export const getAllPedidosAdmin = async (req: Request, res: Response) => {
       }
     }
 
-    // Busca por ID do pedido ou pagarmeOrderId
+    // Busca por ID do pedido ou paymentId
     if (search) {
       where.OR = [
         { id: { contains: search as string, mode: 'insensitive' } },
-        { pagarmeOrderId: { contains: search as string, mode: 'insensitive' } }
+        { paymentId: { contains: search as string, mode: 'insensitive' } } as any
       ];
     }
 
@@ -782,7 +782,7 @@ export const getPedidoByIdAdmin = async (req: Request, res: Response) => {
 export const updatePedidoAdmin = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { status, pagarmeOrderId, amount, items } = req.body;
+    const { status, paymentId, totalAmount, items } = req.body;
 
     const pedido = await prisma.pedido.findUnique({
       where: { id },
@@ -799,8 +799,8 @@ export const updatePedidoAdmin = async (req: Request, res: Response) => {
       where: { id },
       data: {
         status: status || pedido.status,
-        pagarmeOrderId: pagarmeOrderId || pedido.pagarmeOrderId,
-        amount: amount || pedido.amount,
+        paymentId: paymentId || pedido.paymentId,
+        totalAmount: totalAmount || pedido.totalAmount,
         items: items || pedido.items,
       },
       include: {

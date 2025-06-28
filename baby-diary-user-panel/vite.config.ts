@@ -11,9 +11,9 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     proxy: {
       '/api': {
-        target: 'https://api.babydiary.shop',
+        target: mode === 'development' ? 'http://localhost:3000' : 'https://api.babydiary.shop',
         changeOrigin: true,
-        secure: true,
+        secure: mode !== 'development',
       }
     }
   },

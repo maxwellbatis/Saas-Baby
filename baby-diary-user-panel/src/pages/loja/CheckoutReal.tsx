@@ -9,6 +9,7 @@ import { Textarea } from '../../components/ui/textarea';
 import { Badge } from '../../components/ui/badge';
 import { Separator } from '../../components/ui/separator';
 import { useToast } from '../../hooks/use-toast';
+import { apiFetch } from '../../config/api';
 import { 
   CreditCard, 
   FileText, 
@@ -236,16 +237,10 @@ const CheckoutReal: React.FC = () => {
         ...checkoutData
       };
 
-      const response = await fetch('/api/shop/checkout/create-order', {
+      const result = await apiFetch('/shop/checkout/create-order', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify(payload)
       });
-
-      const result = await response.json();
 
       if (result.success) {
         setOrderData(result.data);

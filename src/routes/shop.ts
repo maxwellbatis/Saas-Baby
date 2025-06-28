@@ -64,7 +64,7 @@ router.delete('/banners/:id', authenticateUser, deleteBanner);
 // ===== ROTAS DE CHECKOUT REAL COM PAGAR.ME =====
 
 // Criar pedido real
-router.post('/checkout/create-order', authenticateUser, checkoutRealValidation, createRealOrder);
+router.post('/checkout/create-order', authenticateUser, createRealOrder);
 
 // Consultar status do pedido
 router.get('/orders/:orderId/status', authenticateUser, getOrderStatus);

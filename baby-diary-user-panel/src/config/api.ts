@@ -1,7 +1,7 @@
 // Configuração centralizada da API
 export const API_CONFIG = {
   // URL base da API - pode ser sobrescrita por variável de ambiente
-  BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  BASE_URL: import.meta.env.VITE_API_URL || 'https://api.babydiary.shop',
   
   // Timeout padrão para requisições
   TIMEOUT: 10000,
@@ -20,17 +20,15 @@ console.log('🔧 Configuração API:', {
 
 // Função para obter a URL completa de um endpoint
 export const getApiUrl = (endpoint: string): string => {
-  // Remove /api se já estiver na BASE_URL
-  const baseUrl = API_CONFIG.BASE_URL.endsWith('/api') 
-    ? API_CONFIG.BASE_URL 
-    : `${API_CONFIG.BASE_URL}/api`;
+  // Garantir que a BASE_URL não termine com /
+  const baseUrl = API_CONFIG.BASE_URL.endsWith('/') 
+    ? API_CONFIG.BASE_URL.slice(0, -1) 
+    : API_CONFIG.BASE_URL;
   
-  // Remove /api do endpoint se já estiver na base
-  const cleanEndpoint = endpoint.startsWith('/api') 
-    ? endpoint.substring(4) 
-    : endpoint;
+  // Garantir que o endpoint comece com /
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   
-  return `${baseUrl}${cleanEndpoint}`;
+  return `${baseUrl}/api${cleanEndpoint}`;
 };
 
 // Função para obter headers de autenticação
@@ -60,6 +58,7 @@ export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
   };
   
   try {
+    console.log('🌐 Fazendo requisição para:', url);
     const response = await fetch(url, config);
     
     if (!response.ok) {

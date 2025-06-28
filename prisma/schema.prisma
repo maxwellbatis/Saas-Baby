@@ -978,6 +978,7 @@ model Banner {
   targetUrl   String?  // URL de destino (produto, categoria, etc.)
   targetType  String?  // product, category, external
   targetId    String?  // ID do produto/categoria
+  location    String   @default("loja") // loja, dashboard, ambos
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   createdBy   String   // ID do admin que criou

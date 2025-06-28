@@ -220,63 +220,45 @@ export class StripeService {
   // Handlers de webhook
   private async handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
     try {
-      // Buscar usuário pelo email do customer
-      const user = await prisma.user.findFirst({
-        where: { 
-          email: session.customer_email || ''
-        },
+      console.log('🔍 Processando checkout.session.completed para sessão:', session.id);
+      
+      // Buscar pedido pelo stripe_session_id salvo no metadata
+      const pedido = await prisma.pedido.findFirst({
+        where: {
+          metadata: {
+            path: ['stripe_session_id'],
+            equals: session.id,
+          } as any,
+        } as any,
       });
 
-      if (!user) {
-        console.error('Usuário não encontrado para o email:', session.customer_email);
+      if (!pedido) {
+        console.error('❌ Pedido não encontrado para a sessão:', session.id);
         return;
       }
 
-      const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
-      const plan = await prisma.plan.findFirst({
-        where: { 
-          stripePriceId: subscription.items.data[0]?.price?.id || ''
-        },
+      console.log('✅ Pedido encontrado:', pedido.id);
+
+      // Atualizar status do pedido para "paid"
+      await prisma.pedido.update({
+        where: { id: pedido.id },
+        data: {
+          status: 'paid',
+          paymentId: session.payment_intent as string,
+          // Atualizar metadata com informações do pagamento
+          metadata: {
+            ...(pedido.metadata as any || {}),
+            payment_status: session.payment_status,
+            payment_intent: session.payment_intent,
+            customer_email: session.customer_email,
+            updated_at: new Date().toISOString(),
+          } as any,
+        } as any,
       });
 
-      if (!plan) {
-        console.error('Plano não encontrado para o price ID:', subscription.items.data[0]?.price?.id);
-        return;
-      }
-
-      // Criar ou atualizar assinatura no banco
-      await prisma.subscription.upsert({
-        where: { userId: user.id },
-        update: {
-          planId: plan.id,
-          stripeSubscriptionId: session.subscription as string,
-          stripeCustomerId: session.customer as string,
-          status: subscription.status,
-          currentPeriodStart: new Date(subscription.current_period_start * 1000),
-          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-          cancelAtPeriodEnd: subscription.cancel_at_period_end,
-        },
-        create: {
-          userId: user.id,
-          planId: plan.id,
-          stripeSubscriptionId: session.subscription as string,
-          stripeCustomerId: session.customer as string,
-          status: subscription.status,
-          currentPeriodStart: new Date(subscription.current_period_start * 1000),
-          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-          cancelAtPeriodEnd: subscription.cancel_at_period_end,
-        },
-      });
-
-      // Atualizar usuário com o plano
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { planId: plan.id },
-      });
-
-      console.log(`Assinatura criada para usuário ${user.email} - Plano: ${plan.name}`);
+      console.log(`✅ Pedido ${pedido.id} atualizado para pago!`);
     } catch (error) {
-      console.error('Erro ao processar checkout session completed:', error);
+      console.error('❌ Erro ao processar checkout session completed:', error);
     }
   }
 
@@ -470,7 +452,8 @@ export class StripeService {
       zipCode: string;
     },
     successUrl: string,
-    cancelUrl: string
+    cancelUrl: string,
+    orderId?: string
   ) {
     try {
       // Buscar usuário
@@ -530,7 +513,7 @@ export class StripeService {
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: lineItems,
-        mode: 'payment', // Modo de pagamento único (não assinatura)
+        mode: 'payment',
         customer: customerId,
         success_url: successUrl,
         cancel_url: cancelUrl,
@@ -552,6 +535,7 @@ export class StripeService {
           shipping_city: shippingAddress.city,
           shipping_state: shippingAddress.state,
           shipping_zip_code: shippingAddress.zipCode,
+          ...(orderId ? { order_id: orderId } : {}),
         },
       });
 

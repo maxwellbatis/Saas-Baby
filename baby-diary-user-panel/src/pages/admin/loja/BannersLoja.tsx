@@ -41,6 +41,7 @@ interface Banner {
   targetUrl?: string;
   targetType?: string;
   targetId?: string;
+  location: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -67,7 +68,8 @@ export const BannersLoja: React.FC = () => {
     endDate: '',
     targetUrl: '',
     targetType: 'external',
-    targetId: ''
+    targetId: '',
+    location: 'loja'
   });
 
   const gradientOptions = [
@@ -85,6 +87,12 @@ export const BannersLoja: React.FC = () => {
     { value: 'external', label: 'Link Externo' },
     { value: 'product', label: 'Produto' },
     { value: 'category', label: 'Categoria' }
+  ];
+
+  const locationOptions = [
+    { value: 'loja', label: 'Loja' },
+    { value: 'dashboard', label: 'Dashboard' },
+    { value: 'ambos', label: 'Ambos' }
   ];
 
   useEffect(() => {
@@ -126,7 +134,8 @@ export const BannersLoja: React.FC = () => {
         endDate: banner.endDate ? banner.endDate.split('T')[0] : '',
         targetUrl: banner.targetUrl || '',
         targetType: banner.targetType || 'external',
-        targetId: banner.targetId || ''
+        targetId: banner.targetId || '',
+        location: banner.location || 'loja'
       });
     } else {
       setEditing(false);
@@ -146,7 +155,8 @@ export const BannersLoja: React.FC = () => {
         endDate: '',
         targetUrl: '',
         targetType: 'external',
-        targetId: ''
+        targetId: '',
+        location: 'loja'
       });
     }
     setShowModal(true);
@@ -258,6 +268,7 @@ export const BannersLoja: React.FC = () => {
                 <TableHead>Status</TableHead>
                 <TableHead>Ordem</TableHead>
                 <TableHead>Período</TableHead>
+                <TableHead>Localização</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -315,6 +326,15 @@ export const BannersLoja: React.FC = () => {
                       {!banner.startDate && !banner.endDate && (
                         <div className="text-gray-500">Sem período definido</div>
                       )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      <Badge variant="outline" className="text-xs">
+                        {banner.location === 'loja' ? '🏪 Loja' : 
+                         banner.location === 'dashboard' ? '📊 Dashboard' : 
+                         '🌐 Ambos'}
+                      </Badge>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -444,6 +464,21 @@ export const BannersLoja: React.FC = () => {
                 value={form.targetUrl}
                 onChange={(e) => setForm({...form, targetUrl: e.target.value})}
               />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Localização</label>
+              <Select value={form.location} onValueChange={(value) => setForm({...form, location: value})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {locationOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="text-sm font-medium">Gradiente de Fundo</label>

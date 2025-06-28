@@ -1,5 +1,6 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { authenticateUser } from '../middlewares/auth';
+import prisma from '../config/database';
 import {
   getAllShopItems,
   getShopItemById,
@@ -87,7 +88,58 @@ router.post('/stripe/create-order', authenticateUser, createStripeOrder);
 // Webhook do Stripe para pedidos da loja
 router.post('/stripe/webhook', processStripeWebhook);
 
-// Buscar status do pedido Stripe
+// Buscar status do pedido Stripe por session_id (query parameter)
+router.get('/stripe/order-status', authenticateUser, async (req: Request, res: Response) => {
+  try {
+    const { session_id } = req.query;
+    
+    if (!session_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'session_id é obrigatório',
+      });
+    }
+
+    // Buscar pedido pelo session_id no metadata
+    const pedido = await prisma.pedido.findFirst({
+      where: {
+        metadata: {
+          path: ['stripe_session_id'],
+          equals: session_id,
+        } as any,
+      } as any,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (!pedido) {
+      return res.status(404).json({
+        success: false,
+        error: 'Pedido não encontrado',
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: pedido,
+    });
+  } catch (error) {
+    console.error('Erro ao buscar status do pedido:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor',
+    });
+  }
+});
+
+// Buscar status do pedido Stripe por sessionId (parâmetro de rota)
 router.get('/stripe/order-status/:sessionId', authenticateUser, getStripeOrderStatus);
 
 export default router; 

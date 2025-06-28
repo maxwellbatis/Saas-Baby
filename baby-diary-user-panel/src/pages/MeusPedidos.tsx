@@ -47,7 +47,7 @@ const MeusPedidos: React.FC = () => {
   const fetchPedidos = async () => {
     try {
       setLoading(true);
-      const response = await apiFetch('/shop/orders');
+      const response = await apiFetch('/user/pedidos');
       setPedidos(response.data || []);
     } catch (err: any) {
       console.error('Erro ao buscar pedidos:', err);
@@ -130,8 +130,8 @@ const MeusPedidos: React.FC = () => {
     }
 
     try {
-      await apiFetch(`/shop/orders/${pedidoId}/cancel`, {
-        method: 'POST'
+      await apiFetch(`/user/pedidos/${pedidoId}`, {
+        method: 'DELETE'
       });
       
       // Recarregar pedidos

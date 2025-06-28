@@ -799,8 +799,8 @@ export const updatePedidoAdmin = async (req: Request, res: Response) => {
       where: { id },
       data: {
         status: status || pedido.status,
-        paymentId: paymentId || pedido.paymentId,
-        totalAmount: totalAmount || pedido.totalAmount,
+        
+        
         items: items || pedido.items,
       },
       include: {

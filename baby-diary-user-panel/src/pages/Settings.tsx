@@ -19,7 +19,6 @@ import ChangePasswordForm from "@/components/ChangePasswordForm";
 import AIUsageStatsCard from '../components/AIUsageStatsCard';
 import UpgradePrompt from "@/components/UpgradePrompt";
 import { API_CONFIG } from '../config/api';
-import { adminFamily } from '../lib/adminApi';
 import { Input } from '../components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 
@@ -178,11 +177,20 @@ const Settings = () => {
     if (!user) return;
     setLoadingFamily(true);
     try {
-      const response = await adminFamily.getMembers(user.id);
-      if (response.success) {
-        setFamilyMembers(response.data);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/user/family`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setFamilyMembers(data.data);
+        } else {
+          setFamilyMembers([]);
+        }
       } else {
-        setFamilyMembers([]);
+        throw new Error("Erro ao buscar membros da família");
       }
     } catch (err) {
       setFamilyMembers([]);
@@ -195,13 +203,21 @@ const Settings = () => {
     if (!user) return;
     setInviting(true);
     try {
-      const response = await adminFamily.inviteMember(user.id, inviteData);
-      if (response.success) {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/user/family`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(inviteData),
+      });
+
+      if (response.ok) {
         setShowInviteModal(false);
         setInviteData({ name: '', email: '', relationship: '' });
         fetchFamilyMembers();
       } else {
-        throw new Error(response.error || 'Erro ao convidar membro');
+        throw new Error("Erro ao convidar membro");
       }
     } catch (err: any) {
     } finally {
@@ -212,11 +228,15 @@ const Settings = () => {
   const handleRemoveFamily = async (memberId: string) => {
     if (!user) return;
     try {
-      const response = await adminFamily.removeMember(user.id, memberId);
-      if (response.success) {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/user/family/${memberId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+
+      if (response.ok) {
         fetchFamilyMembers();
       } else {
-        throw new Error(response.error || 'Erro ao remover membro');
+        throw new Error("Erro ao remover membro");
       }
     } catch (err: any) {
     }

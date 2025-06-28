@@ -2833,6 +2833,88 @@ router.post('/family/accept', async (req, res) => {
   }
 });
 
+// ===== ROTAS DE FAMÍLIA =====
+
+// Listar membros da família
+router.get('/family', async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, error: 'Usuário não autenticado' });
+    }
+
+    const familyService = require('../services/family.service').default;
+    const familyMembers = await familyService.getFamilyMembers(req.user.userId);
+
+    return res.json({
+      success: true,
+      data: familyMembers
+    });
+  } catch (error) {
+    console.error('Erro ao listar membros da família:', error);
+    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+  }
+});
+
+// Convidar membro da família
+router.post('/family', async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, error: 'Usuário não autenticado' });
+    }
+
+    const { name, email, relationship } = req.body;
+
+    if (!name || !relationship) {
+      return res.status(400).json({ success: false, error: 'Nome e relação são obrigatórios' });
+    }
+
+    const familyService = require('../services/family.service').default;
+    const result = await familyService.inviteFamilyMember(req.user.userId, {
+      name,
+      email,
+      relationship,
+      permissions: ['view'] // Permissão básica de visualização
+    });
+
+    return res.json({
+      success: true,
+      message: result.message,
+      data: result.familyMember
+    });
+  } catch (error: any) {
+    console.error('Erro ao convidar membro da família:', error);
+    return res.status(400).json({ 
+      success: false, 
+      error: error.message || 'Erro interno do servidor' 
+    });
+  }
+});
+
+// Remover membro da família
+router.delete('/family/:memberId', async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, error: 'Usuário não autenticado' });
+    }
+
+    const { memberId } = req.params;
+
+    const familyService = require('../services/family.service').default;
+    const result = await familyService.removeFamilyMember(req.user.userId, memberId);
+
+    return res.json({
+      success: true,
+      message: result.message
+    });
+  } catch (error: any) {
+    console.error('Erro ao remover membro da família:', error);
+    return res.status(400).json({ 
+      success: false, 
+      error: error.message || 'Erro interno do servidor' 
+    });
+  }
+});
+
 // Rotas de pedidos (após as rotas de usuário)
 router.get('/pedidos', authenticateUser, getAllPedidos);
 router.get('/pedidos/:id', authenticateUser, getPedidoById);

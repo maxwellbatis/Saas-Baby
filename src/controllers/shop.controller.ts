@@ -444,7 +444,13 @@ export const deleteTag = async (req: Request, res: Response) => {
 // Listar todos os banners
 export const getAllBanners = async (req: Request, res: Response) => {
   try {
+    const location = req.query.location as string | undefined;
+    const where: any = {};
+    if (location) {
+      where.location = location;
+    }
     const banners = await prisma.banner.findMany({
+      where,
       orderBy: { sortOrder: 'asc' }
     });
     return res.json({ success: true, data: banners });
@@ -457,16 +463,21 @@ export const getAllBanners = async (req: Request, res: Response) => {
 export const getActiveBanners = async (req: Request, res: Response) => {
   try {
     const now = new Date();
+    const location = req.query.location as string | undefined;
+    const where: any = {
+      isActive: true,
+      OR: [
+        { startDate: null, endDate: null },
+        { startDate: { lte: now }, endDate: null },
+        { startDate: null, endDate: { gte: now } },
+        { startDate: { lte: now }, endDate: { gte: now } }
+      ]
+    };
+    if (location) {
+      where.location = location;
+    }
     const banners = await prisma.banner.findMany({
-      where: {
-        isActive: true,
-        OR: [
-          { startDate: null, endDate: null },
-          { startDate: { lte: now }, endDate: null },
-          { startDate: null, endDate: { gte: now } },
-          { startDate: { lte: now }, endDate: { gte: now } }
-        ]
-      },
+      where,
       orderBy: { sortOrder: 'asc' }
     });
     return res.json({ success: true, data: banners });
@@ -507,7 +518,8 @@ export const createBanner = async (req: Request, res: Response) => {
       endDate,
       targetUrl,
       targetType,
-      targetId
+      targetId,
+      location
     } = req.body;
 
     const newBanner = await prisma.banner.create({
@@ -527,6 +539,7 @@ export const createBanner = async (req: Request, res: Response) => {
         targetUrl,
         targetType,
         targetId,
+        location: location || 'loja',
         createdBy: (req as any).admin?.id || 'system'
       }
     });
@@ -555,7 +568,8 @@ export const updateBanner = async (req: Request, res: Response) => {
       endDate,
       targetUrl,
       targetType,
-      targetId
+      targetId,
+      location
     } = req.body;
 
     const updatedBanner = await prisma.banner.update({
@@ -575,7 +589,8 @@ export const updateBanner = async (req: Request, res: Response) => {
         endDate: endDate ? new Date(endDate) : undefined,
         targetUrl,
         targetType,
-        targetId
+        targetId,
+        location: location || 'loja'
       }
     });
     return res.json({ success: true, data: updatedBanner });
@@ -1058,7 +1073,6 @@ export const createStripeOrder = async (req: Request, res: Response) => {
     }
 
     const { items, customerInfo, shippingAddress, successUrl, cancelUrl } = req.body;
-
     console.log('🔍 Dados recebidos:', { items, customerInfo, shippingAddress, successUrl, cancelUrl });
 
     // Validações básicas
@@ -1069,7 +1083,6 @@ export const createStripeOrder = async (req: Request, res: Response) => {
         error: 'Items são obrigatórios e devem ser um array não vazio',
       });
     }
-
     if (!customerInfo || !shippingAddress) {
       console.log('❌ Dados do cliente ou endereço ausentes:', { customerInfo, shippingAddress });
       return res.status(400).json({
@@ -1078,15 +1091,47 @@ export const createStripeOrder = async (req: Request, res: Response) => {
       });
     }
 
+    // Buscar produtos no banco para validar preços e estoque
+    const productIds = items.map((item: any) => item.productId);
+    const products = await prisma.shopItem.findMany({ where: { id: { in: productIds } } });
+    if (products.length !== items.length) {
+      return res.status(400).json({ success: false, error: 'Alguns produtos não foram encontrados' });
+    }
+    // Validar estoque
+    for (const product of products) {
+      const item = items.find((i: any) => i.productId === product.id);
+      if (product.stock !== null && product.stock < item.quantity) {
+        return res.status(400).json({ success: false, error: `Produto ${product.name} não tem estoque suficiente` });
+      }
+    }
+    // Calcular valor total
+    let totalAmount = 0;
+    for (const item of items) {
+      const product = products.find(p => p.id === item.productId);
+      if (!product) continue;
+      const itemPrice = product.isPromo && product.promoPrice ? product.promoPrice : product.price;
+      totalAmount += itemPrice * item.quantity;
+    }
+    // Salvar pedido no banco antes do Stripe
+    const localOrder = await prisma.pedido.create({
+      data: {
+        userId: req.user.userId,
+        status: 'pending',
+        paymentMethod: 'stripe',
+        totalAmount: totalAmount,
+        customerInfo,
+        shippingAddress,
+        items,
+        metadata: {},
+      } as any,
+    });
     // URLs padrão se não fornecidas
-    const finalSuccessUrl = successUrl || `${process.env.FRONTEND_URL || 'http://localhost:8080'}/loja/success`;
-    const finalCancelUrl = cancelUrl || `${process.env.FRONTEND_URL || 'http://localhost:8080'}/loja/cancel`;
-
+    const finalSuccessUrl = successUrl || `${process.env.FRONTEND_URL || 'https://babydiary.shop'}/loja/success?session_id={CHECKOUT_SESSION_ID}`;
+    const finalCancelUrl = cancelUrl || `${process.env.FRONTEND_URL || 'https://babydiary.shop'}/loja/checkout`;
     // Importar o serviço Stripe
     const { StripeService } = await import('../services/stripe.service');
     const stripeService = new StripeService();
-
-    // Criar sessão de checkout
+    // Criar sessão de checkout do Stripe
     const session = await stripeService.createShopOrderCheckoutSession(
       req.user.userId,
       items,
@@ -1098,12 +1143,22 @@ export const createStripeOrder = async (req: Request, res: Response) => {
 
     console.log('✅ Sessão de checkout Stripe criada:', session.id);
 
+    // Atualizar pedido com o stripeSessionId
+    await prisma.pedido.update({
+      where: { id: localOrder.id },
+      data: {
+        metadata: { 
+          stripe_session_id: session.id, 
+          source: 'stripe' 
+        } as any,
+      } as any,
+    });
     return res.json({
       success: true,
       data: {
+        orderId: localOrder.id,
         sessionId: session.id,
         url: session.url,
-        orderId: session.id, // Para compatibilidade com frontend
       },
     });
   } catch (error: any) {

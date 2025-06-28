@@ -27,78 +27,69 @@ const Success: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [orderDetails, setOrderDetails] = useState<OrderDetails>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchOrderDetails = async () => {
       try {
-        // Tentar buscar dados do pedido da URL ou da sessão
-        const orderId = searchParams.get('order_id') || searchParams.get('session_id');
+        setLoading(true);
+        setError('');
         
-        if (orderId) {
-          // Buscar detalhes do pedido da API
-          const response = await apiFetch(`/user/pedidos/${orderId}`);
-          if (response.success) {
+        // Pegar o session_id da URL (Stripe sempre envia isso)
+        const sessionId = searchParams.get('session_id');
+        const orderId = searchParams.get('order_id');
+        
+        if (sessionId) {
+          // Buscar pedido pelo session_id do Stripe
+          console.log('🔍 Buscando pedido pelo session_id:', sessionId);
+          const response = await apiFetch(`/shop/stripe/order-status?session_id=${sessionId}`);
+          
+          if (response.success && response.data) {
             const order = response.data;
+            console.log('✅ Pedido encontrado:', order);
+            
             setOrderDetails({
               orderId: order.id,
               totalAmount: order.totalAmount,
-              items: order.items,
+              items: order.items || [],
               customerName: order.customerInfo?.name || 'Cliente',
               status: order.status,
               createdAt: order.createdAt,
               estimatedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR')
             });
           } else {
-            // Fallback para dados da URL
+            console.log('❌ Pedido não encontrado pelo session_id');
+            setError('Pedido não encontrado. Pode levar alguns minutos para processar.');
+          }
+        } else if (orderId) {
+          // Buscar pedido pelo order_id (fallback)
+          console.log('🔍 Buscando pedido pelo order_id:', orderId);
+          const response = await apiFetch(`/user/pedidos/${orderId}`);
+          
+          if (response.success && response.data) {
+            const order = response.data;
+            console.log('✅ Pedido encontrado:', order);
+            
             setOrderDetails({
-              orderId: orderId,
-              totalAmount: parseFloat(searchParams.get('amount') || '0'),
-              items: [
-                {
-                  productId: parseInt(searchParams.get('product_id') || '0'),
-                  name: searchParams.get('product_name') || 'Produto da Loja',
-                  quantity: parseInt(searchParams.get('quantity') || '1'),
-                  price: parseFloat(searchParams.get('amount') || '0')
-                }
-              ],
-              customerName: searchParams.get('customer_name') || 'Cliente',
+              orderId: order.id,
+              totalAmount: order.totalAmount,
+              items: order.items || [],
+              customerName: order.customerInfo?.name || 'Cliente',
+              status: order.status,
+              createdAt: order.createdAt,
               estimatedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR')
             });
+          } else {
+            console.log('❌ Pedido não encontrado pelo order_id');
+            setError('Pedido não encontrado.');
           }
         } else {
-          // Dados simulados se não houver orderId
-          setOrderDetails({
-            orderId: 'PED-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
-            totalAmount: parseFloat(searchParams.get('amount') || '0'),
-            items: [
-              {
-                productId: parseInt(searchParams.get('product_id') || '0'),
-                name: searchParams.get('product_name') || 'Produto da Loja',
-                quantity: parseInt(searchParams.get('quantity') || '1'),
-                price: parseFloat(searchParams.get('amount') || '0')
-              }
-            ],
-            customerName: searchParams.get('customer_name') || 'Cliente',
-            estimatedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR')
-          });
+          console.log('❌ Nenhum parâmetro encontrado na URL');
+          setError('Parâmetros de pedido não encontrados na URL.');
         }
       } catch (error) {
-        console.error('Erro ao buscar detalhes do pedido:', error);
-        // Fallback para dados básicos
-        setOrderDetails({
-          orderId: 'PED-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
-          totalAmount: parseFloat(searchParams.get('amount') || '0'),
-          items: [
-            {
-              productId: 0,
-              name: 'Produto da Loja',
-              quantity: 1,
-              price: parseFloat(searchParams.get('amount') || '0')
-            }
-          ],
-          customerName: searchParams.get('customer_name') || 'Cliente',
-          estimatedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR')
-        });
+        console.error('❌ Erro ao buscar detalhes do pedido:', error);
+        setError('Erro ao buscar detalhes do pedido. Tente novamente.');
       } finally {
         setLoading(false);
       }
@@ -132,6 +123,41 @@ const Success: React.FC = () => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Carregando detalhes do pedido...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-red-100 rounded-full mb-4">
+            <CheckCircle className="w-12 h-12 text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            Pedido em Processamento
+          </h1>
+          <p className="text-gray-600 mb-6">
+            {error}
+          </p>
+          <div className="space-y-3">
+            <Button
+              onClick={handleViewOrders}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Package className="w-4 h-4 mr-2" />
+              Ver Meus Pedidos
+            </Button>
+            <Button
+              onClick={handleBackToShop}
+              variant="outline"
+              className="w-full"
+            >
+              <ShoppingBag className="w-4 h-4 mr-2" />
+              Continuar Comprando
+            </Button>
+          </div>
         </div>
       </div>
     );

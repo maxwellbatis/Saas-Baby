@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import ImageUpload from '@/components/ImageUpload';
+import { BannerSlider } from '@/components/BannerSlider';
 import HealthAlertsCard from '@/components/HealthAlertsCard';
 import AIChatModal from '@/components/AIChatModal';
 import AddBabyModal from '@/components/AddBabyModal';
@@ -685,7 +685,7 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${getBgClass()}`}>
+    <div className={`min-h-screen bg-gradient-to-br ${getBgClass()} overflow-x-hidden w-full`}>
       {showSuccessConfetti && <Confetti recycle={false} width={window.innerWidth} height={window.innerHeight} />}
       <AchievementNotification
         achievement={achievementData}
@@ -694,8 +694,8 @@ const Dashboard = () => {
       />
       <Header />
       
-      <div className="container max-w-7xl mx-auto px-4 py-8">
-        <div className="w-full max-w-full px-2 sm:px-4 py-4 mx-auto">
+      <div className="container max-w-7xl mx-auto px-2 sm:px-4 py-8 w-full">
+        <div className="w-full max-w-full px-0 sm:px-4 py-4 mx-auto">
           {/* Baby Profile Card */}
           <div className="mb-8 animate-fade-in">
             <Card className="glass-card border-0 shadow-2xl overflow-hidden">
@@ -772,10 +772,7 @@ const Dashboard = () => {
           </div>
           {/* Banner dinâmico (placeholder) */}
           <div className="w-full mb-6">
-            <div className="w-full h-32 md:h-40 bg-gradient-to-r from-pink-200 to-blue-200 rounded-xl flex items-center justify-center shadow-lg overflow-hidden relative">
-              <span className="text-lg md:text-2xl font-bold text-gray-700">[Banner Promocional da Loja]</span>
-              {/* Aqui pode ser um carrossel de banners futuramente */}
-            </div>
+            <BannerSlider />
           </div>
           {/* Card Loja melhorado */}
           <Card

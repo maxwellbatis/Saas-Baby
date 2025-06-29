@@ -131,6 +131,9 @@ model LandingPageContent {
   heroTitle     String
   heroSubtitle  String
   heroImage     String?
+  heroVideo     String?  // URL do vídeo
+  heroMediaType String?  // "image" ou "video"
+  heroMediaUrl  String?  // URL do media (imagem ou vídeo)
   features      Json     // [{ "title": "...", "description": "...", "icon": "..." }]
   testimonials  Json     // [{ "name": "...", "text": "...", "rating": 5 }]
   faq           Json     // [{ "question": "...", "answer": "..." }]

@@ -1,4 +1,4 @@
-import express, { Router, Request, Response } from 'express';
+import express, { Router, Request, Response, NextFunction } from 'express';
 import { body, validationResult } from 'express-validator';
 import prisma from '../config/database';
 import { createPrice } from '@/config/stripe';
@@ -16,9 +16,27 @@ import {
   getAllTags, getTagById, createTag, updateTag, deleteTag,
   getAllBanners, getBannerById, createBanner, updateBanner, deleteBanner
 } from '../controllers/shop.controller';
+import multer from 'multer';
 
 const router = Router();
 const notificationService = new NotificationService();
+
+// Configurar multer para upload de arquivos
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: parseInt(process.env.MAX_FILE_SIZE || '524288000'), // 500MB
+  },
+  fileFilter: (req, file, cb) => {
+    console.log('Mimetype recebido no upload:', file.mimetype);
+    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Tipo de arquivo não permitido'));
+    }
+  },
+});
 
 // ===== VALIDAÇÕES =====
 
@@ -268,6 +286,88 @@ router.put('/landing-page', async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Erro ao atualizar conteúdo da landing page:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor',
+    });
+  }
+});
+
+// Upload de mídia da landing page
+router.post('/landing-page/upload-media', upload.single('mediaFile'), async (req: Request, res: Response) => {
+  try {
+    const { mediaType, mediaUrl } = req.body;
+    const mediaFile = req.file;
+
+    if (!mediaType || (!mediaUrl && !mediaFile)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Tipo de mídia e URL/arquivo são obrigatórios',
+      });
+    }
+
+    let finalMediaUrl = mediaUrl;
+
+    // Se foi enviado um arquivo, fazer upload para Cloudinary
+    if (mediaFile && !mediaUrl) {
+      try {
+        const uploadResult = await uploadImage(mediaFile, 'landing-page');
+        finalMediaUrl = uploadResult.secureUrl;
+      } catch (uploadError) {
+        console.error('Erro no upload para Cloudinary:', uploadError);
+        return res.status(500).json({
+          success: false,
+          error: 'Erro ao fazer upload do arquivo',
+          details: uploadError instanceof Error ? uploadError.message : uploadError
+        });
+      }
+    }
+
+    // Atualizar a landing page com a nova mídia
+    const updateData: any = {
+      heroMediaType: mediaType,
+      heroMediaUrl: finalMediaUrl,
+    };
+
+    // Manter compatibilidade com campos antigos
+    if (mediaType === 'image') {
+      updateData.heroImage = finalMediaUrl;
+    } else if (mediaType === 'video') {
+      updateData.heroVideo = finalMediaUrl;
+    }
+
+    const content = await prisma.landingPageContent.upsert({
+      where: { id: 1 },
+      update: updateData,
+      create: {
+        id: 1,
+        heroTitle: 'Seu diário digital para acompanhar o bebê',
+        heroSubtitle: 'Registre atividades, memórias e marcos importantes do seu bebê em um só lugar',
+        heroImage: mediaType === 'image' ? finalMediaUrl : null,
+        heroMediaUrl: finalMediaUrl,
+        features: [],
+        testimonials: [],
+        faq: [],
+        stats: [],
+        ctaText: null,
+        ctaButtonText: null,
+        seoTitle: 'Baby Diary - Seu diário digital para acompanhar o bebê',
+        seoDescription: 'Registre atividades, memórias e marcos importantes do seu bebê em um só lugar. Nunca perca um momento especial do desenvolvimento do seu pequeno.',
+        seoKeywords: 'baby diary, diário do bebê, acompanhamento infantil, desenvolvimento do bebê, memórias do bebê',
+      },
+    });
+
+    return res.json({
+      success: true,
+      message: 'Mídia da landing page atualizada com sucesso',
+      data: {
+        mediaType,
+        mediaUrl: finalMediaUrl,
+        content,
+      },
+    });
+  } catch (error) {
+    console.error('Erro ao atualizar mídia da landing page:', error);
     return res.status(500).json({
       success: false,
       error: 'Erro interno do servidor',
@@ -3330,5 +3430,16 @@ router.get('/banners/:id', authenticateAdmin, getBannerById);
 router.post('/banners', authenticateAdmin, createBanner);
 router.put('/banners/:id', authenticateAdmin, updateBanner);
 router.delete('/banners/:id', authenticateAdmin, deleteBanner);
+
+// Handler global de erro para garantir resposta JSON
+router.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (err) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ success: false, error: 'Arquivo muito grande. Limite: 500MB.' });
+    }
+    return res.status(500).json({ success: false, error: err.message || 'Erro interno no servidor.' });
+  }
+  return next();
+});
 
 export default router; 

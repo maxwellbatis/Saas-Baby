@@ -1,7 +1,7 @@
 // Configuração centralizada da API
 export const API_CONFIG = {
   // URL base da API - pode ser sobrescrita por variável de ambiente
-  BASE_URL: import.meta.env.VITE_API_URL || '',
+  BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
   
   // Timeout padrão para requisições
   TIMEOUT: 10000,
@@ -22,25 +22,9 @@ console.log('🔧 Configuração API:', {
 
 // Função para obter a URL completa de um endpoint
 export const getApiUrl = (endpoint: string): string => {
-  // Verificar se estamos em desenvolvimento (localhost)
-  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  const isDev = import.meta.env.DEV || import.meta.env.MODE === 'development' || isLocalhost;
-  
-  // Em desenvolvimento, usar proxy do Vite
-  if (isDev) {
-    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-    // Evitar duplicação de /api
-    if (cleanEndpoint.startsWith('/api/')) {
-      return cleanEndpoint;
-    }
-    return `/api${cleanEndpoint}`;
-  }
-  
-  // Em produção, usar URL completa
   const baseUrl = API_CONFIG.BASE_URL.endsWith('/') 
     ? API_CONFIG.BASE_URL.slice(0, -1) 
     : API_CONFIG.BASE_URL;
-  
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   return `${baseUrl}${cleanEndpoint}`;
 };

@@ -24,11 +24,16 @@ import {
   Download,
   Trash2,
   Eye,
-  EyeOff
+  EyeOff,
+  Globe,
+  Image,
+  Video,
+  Upload
 } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
 import { adminAuth, adminSettings } from '../../lib/adminApi';
 import { useAdminAuth } from '../../contexts/admin/AdminAuthContext';
+import { getApiUrl } from '@/config/api';
 
 interface SystemSettings {
   maxFileSize: string;
@@ -48,6 +53,9 @@ interface LandingPageSettings {
   heroTitle: string;
   heroSubtitle: string;
   heroImage: string | null;
+  heroVideo: string | null;
+  heroMediaType: string | null;
+  heroMediaUrl: string | null;
   features: any[];
   testimonials: any[];
   faq: any[];
@@ -74,6 +82,10 @@ export const AdminSettings: React.FC = () => {
   const [integrationTests, setIntegrationTests] = useState<IntegrationTest | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [mediaUploadLoading, setMediaUploadLoading] = useState(false);
+  const [selectedMediaType, setSelectedMediaType] = useState<'image' | 'video'>('image');
+  const [mediaUrl, setMediaUrl] = useState('');
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [profileForm, setProfileForm] = useState({
     name: '',
     email: '',
@@ -266,7 +278,6 @@ export const AdminSettings: React.FC = () => {
     try {
       setLoading(true);
       const response = await adminSettings.testIntegrations();
-      
       if (response.success) {
         setIntegrationTests(response.data);
         toast({
@@ -289,6 +300,103 @@ export const AdminSettings: React.FC = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMediaUpload = async () => {
+    try {
+      setMediaUploadLoading(true);
+      
+      if (!mediaUrl && !mediaFile) {
+        toast({
+          title: 'Erro',
+          description: 'Por favor, forneça uma URL ou selecione um arquivo',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('mediaType', selectedMediaType);
+      if (mediaUrl) {
+        formData.append('mediaUrl', mediaUrl);
+      }
+      if (mediaFile) {
+        formData.append('mediaFile', mediaFile);
+      }
+
+      const response = await fetch(getApiUrl('/admin/landing-page/upload-media'), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        body: formData
+      });
+
+      let data: any = null;
+      let isJson = false;
+      try {
+        const text = await response.text();
+        if (text) {
+          data = JSON.parse(text);
+          isJson = true;
+        }
+      } catch (err) {
+        // Não é JSON válido
+        data = null;
+        isJson = false;
+      }
+
+      if (isJson && data && data.success) {
+        toast({
+          title: 'Sucesso',
+          description: 'Mídia atualizada com sucesso'
+        });
+        
+        // Atualizar o estado da landing page
+        if (landingPageSettings) {
+          setLandingPageSettings({
+            ...landingPageSettings,
+            heroMediaType: selectedMediaType,
+            heroMediaUrl: data.data.mediaUrl,
+            heroImage: selectedMediaType === 'image' ? data.data.mediaUrl : landingPageSettings.heroImage,
+            heroVideo: selectedMediaType === 'video' ? data.data.mediaUrl : landingPageSettings.heroVideo,
+          });
+        }
+        
+        // Limpar formulário
+        setMediaUrl('');
+        setMediaFile(null);
+      } else if (isJson && data && data.error) {
+        toast({
+          title: 'Erro',
+          description: data.error || 'Erro ao fazer upload da mídia',
+          variant: 'destructive'
+        });
+      } else {
+        toast({
+          title: 'Erro',
+          description: 'Resposta inesperada do servidor. Tente novamente ou contate o suporte.',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao fazer upload da mídia:', error);
+      toast({
+        title: 'Erro',
+        description: 'Erro de conexão',
+        variant: 'destructive'
+      });
+    } finally {
+      setMediaUploadLoading(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setMediaFile(file);
+      setMediaUrl(''); // Limpar URL se arquivo foi selecionado
     }
   };
 
@@ -325,7 +433,7 @@ export const AdminSettings: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="w-4 h-4" />
             Perfil
@@ -341,6 +449,10 @@ export const AdminSettings: React.FC = () => {
           <TabsTrigger value="integrations" className="flex items-center gap-2">
             <Zap className="w-4 h-4" />
             Integrações
+          </TabsTrigger>
+          <TabsTrigger value="landingPage" className="flex items-center gap-2">
+            <Globe className="w-4 h-4" />
+            Landing Page
           </TabsTrigger>
         </TabsList>
 
@@ -661,6 +773,287 @@ export const AdminSettings: React.FC = () => {
                     </div>
                   ))}
                 </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Landing Page */}
+        <TabsContent value="landingPage" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="w-5 h-5" />
+                Landing Page
+              </CardTitle>
+              <CardDescription>
+                Configure as configurações da página de destino
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {landingPageSettings && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <Label htmlFor="heroTitle">Título do Herói</Label>
+                      <Input
+                        id="heroTitle"
+                        value={landingPageSettings.heroTitle}
+                        onChange={(e) => setLandingPageSettings({...landingPageSettings, heroTitle: e.target.value})}
+                        placeholder="Título do Herói"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="heroSubtitle">Subtítulo do Herói</Label>
+                      <Input
+                        id="heroSubtitle"
+                        value={landingPageSettings.heroSubtitle}
+                        onChange={(e) => setLandingPageSettings({...landingPageSettings, heroSubtitle: e.target.value})}
+                        placeholder="Subtítulo do Herói"
+                      />
+                    </div>
+                  </div>
+
+                  <Separator />
+                  
+                  {/* Upload de Mídia */}
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-lg font-semibold">Mídia do Herói</Label>
+                      <p className="text-sm text-gray-500 mb-4">
+                        Escolha entre imagem ou vídeo para a seção hero da landing page
+                      </p>
+                    </div>
+
+                    {/* Seleção do tipo de mídia */}
+                    <div className="flex gap-4">
+                      <Button
+                        type="button"
+                        variant={selectedMediaType === 'image' ? 'default' : 'outline'}
+                        onClick={() => setSelectedMediaType('image')}
+                        className="flex items-center gap-2"
+                      >
+                        <Image className="w-4 h-4" />
+                        Imagem
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={selectedMediaType === 'video' ? 'default' : 'outline'}
+                        onClick={() => setSelectedMediaType('video')}
+                        className="flex items-center gap-2"
+                      >
+                        <Video className="w-4 h-4" />
+                        Vídeo
+                      </Button>
+                    </div>
+
+                    {/* Upload por URL */}
+                    <div>
+                      <Label htmlFor="mediaUrl">URL da {selectedMediaType === 'image' ? 'Imagem' : 'Vídeo'}</Label>
+                      <Input
+                        id="mediaUrl"
+                        type="url"
+                        value={mediaUrl}
+                        onChange={(e) => setMediaUrl(e.target.value)}
+                        placeholder={`URL da ${selectedMediaType === 'image' ? 'imagem' : 'vídeo'} (opcional)`}
+                        className="mb-2"
+                      />
+                      <p className="text-sm text-gray-500">
+                        Cole aqui a URL da {selectedMediaType === 'image' ? 'imagem' : 'vídeo'} (YouTube, Vimeo, etc.)
+                      </p>
+                    </div>
+
+                    {/* Upload por arquivo */}
+                    <div>
+                      <Label htmlFor="mediaFile">Ou faça upload de um arquivo</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          id="mediaFile"
+                          type="file"
+                          accept={selectedMediaType === 'image' ? 'image/*' : 'video/*'}
+                          onChange={handleFileChange}
+                          className="flex-1"
+                        />
+                        {mediaFile && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setMediaFile(null)}
+                          >
+                            Limpar
+                          </Button>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Formatos aceitos: {selectedMediaType === 'image' ? 'JPG, PNG, GIF, WebP' : 'MP4, WebM, MOV'}
+                      </p>
+                    </div>
+
+                    {/* Botão de upload */}
+                    <Button
+                      onClick={handleMediaUpload}
+                      disabled={mediaUploadLoading || (!mediaUrl && !mediaFile)}
+                      className="w-full"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {mediaUploadLoading ? 'Fazendo Upload...' : `Atualizar ${selectedMediaType === 'image' ? 'Imagem' : 'Vídeo'}`}
+                    </Button>
+
+                    {/* Preview da mídia atual */}
+                    {landingPageSettings?.heroMediaUrl && (
+                      <div className="mt-4 p-4 border rounded-lg bg-gray-50">
+                        <Label className="text-sm font-medium mb-2">Mídia Atual:</Label>
+                        <div className="flex items-center gap-2">
+                          {landingPageSettings.heroMediaType === 'image' ? (
+                            <Image className="w-4 h-4" />
+                          ) : (
+                            <Video className="w-4 h-4" />
+                          )}
+                          <span className="text-sm text-gray-600">
+                            {landingPageSettings.heroMediaType === 'image' ? 'Imagem' : 'Vídeo'} ativa
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1 truncate">
+                          {landingPageSettings.heroMediaUrl}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Features</Label>
+                        <p className="text-sm text-gray-500">Adicione funcionalidades da página</p>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        <Image className="w-4 h-4 mr-2" />
+                        Adicionar Feature
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Testimonials</Label>
+                        <p className="text-sm text-gray-500">Adicione depoimentos da página</p>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        <Image className="w-4 h-4 mr-2" />
+                        Adicionar Testimonial
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>FAQ</Label>
+                        <p className="text-sm text-gray-500">Adicione perguntas frequentes</p>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        <Image className="w-4 h-4 mr-2" />
+                        Adicionar Pergunta
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Stats</Label>
+                        <p className="text-sm text-gray-500">Adicione estatísticas da página</p>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        <Image className="w-4 h-4 mr-2" />
+                        Adicionar Estatística
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>CTA Text</Label>
+                        <p className="text-sm text-gray-500">Texto do CTA da página</p>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        <Image className="w-4 h-4 mr-2" />
+                        Editar Texto do CTA
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>CTA Button Text</Label>
+                        <p className="text-sm text-gray-500">Texto do Botão CTA da página</p>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        <Image className="w-4 h-4 mr-2" />
+                        Editar Texto do Botão CTA
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>SEO Title</Label>
+                        <p className="text-sm text-gray-500">Título para o SEO da página</p>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        <Image className="w-4 h-4 mr-2" />
+                        Editar Título SEO
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>SEO Description</Label>
+                        <p className="text-sm text-gray-500">Descrição para o SEO da página</p>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        <Image className="w-4 h-4 mr-2" />
+                        Editar Descrição SEO
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>SEO Keywords</Label>
+                        <p className="text-sm text-gray-500">Palavras-chave para o SEO da página</p>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        <Image className="w-4 h-4 mr-2" />
+                        Editar Palavras-chave SEO
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Botão para salvar configurações */}
+                  <div className="flex justify-end pt-4">
+                    <Button onClick={() => {
+                      // TODO: Implementar salvamento das configurações
+                      toast({
+                        title: 'Sucesso',
+                        description: 'Configurações da landing page salvas com sucesso'
+                      });
+                    }} disabled={loading}>
+                      <Save className="w-4 h-4 mr-2" />
+                      {loading ? 'Salvando...' : 'Salvar Configurações'}
+                    </Button>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

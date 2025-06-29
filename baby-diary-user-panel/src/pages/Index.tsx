@@ -1,13 +1,56 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Header from "@/components/Header";
-import { Baby, Image, User, FileImage, Shield, ListChecks, Sparkles, Heart, Quote } from "lucide-react";
+import { Baby, Image, User, FileImage, Shield, ListChecks, Sparkles, Heart, Quote, Play } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { apiFetch } from "@/config/api";
+
+interface LandingPageContent {
+  id: number;
+  heroTitle: string;
+  heroSubtitle: string;
+  heroImage?: string;
+  heroVideo?: string;
+  heroMediaType?: string;
+  heroMediaUrl?: string;
+  features: any[];
+  testimonials: any[];
+  faq: any[];
+  stats: any[];
+  ctaText?: string;
+  ctaButtonText?: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
+}
 
 const Index = () => {
   const navigate = useNavigate();
+  const [landingContent, setLandingContent] = useState<LandingPageContent | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const features = [
+  // Carregar conteúdo da landing page
+  useEffect(() => {
+    const fetchLandingContent = async () => {
+      try {
+        setLoading(true);
+        const response = await apiFetch('/public/landing-page');
+        if (response.success) {
+          setLandingContent(response.data);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar conteúdo da landing page:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLandingContent();
+  }, []);
+
+  // Features padrão caso não tenha conteúdo dinâmico
+  const defaultFeatures = [
     {
       icon: Image,
       title: "Memórias Especiais",
@@ -30,6 +73,71 @@ const Index = () => {
     }
   ];
 
+  // Conteúdo padrão caso não tenha conteúdo dinâmico
+  const defaultContent = {
+    heroTitle: "Baby Diary",
+    heroSubtitle: "O aplicativo completo para acompanhar o desenvolvimento do seu bebê. Capture memórias, registre marcos e organize a rotina de forma simples e carinhosa.",
+    ctaText: "Começar Gratuitamente",
+    ctaButtonText: "Já tenho conta"
+  };
+
+  const content = landingContent || defaultContent;
+  const features = landingContent?.features?.length > 0 ? landingContent.features : defaultFeatures;
+  const testimonials = landingContent?.testimonials || [];
+
+  // Função para renderizar o hero media (imagem ou vídeo)
+  const renderHeroMedia = () => {
+    const mediaUrl = content.heroMediaUrl || content.heroImage || content.heroVideo;
+    const mediaType = content.heroMediaType || (content.heroVideo ? 'video' : content.heroImage ? 'image' : null);
+
+    if (!mediaUrl) return null;
+
+    if (mediaType === 'video') {
+      return (
+        <div className="relative w-full max-w-2xl mx-auto mb-8">
+          <video
+            className="w-full h-64 md:h-80 object-cover rounded-2xl shadow-2xl"
+            controls
+            autoPlay
+            muted
+            loop
+            playsInline
+          >
+            <source src={mediaUrl} type="video/mp4" />
+            <source src={mediaUrl} type="video/webm" />
+            Seu navegador não suporta vídeos.
+          </video>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="bg-black bg-opacity-30 rounded-full p-4">
+              <Play className="w-8 h-8 text-white" />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="w-full max-w-2xl mx-auto mb-8">
+        <img
+          src={mediaUrl}
+          alt="Baby Diary"
+          className="w-full h-64 md:h-80 object-cover rounded-2xl shadow-2xl"
+        />
+      </div>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-baby-pink via-baby-blue to-baby-lavender flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-baby-pink via-baby-blue to-baby-lavender">
       <Header showAuth={true} />
@@ -41,19 +149,22 @@ const Index = () => {
             <Baby className="w-12 h-12 text-white" />
           </div>
           <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
-            Baby Diary
+            {content.heroTitle}
           </h1>
           <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-            O aplicativo completo para acompanhar o desenvolvimento do seu bebê. 
-            Capture memórias, registre marcos e organize a rotina de forma simples e carinhosa.
+            {content.heroSubtitle}
           </p>
+          
+          {/* Hero Media (Imagem ou Vídeo) */}
+          {renderHeroMedia()}
+          
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               size="lg"
               className="baby-gradient-pink text-white text-lg px-8 py-4 hover:shadow-xl transition-all duration-300 border-0"
               onClick={() => navigate('/register')}
             >
-              Começar Gratuitamente
+              {content.ctaText}
             </Button>
             <Button 
               size="lg"
@@ -61,7 +172,7 @@ const Index = () => {
               className="text-lg px-8 py-4 hover:shadow-lg transition-all duration-300"
               onClick={() => navigate('/login')}
             >
-              Já tenho conta
+              {content.ctaButtonText}
             </Button>
           </div>
         </div>
@@ -69,7 +180,17 @@ const Index = () => {
         {/* Features Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
           {features.map((feature, index) => {
-            const Icon = feature.icon;
+            // Se for feature dinâmica, usar ícone padrão baseado no título
+            const getIcon = (title: string) => {
+              if (title.toLowerCase().includes('memória')) return Image;
+              if (title.toLowerCase().includes('marco')) return Baby;
+              if (title.toLowerCase().includes('rotina')) return User;
+              if (title.toLowerCase().includes('linha')) return FileImage;
+              return Image; // ícone padrão
+            };
+            
+            const Icon = feature.icon ? feature.icon : getIcon(feature.title);
+            
             return (
               <Card 
                 key={feature.title}
@@ -170,26 +291,43 @@ const Index = () => {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Card className="glass-card border-0 shadow-lg animate-fade-in">
-              <CardContent className="p-8 text-center">
-                <Quote className="w-8 h-8 mx-auto text-pink-300 mb-4" />
-                <p className="text-lg text-gray-700 italic mb-6">
-                  "O Baby Diary mudou tudo! Consigo ver os padrões de sono do meu filho e o chat com IA me salvou em várias madrugadas. É como ter uma especialista no bolso."
-                </p>
-                <p className="font-bold text-gray-800">Juliana R.</p>
-                <p className="text-sm text-muted-foreground">Mãe do Theo, 4 meses</p>
-              </CardContent>
-            </Card>
-            <Card className="glass-card border-0 shadow-lg animate-fade-in" style={{ animationDelay: '150ms' }}>
-              <CardContent className="p-8 text-center">
-                <Quote className="w-8 h-8 mx-auto text-blue-300 mb-4" />
-                <p className="text-lg text-gray-700 italic mb-6">
-                  "A linha do tempo é a minha parte favorita. É tão emocionante ver o quanto minha filha cresceu e rever todas as memórias que criamos. Indispensável!"
-                </p>
-                <p className="font-bold text-gray-800">Carla M.</p>
-                <p className="text-sm text-muted-foreground">Mãe da Sofia, 1 ano</p>
-              </CardContent>
-            </Card>
+            {testimonials.length > 0 ? (
+              testimonials.map((testimonial, index) => (
+                <Card key={index} className="glass-card border-0 shadow-lg animate-fade-in" style={{ animationDelay: `${index * 150}ms` }}>
+                  <CardContent className="p-8 text-center">
+                    <Quote className="w-8 h-8 mx-auto text-pink-300 mb-4" />
+                    <p className="text-lg text-gray-700 italic mb-6">
+                      "{testimonial.text}"
+                    </p>
+                    <p className="font-bold text-gray-800">{testimonial.name}</p>
+                    <p className="text-sm text-muted-foreground">{testimonial.rating ? `${testimonial.rating}/5` : ''}</p>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <>
+                <Card className="glass-card border-0 shadow-lg animate-fade-in">
+                  <CardContent className="p-8 text-center">
+                    <Quote className="w-8 h-8 mx-auto text-pink-300 mb-4" />
+                    <p className="text-lg text-gray-700 italic mb-6">
+                      "O Baby Diary mudou tudo! Consigo ver os padrões de sono do meu filho e o chat com IA me salvou em várias madrugadas. É como ter uma especialista no bolso."
+                    </p>
+                    <p className="font-bold text-gray-800">Juliana R.</p>
+                    <p className="text-sm text-muted-foreground">Mãe do Theo, 4 meses</p>
+                  </CardContent>
+                </Card>
+                <Card className="glass-card border-0 shadow-lg animate-fade-in" style={{ animationDelay: '150ms' }}>
+                  <CardContent className="p-8 text-center">
+                    <Quote className="w-8 h-8 mx-auto text-blue-300 mb-4" />
+                    <p className="text-lg text-gray-700 italic mb-6">
+                      "A linha do tempo é a minha parte favorita. É tão emocionante ver o quanto minha filha cresceu e rever todas as memórias que criamos. Indispensável!"
+                    </p>
+                    <p className="font-bold text-gray-800">Carla M.</p>
+                    <p className="text-sm text-muted-foreground">Mãe da Sofia, 1 ano</p>
+                  </CardContent>
+                </Card>
+              </>
+            )}
           </div>
         </div>
 

@@ -74,7 +74,7 @@ console.log('🔗 Frontend URL (CORS):', process.env.FRONTEND_URL || 'Não defin
 
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
-    ? ['https://api.babydiary.shop', 'https://admin.babydiary.shop', process.env.FRONTEND_URL].filter(Boolean) as string[]
+    ? ['https://babydiary.shop', 'https://api.babydiary.shop', 'https://admin.babydiary.shop', process.env.FRONTEND_URL].filter(Boolean) as string[]
     : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173', 'http://localhost:8080'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -96,9 +96,9 @@ app.use('/api/webhook/stripe', webhookRouter);
 // Rota do webhook do Pagar.Me (público, sem autenticação)
 app.use('/api/webhook/pagarme', pagarmeWebhookRouter);
 
-// Middlewares de parsing
-app.use(express.json({ limit: '500mb' }));
-app.use(express.urlencoded({ extended: true, limit: '500mb' }));
+// Middlewares de parsing com limite aumentado para uploads grandes
+app.use(express.json({ limit: '1gb' }));
+app.use(express.urlencoded({ extended: true, limit: '1gb' }));
 
 // Configurar Swagger/OpenAPI
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(specs, {

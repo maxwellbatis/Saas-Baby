@@ -22,7 +22,7 @@ console.log('🔧 Configuração API:', {
 
 // Função para obter a URL completa de um endpoint
 export const getApiUrl = (endpoint?: string): string => {
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+  const baseUrl = import.meta.env.VITE_API_URL || 'https://api.babydiary.shop/api';
   
   if (!endpoint) {
     return baseUrl;

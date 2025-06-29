@@ -273,7 +273,6 @@ export default function Business() {
             <video
               className="w-full h-64 md:h-80 object-cover rounded-2xl shadow-2xl transition-transform duration-300 group-hover:scale-105"
               controls
-              muted
               loop
               playsInline
               poster={mediaUrl + '?w=800&h=400&fit=crop&c=thumb'}

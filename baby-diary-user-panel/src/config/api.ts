@@ -21,12 +21,21 @@ console.log('🔧 Configuração API:', {
 });
 
 // Função para obter a URL completa de um endpoint
-export const getApiUrl = (endpoint: string): string => {
-  const baseUrl = API_CONFIG.BASE_URL.endsWith('/') 
-    ? API_CONFIG.BASE_URL.slice(0, -1) 
-    : API_CONFIG.BASE_URL;
-  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  return `${baseUrl}${cleanEndpoint}`;
+export const getApiUrl = (endpoint?: string): string => {
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+  
+  if (!endpoint) {
+    return baseUrl;
+  }
+  
+  // Se o endpoint já começa com http, retorna como está
+  if (endpoint.startsWith('http')) {
+    return endpoint;
+  }
+  
+  // Remove barras duplicadas
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+  return `${baseUrl}/${cleanEndpoint}`;
 };
 
 // Função para obter headers de autenticação

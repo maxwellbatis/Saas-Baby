@@ -1,10 +1,40 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import Header from "@/components/Header";
-import { Baby, Image, User, FileImage, Shield, ListChecks, Sparkles, Heart, Quote, Play } from "lucide-react";
-import { useNavigate, Link } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { apiFetch } from "@/config/api";
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Baby, 
+  Image, 
+  User, 
+  FileImage, 
+  Play, 
+  Pause,
+  ListChecks, 
+  Sparkles, 
+  Heart, 
+  Shield, 
+  Clock, 
+  Star,
+  CheckCircle,
+  ArrowRight,
+  MessageCircle,
+  Zap,
+  Award,
+  TrendingUp,
+  Users,
+  Calendar,
+  MapPin,
+  Phone,
+  Mail,
+  Facebook,
+  Instagram,
+  Twitter,
+  Youtube,
+  Quote
+} from 'lucide-react';
+import Header from '@/components/Header';
+import { apiFetch } from '@/config/api';
 
 interface LandingPageContent {
   id: number;
@@ -29,6 +59,7 @@ const Index = () => {
   const navigate = useNavigate();
   const [landingContent, setLandingContent] = useState<LandingPageContent | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(true);
 
   // Carregar conteúdo da landing page
   useEffect(() => {
@@ -78,7 +109,11 @@ const Index = () => {
     heroTitle: "Baby Diary",
     heroSubtitle: "O aplicativo completo para acompanhar o desenvolvimento do seu bebê. Capture memórias, registre marcos e organize a rotina de forma simples e carinhosa.",
     ctaText: "Começar Gratuitamente",
-    ctaButtonText: "Já tenho conta"
+    ctaButtonText: "Já tenho conta",
+    heroImage: undefined,
+    heroVideo: undefined,
+    heroMediaType: undefined,
+    heroMediaUrl: undefined,
   };
 
   const content = landingContent || defaultContent;
@@ -95,21 +130,58 @@ const Index = () => {
     if (mediaType === 'video') {
       return (
         <div className="relative w-full max-w-2xl mx-auto mb-8">
-          <video
-            className="w-full h-64 md:h-80 object-cover rounded-2xl shadow-2xl"
-            controls
-            autoPlay
-            muted
-            loop
-            playsInline
-          >
-            <source src={mediaUrl} type="video/mp4" />
-            <source src={mediaUrl} type="video/webm" />
-            Seu navegador não suporta vídeos.
-          </video>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-black bg-opacity-30 rounded-full p-4">
-              <Play className="w-8 h-8 text-white" />
+          {/* Texto para as mamães */}
+          <div className="text-center mb-4">
+            <div className="inline-flex items-center gap-2 bg-pink-100 text-pink-700 px-4 py-2 rounded-full text-sm font-medium">
+              <span className="text-lg">👶</span>
+              <span>Veja como outras mamães estão usando o Baby Diary</span>
+            </div>
+          </div>
+          
+          {/* Container do vídeo */}
+          <div className="relative group">
+            <video
+              className="w-full h-64 md:h-80 object-cover rounded-2xl shadow-2xl transition-transform duration-300 group-hover:scale-105"
+              controls
+              muted
+              loop
+              playsInline
+              poster={mediaUrl + '?w=800&h=400&fit=crop&c=thumb'}
+              onPlay={() => setIsVideoPlaying(true)}
+              onPause={() => setIsVideoPlaying(false)}
+              onLoadedData={() => setIsVideoPlaying(false)} // Inicia pausado
+            >
+              <source src={mediaUrl} type="video/mp4" />
+              <source src={mediaUrl} type="video/webm" />
+              Seu navegador não suporta vídeos.
+            </video>
+            
+            {/* Badge de vídeo */}
+            <div className="absolute top-4 left-4 bg-black bg-opacity-70 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2">
+              {isVideoPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              Vídeo
+            </div>
+            
+            {/* Indicador de status do vídeo */}
+            <div className="absolute top-4 right-4 bg-black bg-opacity-70 text-white px-3 py-1 rounded-full text-sm font-medium">
+              {isVideoPlaying ? 'Reproduzindo' : 'Pausado'}
+            </div>
+          </div>
+          
+          {/* Texto explicativo */}
+          <div className="text-center mt-4">
+            <p className="text-sm text-gray-600 max-w-lg mx-auto">
+              Descubra como o Baby Diary está ajudando milhares de famílias a documentar e celebrar cada momento especial do desenvolvimento dos seus bebês.
+            </p>
+            <div className="mt-3 flex items-center justify-center gap-4 text-xs text-gray-500">
+              <span className="flex items-center gap-1">
+                <CheckCircle className="w-3 h-3 text-green-500" />
+                Controles nativos
+              </span>
+              <span className="flex items-center gap-1">
+                <Shield className="w-3 h-3 text-blue-500" />
+                Reprodução segura
+              </span>
             </div>
           </div>
         </div>

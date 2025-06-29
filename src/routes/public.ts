@@ -1,7 +1,8 @@
-import { Router } from 'express';
-import prisma from '@/config/database';
+import express, { Router } from 'express';
+import prisma from '../config/database';
 import { getPublicPlans } from '@/controllers/public.controller';
 import { getActiveBanners } from '@/controllers/shop.controller';
+import { Request, Response } from 'express';
 
 const router = Router();
 
@@ -305,5 +306,37 @@ router.get('/shop-categories', async (req, res) => {
 
 // Buscar banners ativos da loja
 router.get('/banners', getActiveBanners);
+
+// Obter conteúdo da página business
+router.get('/business-page-content', async (req: Request, res: Response) => {
+  try {
+    const content = await prisma.businessPageContent.findUnique({
+      where: { id: 1 },
+    });
+
+    if (!content) {
+      return res.json({ 
+        success: true, 
+        data: {
+          heroTitle: '🍼 BABY DIARY',
+          heroSubtitle: 'O APP DEFINITIVO PARA MÃES QUE QUEREM DOCUMENTAR CADA MOMENTO ESPECIAL',
+          benefits: [],
+          businessAdvantages: [],
+          featuresMoms: [],
+          featuresAdmin: [],
+          marketData: [],
+          differentials: [],
+          finalArguments: [],
+          futureFeatures: [],
+        }
+      });
+    }
+
+    return res.json({ success: true, data: content });
+  } catch (error) {
+    console.error('Erro ao buscar conteúdo da página business:', error);
+    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+  }
+});
 
 export default router; 

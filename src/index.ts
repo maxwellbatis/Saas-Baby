@@ -9,6 +9,7 @@ import dotenv from 'dotenv';
 import { specs, swaggerUi } from './config/swagger';
 import paymentRoutes, { webhookRouter } from './routes/payments';
 import pagarmeWebhookRouter from './routes/pagarme-webhook';
+import path from 'path';
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -51,7 +52,22 @@ const limiter = rateLimit({
 });
 
 // Middlewares de segurança e otimização
-app.use(helmet());
+app.use(helmet({
+  crossOriginEmbedderPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+}));
 
 // Log da URL do Frontend para debug
 console.log('🔗 Frontend URL (CORS):', process.env.FRONTEND_URL || 'Não definido, usando fallback.');
@@ -81,8 +97,8 @@ app.use('/api/webhook/stripe', webhookRouter);
 app.use('/api/webhook/pagarme', pagarmeWebhookRouter);
 
 // Middlewares de parsing
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '500mb' }));
+app.use(express.urlencoded({ extended: true, limit: '500mb' }));
 
 // Configurar Swagger/OpenAPI
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(specs, {
@@ -131,6 +147,9 @@ app.use('/api/health', healthRoutes);
 
 // Rotas de gamificação
 app.use('/api/gamification', gamificationRoutes);
+
+// Servir arquivos estáticos da pasta uploads
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Middleware de tratamento de erros 404
 app.use('*', (req, res) => {

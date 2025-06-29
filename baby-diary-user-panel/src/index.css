@@ -359,12 +359,70 @@
 
   @keyframes sparkle {
     0%, 100% {
-      opacity: 1;
       transform: scale(1) rotate(0deg);
+      opacity: 1;
     }
     50% {
-      opacity: 0.8;
       transform: scale(1.2) rotate(180deg);
+      opacity: 0.8;
     }
+  }
+
+  /* Estilos para controles de vídeo */
+  video::-webkit-media-controls {
+    display: flex !important;
+    opacity: 1 !important;
+  }
+
+  video::-webkit-media-controls-panel {
+    background: rgba(0, 0, 0, 0.7) !important;
+    border-radius: 8px !important;
+  }
+
+  video::-webkit-media-controls-play-button {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border-radius: 50% !important;
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  video::-webkit-media-controls-play-button:hover {
+    background: white !important;
+    transform: scale(1.1) !important;
+  }
+
+  video::-webkit-media-controls-timeline {
+    background: rgba(255, 255, 255, 0.3) !important;
+    border-radius: 4px !important;
+    height: 6px !important;
+  }
+
+  video::-webkit-media-controls-current-time-display,
+  video::-webkit-media-controls-time-remaining-display {
+    color: white !important;
+    font-weight: 500 !important;
+  }
+
+  video::-webkit-media-controls-volume-slider {
+    background: rgba(255, 255, 255, 0.3) !important;
+    border-radius: 4px !important;
+  }
+
+  video::-webkit-media-controls-mute-button {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border-radius: 50% !important;
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  /* Garantir que os controles sejam sempre visíveis */
+  video:focus {
+    outline: 2px solid #ec4899;
+    outline-offset: 2px;
+  }
+
+  /* Estilo para quando o vídeo está pausado */
+  video[data-paused="true"] {
+    filter: brightness(0.9);
   }
 }

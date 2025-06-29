@@ -1,15 +1,15 @@
 import express, { Router, Request, Response, NextFunction } from 'express';
 import { body, validationResult } from 'express-validator';
+import * as adminController from '../controllers/admin.controller';
+import { authenticateAdmin } from '../middlewares/auth';
 import prisma from '../config/database';
 import { createPrice } from '@/config/stripe';
 import { uploadImage } from '@/config/cloudinary';
 import { hashPassword } from '../utils/bcrypt';
-import { authenticateAdmin } from '../middlewares/auth';
 import slugify from 'slugify';
 import emailService from '../services/email.service';
 import { NotificationService } from '@/services/notification.service';
 import { z } from 'zod';
-import * as adminController from '@/controllers/admin.controller';
 import {
   getAllShopItems, getShopItemById, createShopItem, updateShopItem, deleteShopItem,
   getAllCategories, getCategoryById, createCategory, updateCategory, deleteCategory,
@@ -17,16 +17,23 @@ import {
   getAllBanners, getBannerById, createBanner, updateBanner, deleteBanner
 } from '../controllers/shop.controller';
 import multer from 'multer';
+import { uploadToFirebaseStorage } from '@/config/firebase';
+import cloudinary from '../config/cloudinary';
+import fs from 'fs';
 
 const router = Router();
 const notificationService = new NotificationService();
 
 // Configurar multer para upload de arquivos
 const storage = multer.memoryStorage();
+const maxFileSize = parseInt(process.env.MAX_FILE_SIZE || '2147483648'); // 2GB
+console.log('📏 Limite de arquivo configurado:', maxFileSize, 'bytes (', Math.round(maxFileSize / 1024 / 1024), 'MB)');
+console.log('📏 Variável de ambiente MAX_FILE_SIZE:', process.env.MAX_FILE_SIZE);
+
 const upload = multer({
   storage,
   limits: {
-    fileSize: parseInt(process.env.MAX_FILE_SIZE || '524288000'), // 500MB
+    fileSize: maxFileSize, // 2GB
   },
   fileFilter: (req, file, cb) => {
     console.log('Mimetype recebido no upload:', file.mimetype);
@@ -37,6 +44,56 @@ const upload = multer({
     }
   },
 });
+
+// Middleware para capturar erros do multer
+const handleMulterError = (error: any, req: Request, res: Response, next: NextFunction) => {
+  console.log('🚨 Erro do Multer capturado:', error);
+  
+  if (error instanceof multer.MulterError) {
+    console.log('🚨 Erro específico do Multer:', error.code);
+    
+    // Log do tamanho do arquivo se disponível
+    if (req.headers['content-length']) {
+      const fileSizeMB = Math.round(parseInt(req.headers['content-length']) / 1024 / 1024);
+      console.log('📏 Tamanho do arquivo tentado:', fileSizeMB, 'MB');
+    }
+    
+    switch (error.code) {
+      case 'LIMIT_FILE_SIZE':
+        const fileSizeMB = req.headers['content-length'] ? Math.round(parseInt(req.headers['content-length']) / 1024 / 1024) : 'desconhecido';
+        return res.status(400).json({
+          success: false,
+          error: `Arquivo muito grande. Tamanho máximo permitido: ${Math.round(maxFileSize / 1024 / 1024)}MB. Tamanho do arquivo: ${fileSizeMB}MB`
+        });
+      case 'LIMIT_FILE_COUNT':
+        return res.status(400).json({
+          success: false,
+          error: 'Muitos arquivos enviados. Máximo permitido: 1 arquivo'
+        });
+      case 'LIMIT_UNEXPECTED_FILE':
+        return res.status(400).json({
+          success: false,
+          error: 'Campo de arquivo inesperado'
+        });
+      default:
+        return res.status(400).json({
+          success: false,
+          error: 'Erro no upload do arquivo',
+          details: error.message
+        });
+    }
+  }
+  
+  if (error.message === 'Tipo de arquivo não permitido') {
+    return res.status(400).json({
+      success: false,
+      error: 'Tipo de arquivo não permitido. Apenas imagens e vídeos são aceitos.'
+    });
+  }
+  
+  // Se não for erro do multer, passar para o próximo middleware
+  return next(error);
+};
 
 // ===== VALIDAÇÕES =====
 
@@ -294,83 +351,108 @@ router.put('/landing-page', async (req: Request, res: Response) => {
 });
 
 // Upload de mídia da landing page
-router.post('/landing-page/upload-media', upload.single('mediaFile'), async (req: Request, res: Response) => {
+router.post('/landing-page/upload-media', authenticateAdmin, upload.single('mediaFile'), handleMulterError, async (req: Request, res: Response) => {
+  console.log('🚀 === ENDPOINT DE UPLOAD CHAMADO ===');
+  console.log('📋 Método:', req.method);
+  console.log('📋 URL:', req.url);
+  console.log('📋 Content-Type:', req.headers['content-type']);
+  console.log('📋 Content-Length:', req.headers['content-length']);
+  console.log('📋 Authorization:', req.headers.authorization ? 'Presente' : 'Ausente');
+  console.log('📋 Todos os headers:', JSON.stringify(req.headers, null, 2));
+  console.log('📋 Body recebido:', req.body);
+  console.log('📋 File recebido:', req.file ? {
+    fieldname: req.file.fieldname,
+    originalname: req.file.originalname,
+    mimetype: req.file.mimetype,
+    size: req.file.size,
+    buffer: req.file.buffer ? 'Presente' : 'Ausente'
+  } : 'Nenhum arquivo');
+  
   try {
+    console.log('🔍 === INÍCIO DO UPLOAD DE MÍDIA ===');
+    console.log('📋 Headers recebidos:', req.headers);
+    console.log('📋 Body recebido:', req.body);
+    console.log('📋 File recebido:', req.file);
+    console.log('📋 mediaType recebido:', req.body.mediaType);
+    console.log('📋 mediaUrl recebido:', req.body.mediaUrl);
+    
     const { mediaType, mediaUrl } = req.body;
     const mediaFile = req.file;
+    console.log('🟢 mediaFile existe?', !!mediaFile, '| mediaType:', mediaType, '| mediaUrl:', mediaUrl);
 
-    if (!mediaType || (!mediaUrl && !mediaFile)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Tipo de mídia e URL/arquivo são obrigatórios',
-      });
-    }
+    let finalMediaUrl = null;
 
-    let finalMediaUrl = mediaUrl;
-
-    // Se foi enviado um arquivo, fazer upload para Cloudinary
     if (mediaFile && !mediaUrl) {
       try {
+        // Agora tanto imagem quanto vídeo vão para a Cloudinary
+        console.log('🖼️🎥 Upload de imagem ou vídeo para Cloudinary...');
         const uploadResult = await uploadImage(mediaFile, 'landing-page');
         finalMediaUrl = uploadResult.secureUrl;
+        console.log('✅ Upload para Cloudinary concluído:', finalMediaUrl);
       } catch (uploadError) {
-        console.error('Erro no upload para Cloudinary:', uploadError);
+        console.error('❌ Erro no upload:', uploadError);
         return res.status(500).json({
           success: false,
           error: 'Erro ao fazer upload do arquivo',
           details: uploadError instanceof Error ? uploadError.message : uploadError
         });
       }
+    } else if (mediaUrl) {
+      finalMediaUrl = mediaUrl;
+      console.log('🔗 Usando mediaUrl fornecida:', mediaUrl);
+    } else {
+      console.log('🔴 Nenhum arquivo ou URL fornecido! mediaFile:', mediaFile, 'mediaUrl:', mediaUrl);
+      return res.status(400).json({ success: false, error: 'Nenhum arquivo ou URL fornecido', debug: { mediaFile, mediaUrl, mediaType } });
     }
 
     // Atualizar a landing page com a nova mídia
-    const updateData: any = {
+    const updateData = {
       heroMediaType: mediaType,
       heroMediaUrl: finalMediaUrl,
+      heroImage: mediaType === 'image' ? finalMediaUrl : null,
+      heroVideo: mediaType === 'video' ? finalMediaUrl : null,
     };
+    console.log('📝 Dados para update:', updateData);
 
-    // Manter compatibilidade com campos antigos
-    if (mediaType === 'image') {
-      updateData.heroImage = finalMediaUrl;
-    } else if (mediaType === 'video') {
-      updateData.heroVideo = finalMediaUrl;
-    }
-
-    const content = await prisma.landingPageContent.upsert({
+    // Atualizar o banco de dados com todos os campos de mídia
+    const updatedContent = await prisma.landingPageContent.upsert({
       where: { id: 1 },
       update: updateData,
       create: {
         id: 1,
         heroTitle: 'Seu diário digital para acompanhar o bebê',
         heroSubtitle: 'Registre atividades, memórias e marcos importantes do seu bebê em um só lugar',
-        heroImage: mediaType === 'image' ? finalMediaUrl : null,
-        heroMediaUrl: finalMediaUrl,
         features: [],
         testimonials: [],
         faq: [],
         stats: [],
-        ctaText: null,
-        ctaButtonText: null,
-        seoTitle: 'Baby Diary - Seu diário digital para acompanhar o bebê',
-        seoDescription: 'Registre atividades, memórias e marcos importantes do seu bebê em um só lugar. Nunca perca um momento especial do desenvolvimento do seu pequeno.',
-        seoKeywords: 'baby diary, diário do bebê, acompanhamento infantil, desenvolvimento do bebê, memórias do bebê',
+        ...updateData,
       },
     });
 
-    return res.json({
-      success: true,
-      message: 'Mídia da landing page atualizada com sucesso',
-      data: {
-        mediaType,
+    console.log('✅ Landing page atualizada no banco:', {
+      heroMediaType: updatedContent.heroMediaType,
+      heroMediaUrl: updatedContent.heroMediaUrl,
+      heroImage: updatedContent.heroImage,
+      heroVideo: updatedContent.heroVideo,
+    });
+
+    return res.json({ 
+      success: true, 
+      data: { 
         mediaUrl: finalMediaUrl,
-        content,
-      },
+        heroMediaType: updatedContent.heroMediaType,
+        heroMediaUrl: updatedContent.heroMediaUrl,
+        heroImage: updatedContent.heroImage,
+        heroVideo: updatedContent.heroVideo,
+      } 
     });
   } catch (error) {
-    console.error('Erro ao atualizar mídia da landing page:', error);
+    console.error('❌ Erro geral no endpoint de upload de mídia:', error);
     return res.status(500).json({
       success: false,
-      error: 'Erro interno do servidor',
+      error: 'Erro inesperado no servidor',
+      details: error instanceof Error ? error.message : error
     });
   }
 });
@@ -3440,6 +3522,282 @@ router.use((err: any, req: express.Request, res: express.Response, next: express
     return res.status(500).json({ success: false, error: err.message || 'Erro interno no servidor.' });
   }
   return next();
+});
+
+// ===== GERENCIAMENTO DE CONTEÚDO DA LANDING PAGE =====
+
+// Obter conteúdo da landing page
+router.get('/landing-page-content', adminController.getLandingPageContent);
+
+// Atualizar conteúdo da landing page
+router.put('/landing-page-content', adminController.updateLandingPageContent);
+
+// Upload de mídia para landing page
+router.post('/landing-page-media', upload.single('mediaFile'), async (req: Request, res: Response) => {
+  try {
+    console.log('🎬 Iniciando upload de mídia para landing page...');
+    
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'Nenhum arquivo enviado'
+      });
+    }
+
+    const { mediaType } = req.body;
+    console.log('📁 Arquivo recebido:', {
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      mediaType
+    });
+
+    let finalMediaUrl = '';
+
+    // Upload para Cloudinary
+    try {
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        resource_type: 'auto',
+        folder: 'baby-diary/landing-page',
+        transformation: mediaType === 'video' ? [
+          { width: 800, height: 400, crop: 'fill' }
+        ] : [
+          { width: 800, height: 400, crop: 'fill', quality: 'auto' }
+        ]
+      });
+
+      finalMediaUrl = result.secure_url;
+      console.log('☁️ Upload para Cloudinary bem-sucedido:', finalMediaUrl);
+
+      // Limpar arquivo temporário
+      fs.unlinkSync(req.file.path);
+    } catch (cloudinaryError) {
+      console.error('❌ Erro no upload para Cloudinary:', cloudinaryError);
+      
+      // Fallback: salvar localmente
+      const fileName = `${Date.now()}-${req.file.originalname}`;
+      const localPath = `uploads/${fileName}`;
+      
+      fs.copyFileSync(req.file.path, localPath);
+      finalMediaUrl = `${process.env.API_URL || 'http://localhost:3000'}/${localPath}`;
+      
+      console.log('💾 Fallback para armazenamento local:', finalMediaUrl);
+    }
+
+    // Atualizar banco de dados
+    const updateData: any = {};
+    
+    if (mediaType === 'video') {
+      updateData.heroVideo = finalMediaUrl;
+      updateData.heroMediaType = 'video';
+      updateData.heroMediaUrl = finalMediaUrl;
+    } else {
+      updateData.heroImage = finalMediaUrl;
+      updateData.heroMediaType = 'image';
+      updateData.heroMediaUrl = finalMediaUrl;
+    }
+
+    const updatedContent = await prisma.landingPageContent.upsert({
+      where: { id: 1 },
+      update: updateData,
+      create: {
+        id: 1,
+        heroTitle: 'Baby Diary',
+        heroSubtitle: 'Acompanhe o desenvolvimento do seu bebê',
+        features: [],
+        testimonials: [],
+        faq: [],
+        stats: [],
+        ...updateData,
+      },
+    });
+
+    console.log('✅ Landing page atualizada no banco:', {
+      heroMediaType: updatedContent.heroMediaType,
+      heroMediaUrl: updatedContent.heroMediaUrl,
+      heroImage: updatedContent.heroImage,
+      heroVideo: updatedContent.heroVideo,
+    });
+
+    return res.json({ 
+      success: true, 
+      data: { 
+        mediaUrl: finalMediaUrl,
+        heroMediaType: updatedContent.heroMediaType,
+        heroMediaUrl: updatedContent.heroMediaUrl,
+        heroImage: updatedContent.heroImage,
+        heroVideo: updatedContent.heroVideo,
+      } 
+    });
+  } catch (error) {
+    console.error('❌ Erro geral no endpoint de upload de mídia:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro inesperado no servidor',
+      details: error instanceof Error ? error.message : error
+    });
+  }
+});
+
+// ===== GERENCIAMENTO DE CONTEÚDO DA PÁGINA BUSINESS =====
+
+// Obter conteúdo da página business
+router.get('/business-page-content', adminController.getBusinessPageContent);
+
+// Atualizar conteúdo da página business
+router.put('/business-page-content', adminController.updateBusinessPageContent);
+
+// Upload de mídia para página business
+router.post('/business-page-media', upload.single('mediaFile'), async (req: Request, res: Response) => {
+  try {
+    console.log('🎬 Iniciando upload de mídia para página business...');
+    
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'Nenhum arquivo enviado'
+      });
+    }
+
+    const { mediaType } = req.body;
+    console.log('📁 Arquivo recebido:', {
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      mediaType
+    });
+
+    let finalMediaUrl = '';
+
+    // Upload para Cloudinary
+    try {
+      const uploadOptions = {
+        resource_type: 'auto' as const,
+        folder: 'baby-diary/business-page',
+        transformation: mediaType === 'video' ? undefined : [
+          { width: 800, height: 400, crop: 'fill', quality: 'auto' }
+        ]
+      };
+
+      // Se temos o buffer, usar upload_stream, senão usar upload
+      if (req.file?.buffer) {
+        const result = await new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            uploadOptions,
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          uploadStream.end(req.file!.buffer);
+        });
+        
+        finalMediaUrl = (result as any).secure_url;
+      } else if (req.file?.path) {
+        const result = await cloudinary.uploader.upload(req.file.path, uploadOptions);
+        finalMediaUrl = result.secure_url;
+        
+        // Limpar arquivo temporário
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (unlinkError) {
+          console.warn('⚠️ Erro ao deletar arquivo temporário:', unlinkError);
+        }
+      } else {
+        throw new Error('Arquivo não tem buffer nem path');
+      }
+
+      console.log('☁️ Upload para Cloudinary bem-sucedido:', finalMediaUrl);
+
+    } catch (cloudinaryError) {
+      console.error('❌ Erro no upload para Cloudinary:', cloudinaryError);
+      
+      // Fallback: salvar localmente
+      try {
+        const fileName = `${Date.now()}-${req.file.originalname}`;
+        const localPath = `uploads/${fileName}`;
+        
+        // Criar diretório se não existir
+        if (!fs.existsSync('uploads')) {
+          fs.mkdirSync('uploads', { recursive: true });
+        }
+        
+        if (req.file?.buffer) {
+          fs.writeFileSync(localPath, req.file.buffer);
+        } else if (req.file.path) {
+          fs.copyFileSync(req.file.path, localPath);
+        } else {
+          throw new Error('Arquivo não tem buffer nem path');
+        }
+        
+        finalMediaUrl = `${process.env.API_URL || 'http://localhost:3000'}/${localPath}`;
+        console.log('💾 Fallback para armazenamento local:', finalMediaUrl);
+      } catch (localError) {
+        console.error('❌ Erro no fallback local:', localError);
+        return res.status(500).json({
+          success: false,
+          error: 'Erro ao salvar arquivo'
+        });
+      }
+    }
+
+    // Atualizar banco de dados
+    const updateData: any = {};
+    
+    if (mediaType === 'video') {
+      updateData.heroVideo = finalMediaUrl;
+      updateData.heroMediaType = 'video';
+      updateData.heroMediaUrl = finalMediaUrl;
+    } else {
+      updateData.heroImage = finalMediaUrl;
+      updateData.heroMediaType = 'image';
+      updateData.heroMediaUrl = finalMediaUrl;
+    }
+
+    const updatedContent = await prisma.businessPageContent.upsert({
+      where: { id: 1 },
+      update: updateData,
+      create: {
+        id: 1,
+        heroTitle: '🍼 BABY DIARY',
+        heroSubtitle: 'O APP DEFINITIVO PARA MÃES QUE QUEREM DOCUMENTAR CADA MOMENTO ESPECIAL',
+        benefits: [],
+        businessAdvantages: [],
+        featuresMoms: [],
+        featuresAdmin: [],
+        marketData: [],
+        differentials: [],
+        finalArguments: [],
+        futureFeatures: [],
+        ...updateData,
+      },
+    });
+
+    console.log('✅ Página business atualizada no banco:', {
+      heroMediaType: updateData.heroMediaType,
+      heroMediaUrl: updateData.heroMediaUrl,
+      heroImage: updateData.heroImage,
+      heroVideo: updateData.heroVideo,
+    });
+
+    return res.json({ 
+      success: true, 
+      data: { 
+        mediaUrl: finalMediaUrl,
+        heroMediaType: updateData.heroMediaType,
+        heroMediaUrl: updateData.heroMediaUrl,
+        heroImage: updateData.heroImage,
+        heroVideo: updateData.heroVideo,
+      } 
+    });
+  } catch (error) {
+    console.error('❌ Erro geral no endpoint de upload de mídia da página business:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro inesperado no servidor',
+      details: error instanceof Error ? error.message : error
+    });
+  }
 });
 
 export default router; 

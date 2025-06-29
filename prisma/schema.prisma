@@ -146,6 +146,30 @@ model LandingPageContent {
   updatedAt     DateTime @updatedAt
 }
 
+model BusinessPageContent {
+  id            Int      @id @default(1) // Só haverá uma linha nesta tabela
+  heroTitle     String
+  heroSubtitle  String
+  heroImage     String?
+  heroVideo     String?  // URL do vídeo
+  heroMediaType String?  // "image" ou "video"
+  heroMediaUrl  String?  // URL do media (imagem ou vídeo)
+  benefits      Json     // [{ "icon": "...", "title": "...", "items": ["..."] }]
+  businessAdvantages Json // [{ "icon": "...", "title": "...", "items": ["..."] }]
+  featuresMoms  Json     // ["feature1", "feature2", ...]
+  featuresAdmin Json     // ["feature1", "feature2", ...]
+  marketData    Json     // ["data1", "data2", ...]
+  differentials Json     // [{ "icon": "...", "title": "...", "desc": "..." }]
+  finalArguments Json    // [{ "icon": "...", "title": "...", "desc": "..." }]
+  futureFeatures Json    // [{ "icon": "...", "title": "...", "desc": "..." }]
+  ctaText       String?
+  ctaButtonText String?
+  seoTitle      String?
+  seoDescription String?
+  seoKeywords   String?
+  updatedAt     DateTime @updatedAt
+}
+
 model GamificationRule {
   id          String   @id @default(cuid())
   name        String   // Ex: "Login Diário", "Primeiro Cadastro"

@@ -34,6 +34,7 @@ import { useToast } from '../../hooks/use-toast';
 import { adminAuth, adminSettings } from '../../lib/adminApi';
 import { useAdminAuth } from '../../contexts/admin/AdminAuthContext';
 import { getApiUrl } from '@/config/api';
+import { apiFetch } from '@/config/api';
 
 interface SystemSettings {
   maxFileSize: string;
@@ -78,7 +79,40 @@ export const AdminSettings: React.FC = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(false);
   const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
-  const [landingPageSettings, setLandingPageSettings] = useState<LandingPageSettings | null>(null);
+  const [landingPageSettings, setLandingPageSettings] = useState<LandingPageSettings>({
+    heroTitle: '',
+    heroSubtitle: '',
+    heroImage: null,
+    heroVideo: null,
+    heroMediaType: null,
+    heroMediaUrl: null,
+    features: [],
+    testimonials: [],
+    faq: [],
+    stats: [],
+    ctaText: null,
+    ctaButtonText: null,
+    seoTitle: null,
+    seoDescription: null,
+    seoKeywords: null,
+  });
+  const [businessPageSettings, setBusinessPageSettings] = useState<LandingPageSettings>({
+    heroTitle: '',
+    heroSubtitle: '',
+    heroImage: null,
+    heroVideo: null,
+    heroMediaType: null,
+    heroMediaUrl: null,
+    features: [],
+    testimonials: [],
+    faq: [],
+    stats: [],
+    ctaText: null,
+    ctaButtonText: null,
+    seoTitle: null,
+    seoDescription: null,
+    seoKeywords: null,
+  });
   const [integrationTests, setIntegrationTests] = useState<IntegrationTest | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -104,17 +138,46 @@ export const AdminSettings: React.FC = () => {
   const loadSettings = async () => {
     try {
       setLoading(true);
-      const response = await adminSettings.get();
-      if (response.success) {
-        setSystemSettings(response.data.system);
-        setLandingPageSettings(response.data.landingPage);
+      
+      // Usar o token de admin
+      const adminToken = localStorage.getItem('adminToken');
+      if (!adminToken) {
+        toast({
+          title: 'Erro',
+          description: 'Token de admin não encontrado',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const [landingResponse, businessResponse] = await Promise.all([
+        fetch(`${getApiUrl()}/admin/landing-page-content`, {
+          headers: {
+            'Authorization': `Bearer ${adminToken}`,
+            'Content-Type': 'application/json'
+          }
+        }).then(res => res.json()),
+        fetch(`${getApiUrl()}/admin/business-page-content`, {
+          headers: {
+            'Authorization': `Bearer ${adminToken}`,
+            'Content-Type': 'application/json'
+          }
+        }).then(res => res.json())
+      ]);
+
+      if (landingResponse.success) {
+        setLandingPageSettings(landingResponse.data);
+      }
+
+      if (businessResponse.success) {
+        setBusinessPageSettings(businessResponse.data);
       }
     } catch (error) {
       console.error('Erro ao carregar configurações:', error);
       toast({
         title: 'Erro',
-        description: 'Não foi possível carregar as configurações',
-        variant: 'destructive'
+        description: 'Não foi possível carregar as configurações.',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -303,88 +366,79 @@ export const AdminSettings: React.FC = () => {
     }
   };
 
-  const handleMediaUpload = async () => {
+  const handleMediaUpload = async (page: 'landing' | 'business' = 'landing') => {
+    if (!mediaFile) {
+      toast({
+        title: 'Erro',
+        description: 'Selecione um arquivo para enviar',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     try {
       setMediaUploadLoading(true);
       
-      if (!mediaUrl && !mediaFile) {
+      const formData = new FormData();
+      formData.append('mediaFile', mediaFile);
+      formData.append('mediaType', selectedMediaType);
+
+      // Usar o token de admin
+      const adminToken = localStorage.getItem('adminToken');
+      if (!adminToken) {
         toast({
           title: 'Erro',
-          description: 'Por favor, forneça uma URL ou selecione um arquivo',
+          description: 'Token de admin não encontrado',
           variant: 'destructive'
         });
         return;
       }
 
-      const formData = new FormData();
-      formData.append('mediaType', selectedMediaType);
-      if (mediaUrl) {
-        formData.append('mediaUrl', mediaUrl);
-      }
-      if (mediaFile) {
-        formData.append('mediaFile', mediaFile);
-      }
-
-      const response = await fetch(getApiUrl('/admin/landing-page/upload-media'), {
+      const response = await fetch(`${getApiUrl()}/admin/${page === 'business' ? 'business-page-media' : 'landing-page-media'}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+          'Authorization': `Bearer ${adminToken}`
         },
         body: formData
       });
 
-      let data: any = null;
-      let isJson = false;
-      try {
-        const text = await response.text();
-        if (text) {
-          data = JSON.parse(text);
-          isJson = true;
-        }
-      } catch (err) {
-        // Não é JSON válido
-        data = null;
-        isJson = false;
-      }
+      const data = await response.json();
 
-      if (isJson && data && data.success) {
+      if (data.success) {
         toast({
           title: 'Sucesso',
-          description: 'Mídia atualizada com sucesso'
+          description: 'Mídia enviada com sucesso!'
         });
         
-        // Atualizar o estado da landing page
-        if (landingPageSettings) {
+        // Atualizar o estado correspondente
+        if (page === 'business') {
+          setBusinessPageSettings({
+            ...businessPageSettings,
+            heroMediaUrl: data.data.mediaUrl,
+            heroMediaType: selectedMediaType,
+            heroImage: selectedMediaType === 'image' ? data.data.mediaUrl : null,
+            heroVideo: selectedMediaType === 'video' ? data.data.mediaUrl : null
+          });
+        } else {
           setLandingPageSettings({
             ...landingPageSettings,
-            heroMediaType: selectedMediaType,
             heroMediaUrl: data.data.mediaUrl,
-            heroImage: selectedMediaType === 'image' ? data.data.mediaUrl : landingPageSettings.heroImage,
-            heroVideo: selectedMediaType === 'video' ? data.data.mediaUrl : landingPageSettings.heroVideo,
+            heroMediaType: selectedMediaType,
+            heroImage: selectedMediaType === 'image' ? data.data.mediaUrl : null,
+            heroVideo: selectedMediaType === 'video' ? data.data.mediaUrl : null
           });
         }
         
-        // Limpar formulário
-        setMediaUrl('');
         setMediaFile(null);
-      } else if (isJson && data && data.error) {
-        toast({
-          title: 'Erro',
-          description: data.error || 'Erro ao fazer upload da mídia',
-          variant: 'destructive'
-        });
+        setMediaUrl('');
       } else {
-        toast({
-          title: 'Erro',
-          description: 'Resposta inesperada do servidor. Tente novamente ou contate o suporte.',
-          variant: 'destructive'
-        });
+        throw new Error(data.error || 'Erro ao enviar mídia');
       }
     } catch (error) {
-      console.error('Erro ao fazer upload da mídia:', error);
+      console.error('Erro ao enviar mídia:', error);
       toast({
         title: 'Erro',
-        description: 'Erro de conexão',
+        description: 'Não foi possível enviar a mídia',
         variant: 'destructive'
       });
     } finally {
@@ -408,6 +462,96 @@ export const AdminSettings: React.FC = () => {
         return <XCircle className="w-4 h-4 text-red-600" />;
       default:
         return <AlertTriangle className="w-4 h-4 text-yellow-600" />;
+    }
+  };
+
+  const handleLandingPageUpdate = async () => {
+    try {
+      setLoading(true);
+      
+      const adminToken = localStorage.getItem('adminToken');
+      if (!adminToken) {
+        toast({
+          title: 'Erro',
+          description: 'Token de admin não encontrado',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const response = await fetch(`${getApiUrl()}/admin/landing-page-content`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${adminToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(landingPageSettings),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: 'Sucesso',
+          description: 'Landing page atualizada com sucesso!',
+        });
+      } else {
+        throw new Error(data.error || 'Erro ao atualizar landing page');
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar landing page:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar a landing page.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBusinessPageUpdate = async () => {
+    try {
+      setLoading(true);
+      
+      const adminToken = localStorage.getItem('adminToken');
+      if (!adminToken) {
+        toast({
+          title: 'Erro',
+          description: 'Token de admin não encontrado',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const response = await fetch(`${getApiUrl()}/admin/business-page-content`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${adminToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(businessPageSettings),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: 'Sucesso',
+          description: 'Página Business atualizada com sucesso!',
+        });
+      } else {
+        throw new Error(data.error || 'Erro ao atualizar página Business');
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar página Business:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar a página Business.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -450,9 +594,13 @@ export const AdminSettings: React.FC = () => {
             <Zap className="w-4 h-4" />
             Integrações
           </TabsTrigger>
-          <TabsTrigger value="landingPage" className="flex items-center gap-2">
+          <TabsTrigger value="landing-page" className="flex items-center gap-2">
             <Globe className="w-4 h-4" />
             Landing Page
+          </TabsTrigger>
+          <TabsTrigger value="business-page" className="flex items-center gap-2">
+            <Globe className="w-4 h-4" />
+            Página Business
           </TabsTrigger>
         </TabsList>
 
@@ -779,7 +927,7 @@ export const AdminSettings: React.FC = () => {
         </TabsContent>
 
         {/* Landing Page */}
-        <TabsContent value="landingPage" className="space-y-6">
+        <TabsContent value="landing-page" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -892,7 +1040,7 @@ export const AdminSettings: React.FC = () => {
 
                     {/* Botão de upload */}
                     <Button
-                      onClick={handleMediaUpload}
+                      onClick={() => handleMediaUpload()}
                       disabled={mediaUploadLoading || (!mediaUrl && !mediaFile)}
                       className="w-full"
                     >
@@ -1042,13 +1190,170 @@ export const AdminSettings: React.FC = () => {
 
                   {/* Botão para salvar configurações */}
                   <div className="flex justify-end pt-4">
-                    <Button onClick={() => {
-                      // TODO: Implementar salvamento das configurações
-                      toast({
-                        title: 'Sucesso',
-                        description: 'Configurações da landing page salvas com sucesso'
-                      });
-                    }} disabled={loading}>
+                    <Button onClick={handleLandingPageUpdate} disabled={loading}>
+                      <Save className="w-4 h-4 mr-2" />
+                      {loading ? 'Salvando...' : 'Salvar Configurações'}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Página Business */}
+        <TabsContent value="business-page" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="w-5 h-5" />
+                Página Business
+              </CardTitle>
+              <CardDescription>
+                Configure o conteúdo da página Business
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {businessPageSettings && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <Label htmlFor="businessHeroTitle">Título do Herói</Label>
+                      <Input
+                        id="businessHeroTitle"
+                        value={businessPageSettings.heroTitle}
+                        onChange={(e) => setBusinessPageSettings({...businessPageSettings, heroTitle: e.target.value})}
+                        placeholder="Título do Herói"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="businessHeroSubtitle">Subtítulo do Herói</Label>
+                      <Input
+                        id="businessHeroSubtitle"
+                        value={businessPageSettings.heroSubtitle}
+                        onChange={(e) => setBusinessPageSettings({...businessPageSettings, heroSubtitle: e.target.value})}
+                        placeholder="Subtítulo do Herói"
+                      />
+                    </div>
+                  </div>
+
+                  <Separator />
+                  
+                  {/* Upload de Mídia para Business */}
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Mídia do Herói (Business)</Label>
+                      <div className="flex items-center gap-4 mt-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            id="businessImage"
+                            name="businessMediaType"
+                            value="image"
+                            checked={selectedMediaType === 'image'}
+                            onChange={(e) => setSelectedMediaType(e.target.value as 'image' | 'video')}
+                          />
+                          <Label htmlFor="businessImage" className="flex items-center gap-2">
+                            <Image className="w-4 h-4" />
+                            Imagem
+                          </Label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            id="businessVideo"
+                            name="businessMediaType"
+                            value="video"
+                            checked={selectedMediaType === 'video'}
+                            onChange={(e) => setSelectedMediaType(e.target.value as 'image' | 'video')}
+                          />
+                          <Label htmlFor="businessVideo" className="flex items-center gap-2">
+                            <Video className="w-4 h-4" />
+                            Vídeo
+                          </Label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="businessMediaFile">Arquivo de Mídia</Label>
+                      <Input
+                        id="businessMediaFile"
+                        type="file"
+                        accept={selectedMediaType === 'video' ? 'video/*' : 'image/*'}
+                        onChange={handleFileChange}
+                        className="mt-2"
+                      />
+                    </div>
+
+                    {mediaFile && (
+                      <div className="flex items-center gap-4">
+                        <Button
+                          onClick={() => handleMediaUpload('business')}
+                          disabled={mediaUploadLoading}
+                          className="flex items-center gap-2"
+                        >
+                          <Upload className="w-4 h-4" />
+                          {mediaUploadLoading ? 'Enviando...' : 'Enviar Mídia'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => setMediaFile(null)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Cancelar
+                        </Button>
+                      </div>
+                    )}
+
+                    {businessPageSettings.heroMediaUrl && (
+                      <div className="mt-4">
+                        <Label>Mídia Atual</Label>
+                        <div className="mt-2 p-4 border rounded-lg">
+                          {businessPageSettings.heroMediaType === 'video' ? (
+                            <video
+                              src={businessPageSettings.heroMediaUrl}
+                              controls
+                              className="w-full max-w-md rounded"
+                            />
+                          ) : (
+                            <img
+                              src={businessPageSettings.heroMediaUrl}
+                              alt="Mídia atual"
+                              className="w-full max-w-md rounded"
+                            />
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <Label htmlFor="businessCtaText">Texto do CTA</Label>
+                      <Input
+                        id="businessCtaText"
+                        value={businessPageSettings.ctaText || ''}
+                        onChange={(e) => setBusinessPageSettings({...businessPageSettings, ctaText: e.target.value})}
+                        placeholder="Texto do botão principal"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="businessCtaButtonText">Texto do Botão CTA</Label>
+                      <Input
+                        id="businessCtaButtonText"
+                        value={businessPageSettings.ctaButtonText || ''}
+                        onChange={(e) => setBusinessPageSettings({...businessPageSettings, ctaButtonText: e.target.value})}
+                        placeholder="Texto do botão secundário"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Botão para salvar configurações */}
+                  <div className="flex justify-end pt-4">
+                    <Button onClick={handleBusinessPageUpdate} disabled={loading}>
                       <Save className="w-4 h-4 mr-2" />
                       {loading ? 'Salvando...' : 'Salvar Configurações'}
                     </Button>

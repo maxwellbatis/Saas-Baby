@@ -619,38 +619,88 @@ export const getLandingPageContent = async (req: Request, res: Response) => {
 
 export const updateLandingPageContent = async (req: Request, res: Response) => {
   try {
-    const { heroTitle, heroSubtitle, description, features, testimonials } = req.body;
-    
-    const content = await prisma.landingPageContent.upsert({
+    const updateData = req.body;
+    const updatedContent = await prisma.landingPageContent.upsert({
       where: { id: 1 },
-      update: {
-        heroTitle,
-        heroSubtitle,
-        features,
-        testimonials,
-      },
+      update: updateData,
       create: {
         id: 1,
-        heroTitle,
-        heroSubtitle,
-        features,
-        testimonials,
+        heroTitle: 'Baby Diary',
+        heroSubtitle: 'Acompanhe o desenvolvimento do seu bebê',
+        features: [],
+        testimonials: [],
         faq: [],
         stats: [],
+        ...updateData,
       },
     });
-    
-    return res.json({
-      success: true,
-      message: 'Conteúdo da landing page atualizado com sucesso',
-      data: content,
-    });
+
+    return res.json({ success: true, data: updatedContent });
   } catch (error) {
     console.error('Erro ao atualizar conteúdo da landing page:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Erro interno do servidor',
+    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+  }
+};
+
+export const getBusinessPageContent = async (req: Request, res: Response) => {
+  try {
+    const content = await prisma.businessPageContent.findUnique({
+      where: { id: 1 },
     });
+
+    if (!content) {
+      // Criar conteúdo padrão se não existir
+      const defaultContent = await prisma.businessPageContent.create({
+        data: {
+          id: 1,
+          heroTitle: '🍼 BABY DIARY',
+          heroSubtitle: 'O APP DEFINITIVO PARA MÃES QUE QUEREM DOCUMENTAR CADA MOMENTO ESPECIAL',
+          benefits: [],
+          businessAdvantages: [],
+          featuresMoms: [],
+          featuresAdmin: [],
+          marketData: [],
+          differentials: [],
+          finalArguments: [],
+          futureFeatures: [],
+        },
+      });
+      return res.json({ success: true, data: defaultContent });
+    }
+
+    return res.json({ success: true, data: content });
+  } catch (error) {
+    console.error('Erro ao buscar conteúdo da página business:', error);
+    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+  }
+};
+
+export const updateBusinessPageContent = async (req: Request, res: Response) => {
+  try {
+    const updateData = req.body;
+    const updatedContent = await prisma.businessPageContent.upsert({
+      where: { id: 1 },
+      update: updateData,
+      create: {
+        id: 1,
+        heroTitle: '🍼 BABY DIARY',
+        heroSubtitle: 'O APP DEFINITIVO PARA MÃES QUE QUEREM DOCUMENTAR CADA MOMENTO ESPECIAL',
+        benefits: [],
+        businessAdvantages: [],
+        featuresMoms: [],
+        featuresAdmin: [],
+        marketData: [],
+        differentials: [],
+        finalArguments: [],
+        futureFeatures: [],
+        ...updateData,
+      },
+    });
+
+    return res.json({ success: true, data: updatedContent });
+  } catch (error) {
+    console.error('Erro ao atualizar conteúdo da página business:', error);
+    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 };
 

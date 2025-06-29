@@ -431,20 +431,20 @@ router.post('/landing-page/upload-media', authenticateAdmin, upload.single('medi
     });
 
     console.log('✅ Landing page atualizada no banco:', {
-      heroMediaType: updatedContent.heroMediaType,
-      heroMediaUrl: updatedContent.heroMediaUrl,
+      heroMediaType: updateData.heroMediaType,
+      heroMediaUrl: updateData.heroMediaUrl,
       heroImage: updatedContent.heroImage,
-      heroVideo: updatedContent.heroVideo,
+      heroVideo: updateData.heroVideo,
     });
 
     return res.json({ 
       success: true, 
       data: { 
         mediaUrl: finalMediaUrl,
-        heroMediaType: updatedContent.heroMediaType,
-        heroMediaUrl: updatedContent.heroMediaUrl,
+        heroMediaType: updateData.heroMediaType,
+        heroMediaUrl: updateData.heroMediaUrl,
         heroImage: updatedContent.heroImage,
-        heroVideo: updatedContent.heroVideo,
+        heroVideo: updateData.heroVideo,
       } 
     });
   } catch (error) {
@@ -3556,32 +3556,74 @@ router.post('/landing-page-media', upload.single('mediaFile'), async (req: Reque
 
     // Upload para Cloudinary
     try {
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        resource_type: 'auto',
+      const uploadOptions = {
+        resource_type: 'auto' as const,
         folder: 'baby-diary/landing-page',
-        transformation: mediaType === 'video' ? [
-          { width: 800, height: 400, crop: 'fill' }
-        ] : [
+        transformation: mediaType === 'video' ? undefined : [
           { width: 800, height: 400, crop: 'fill', quality: 'auto' }
         ]
-      });
+      };
 
-      finalMediaUrl = result.secure_url;
+      // Se temos o buffer, usar upload_stream, senão usar upload
+      if (req.file?.buffer) {
+        const result = await new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            uploadOptions,
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          uploadStream.end(req.file!.buffer);
+        });
+        
+        finalMediaUrl = (result as any).secure_url;
+      } else if (req.file?.path) {
+        const result = await cloudinary.uploader.upload(req.file.path, uploadOptions);
+        finalMediaUrl = result.secure_url;
+        
+        // Limpar arquivo temporário
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (unlinkError) {
+          console.warn('⚠️ Erro ao deletar arquivo temporário:', unlinkError);
+        }
+      } else {
+        throw new Error('Arquivo não tem buffer nem path');
+      }
+
       console.log('☁️ Upload para Cloudinary bem-sucedido:', finalMediaUrl);
 
-      // Limpar arquivo temporário
-      fs.unlinkSync(req.file.path);
     } catch (cloudinaryError) {
       console.error('❌ Erro no upload para Cloudinary:', cloudinaryError);
       
       // Fallback: salvar localmente
-      const fileName = `${Date.now()}-${req.file.originalname}`;
-      const localPath = `uploads/${fileName}`;
-      
-      fs.copyFileSync(req.file.path, localPath);
-      finalMediaUrl = `${process.env.API_URL || 'http://localhost:3000'}/${localPath}`;
-      
-      console.log('💾 Fallback para armazenamento local:', finalMediaUrl);
+      try {
+        const fileName = `${Date.now()}-${req.file.originalname}`;
+        const localPath = `uploads/${fileName}`;
+        
+        // Criar diretório se não existir
+        if (!fs.existsSync('uploads')) {
+          fs.mkdirSync('uploads', { recursive: true });
+        }
+        
+        if (req.file?.buffer) {
+          fs.writeFileSync(localPath, req.file.buffer);
+        } else if (req.file.path) {
+          fs.copyFileSync(req.file.path, localPath);
+        } else {
+          throw new Error('Arquivo não tem buffer nem path');
+        }
+        
+        finalMediaUrl = `${process.env.API_URL || 'http://localhost:3000'}/${localPath}`;
+        console.log('💾 Fallback para armazenamento local:', finalMediaUrl);
+      } catch (localError) {
+        console.error('❌ Erro no fallback local:', localError);
+        return res.status(500).json({
+          success: false,
+          error: 'Erro ao salvar arquivo'
+        });
+      }
     }
 
     // Atualizar banco de dados
@@ -3613,20 +3655,20 @@ router.post('/landing-page-media', upload.single('mediaFile'), async (req: Reque
     });
 
     console.log('✅ Landing page atualizada no banco:', {
-      heroMediaType: updatedContent.heroMediaType,
-      heroMediaUrl: updatedContent.heroMediaUrl,
+      heroMediaType: updateData.heroMediaType,
+      heroMediaUrl: updateData.heroMediaUrl,
       heroImage: updatedContent.heroImage,
-      heroVideo: updatedContent.heroVideo,
+      heroVideo: updateData.heroVideo,
     });
 
     return res.json({ 
       success: true, 
       data: { 
         mediaUrl: finalMediaUrl,
-        heroMediaType: updatedContent.heroMediaType,
-        heroMediaUrl: updatedContent.heroMediaUrl,
+        heroMediaType: updateData.heroMediaType,
+        heroMediaUrl: updateData.heroMediaUrl,
         heroImage: updatedContent.heroImage,
-        heroVideo: updatedContent.heroVideo,
+        heroVideo: updateData.heroVideo,
       } 
     });
   } catch (error) {

@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Play, Pause, CheckCircle, Shield } from 'lucide-react';
 import { apiFetch } from '../config/api';
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '../components/ui/accordion';
 
 interface BusinessPageContent {
   id: number;
@@ -214,14 +215,53 @@ const defaultFinalArguments = [
 
 const defaultFutureFeatures = [
   {
-    icon: '🛒',
-    title: 'Marketplace Integrado',
-    desc: 'Em breve, mães poderão comprar e vender produtos e serviços diretamente pelo app, criando uma economia colaborativa e facilitando o acesso a itens essenciais para o universo materno.'
-  },
-  {
     icon: '🤝',
     title: 'Programa de Afiliados',
     desc: 'Qualquer pessoa poderá indicar o Baby Diary e ganhar comissão por cada nova mãe assinante, potencializando o crescimento e criando uma rede de promotores do app.'
+  },
+];
+
+// FAQ - perguntas e respostas
+const faqList = [
+  {
+    question: 'O que é o Baby Diary White-Label?',
+    answer: 'É uma versão personalizada do Baby Diary, com sua marca, pronta para você vender para sua audiência e lucrar com assinaturas e vendas na loja.'
+  },
+  {
+    question: 'Como funciona a comissão para influenciadoras?',
+    answer: 'Você recebe comissão recorrente por cada assinatura feita através do seu link ou app, além de bônus por volume e vendas na loja.'
+  },
+  {
+    question: 'Preciso de conhecimento técnico para ter minha versão?',
+    answer: 'Não! Nossa equipe faz toda a configuração e personalização para você. Basta focar em divulgar.'
+  },
+  {
+    question: 'Como funciona a loja integrada?',
+    answer: 'A loja já está ativa! Você pode vender produtos físicos, digitais e até cursos diretamente pelo app, com gestão de pedidos e pagamentos automatizada.'
+  },
+  {
+    question: 'Quais são as formas de monetização?',
+    answer: 'Assinaturas, vendas na loja, cursos, produtos digitais e comissões de afiliados.'
+  },
+  {
+    question: 'Posso customizar o app com minha marca?',
+    answer: 'Sim! O app é 100% white-label, com logo, cores e domínio próprios.'
+  },
+  {
+    question: 'Como é feito o suporte e treinamento?',
+    answer: 'Oferecemos suporte dedicado e treinamento completo para você e sua equipe.'
+  },
+  {
+    question: 'O que acontece se eu não vender nenhuma assinatura?',
+    answer: 'Você pode cancelar a qualquer momento, sem multas. Mas nosso time vai te ajudar a vender!' 
+  },
+  {
+    question: 'O app é seguro e está em conformidade com a LGPD?',
+    answer: 'Sim, toda a infraestrutura segue as melhores práticas de segurança e privacidade, com compliance LGPD.'
+  },
+  {
+    question: 'Como funciona o pagamento das comissões?',
+    answer: 'Pagamos mensalmente via transferência bancária ou PIX, sempre de forma transparente.'
   },
 ];
 
@@ -229,6 +269,12 @@ export default function Business() {
   const [content, setContent] = useState<BusinessPageContent | null>(null);
   const [loading, setLoading] = useState(true);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  // Simulador de ganhos
+  const [seguidores, setSeguidores] = useState(10000);
+  const [conversao, setConversao] = useState(5); // %
+  const [ticket, setTicket] = useState(47); // R$
+  const [resultado, setResultado] = useState<number|null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -249,6 +295,13 @@ export default function Business() {
 
     fetchContent();
   }, []);
+
+  function calcularGanhos(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    const leads = seguidores * (conversao / 100);
+    const ganhos = Math.round(leads * ticket);
+    setResultado(ganhos);
+  }
 
   // Função para renderizar o hero media (imagem ou vídeo)
   const renderHeroMedia = () => {
@@ -406,6 +459,36 @@ export default function Business() {
             <Button className="mt-4 text-lg px-8 py-4 bg-gradient-to-r from-pink-500 to-yellow-400 text-white shadow-xl hover:scale-105 transition">Quero ser influenciadora parceira</Button>
           </a>
         </div>
+        {/* Simulador de Ganhos */}
+        <div className="mt-12">
+          <div className="max-w-2xl mx-auto text-center">
+            <h3 className="text-3xl font-bold mb-4 text-yellow-700">💸 Simulador de Ganhos para Influenciadoras</h3>
+            <p className="mb-6 text-lg text-gray-700">Descubra quanto você pode ganhar indicando o Baby Diary para sua audiência!</p>
+            <form className="flex flex-col md:flex-row gap-4 items-center justify-center mb-4" onSubmit={calcularGanhos}>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Seguidores</label>
+                <input ref={inputRef} type="number" min={1000} step={1000} value={seguidores} onChange={e => setSeguidores(Number(e.target.value))} className="rounded-md border px-3 py-2 w-32 text-center" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Taxa de conversão (%)</label>
+                <input type="number" min={1} max={20} value={conversao} onChange={e => setConversao(Number(e.target.value))} className="rounded-md border px-3 py-2 w-20 text-center" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ticket médio (R$)</label>
+                <input type="number" min={10} max={200} value={ticket} onChange={e => setTicket(Number(e.target.value))} className="rounded-md border px-3 py-2 w-20 text-center" />
+              </div>
+              <Button type="submit" className="h-12 px-8 bg-gradient-to-r from-yellow-400 to-pink-500 text-white font-bold">Simular</Button>
+            </form>
+            {resultado !== null && (
+              <div className="text-2xl font-bold text-pink-700 mb-2">Você pode ganhar até <span className="text-yellow-600">R$ {resultado.toLocaleString('pt-BR')}</span> por mês!</div>
+            )}
+            <div className="mt-2">
+              <a href="https://w.app/babydiary" target="_blank" rel="noopener noreferrer">
+                <Button className="text-lg px-8 py-4 bg-gradient-to-r from-pink-500 to-yellow-400 text-white shadow-xl hover:scale-105 transition">Solicite sua proposta personalizada</Button>
+              </a>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Benefícios Emocionais */}
@@ -512,6 +595,21 @@ export default function Business() {
           <a href="https://w.app/babydiary" target="_blank" rel="noopener noreferrer" className="text-gray-700 text-base underline hover:text-pink-700 transition">
             Entre em contato e descubra como podemos crescer juntos!
           </a>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="mb-12 py-12 bg-gradient-to-r from-blue-50 to-purple-100 border-y-2 border-purple-200">
+        <div className="max-w-3xl mx-auto">
+          <h3 className="text-3xl font-bold mb-8 text-center text-purple-700">❓ Perguntas Frequentes (FAQ)</h3>
+          <Accordion type="single" collapsible className="w-full">
+            {faqList.map((faq, i) => (
+              <AccordionItem key={i} value={String(i)}>
+                <AccordionTrigger>{faq.question}</AccordionTrigger>
+                <AccordionContent>{faq.answer}</AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         </div>
       </section>
 

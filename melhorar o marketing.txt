@@ -1,0 +1,8802 @@
+LLM-Friendly Documentation
+Our documentation is also available in an LLM-friendly format, making it easy to integrate with large language models and AI tools.
+
+You can access it in two ways:
+
+llms.txt – A lightweight sitemap that lists all documentation pages.
+llms-full.txt – The full documentation in markdown format. (Note: This may exceed your model’s context window.)
+Additionally, any page can be accessed as Markdown by appending .md to the URL. For example: https://docs.freepik.com/introduction → https://docs.freepik.com/introduction.md
+
+​
+Freepik MCP Open Source
+Want to easily integrate Freepik API into your AI workflows? Discover the open source project Freepik MCP:
+
+MCP server to connect AI assistants (like Claude, Cursor, etc.) with the Freepik API.
+Enables search, download, and generation of images and icons, resource management, and AI-powered image classification.
+Open source and easy to install. Start building your own custom solutions today!
+View on GitHub
+
+Get Started
+Quickstart
+Ready to harness the power of Freepik API?
+
+​
+Get Started
+Follow these steps to begin:
+
+1
+Generate your API key.
+
+Visit our API landing page to sign up and get a free API key, plus a 5 USD credit to get started!!
+
+2
+Explore documentation
+
+Dive into our comprehensive API Reference to learn how to integrate our API into your projects effectively.
+
+3
+Start building
+
+Start experimenting with our API to access and utilize the vast collection of resources available.
+
+4
+Upgrade your plan
+
+To enjoy all our services and greater rate limits, upgrade your plan in the developers dashboard.
+
+5
+Reach out for support
+
+Need assistance or have questions? Contact our dedicated support team via our support page for prompt assistance. 
+Get Started
+Authentication
+Learn how to authenticate your requests to the Freepik API
+
+​
+API Key Authentication
+Freepik API uses API keys to authenticate requests. You need to include your API key in the header of every API request to access the Freepik resources.
+
+Currently, private API keys are the only way to authenticate with the Freepik API. This means that only server-to-server calls can be made to the API
+
+All API endpoints are authenticated using API keys and picked up from the specification file.
+
+Freepik API
+Download the OpenAPI specification file
+
+​
+Obtaining an API Key
+To get an API key:
+
+Sign up for a Freepik account at freepik.com/api
+If you are already registered, visit the API dashboard at freepik.com/developers/dashboard
+Look for the API key section and generate a new API key
+Keep your API key secure and do not share it publicly.
+If you believe your key has been compromised, please contact us and we will generate a new one for you.
+
+​
+Using the API Key
+Include your API key in the x-freepik-api-key header of your HTTP requests:
+
+
+Copy
+
+Ask AI
+curl -H "x-freepik-api-key: YOUR_API_KEY" https://api.freepik.com/v1/resources
+
+JavaScript
+
+Python
+
+Ruby
+
+Copy
+
+Ask AI
+const axios = require('axios');
+
+const response = await axios.get('https://api.freepik.com/v1/resources', {
+  headers: {
+    'x-freepik-api-key': 'YOUR_API_KEY'
+  }
+});
+​
+Rate limiting
+Be aware that API requests are subject to rate limiting. The specific limits may vary based on your account type and agreement with Freepik. Always check the API response headers for rate limit information.
+Get Started
+Webhooks
+Webhooks are a powerful way to connect different systems and services. Learn about webhooks and how to integrate them securely.
+
+​
+What are webhooks?
+Webhooks are a way for one system to send real-time data to another system. They are a powerful tool for integrating different services and automating workflows. With webhooks, you can receive notifications, updates, and data from external systems without having to poll for changes.
+
+​
+How do webhooks work?
+Webhooks work by allowing you to register a URL with a service that supports them. When an event occurs in the service, it sends an HTTP POST request to the registered URL with relevant data. The receiving system can then process the data and take appropriate actions based on the event.
+
+​
+Why use webhooks?
+Webhooks offer several advantages over traditional polling-based methods:
+
+Real-time updates: Webhooks provide instant notifications, allowing you to react to events as they happen.
+Efficiency: They reduce the overhead of constant requests by delivering data only when an event occurs.
+Automation: Webhooks trigger automatic workflows, reducing manual processes and streamlining tasks.
+Seamless integration: They facilitate easy data exchange between systems, enabling efficient communication between different platforms.
+​
+Common use cases for webhooks
+Webhooks are widely used in the following scenarios:
+
+Notifications: Sending real-time alerts and updates to users or systems.
+Data synchronization: Ensuring that data remains consistent across multiple platforms.
+Workflow automation: Initiating tasks like sending emails, updating databases, or processing transactions based on specific events.
+By using webhooks, you can streamline your workflows, improve efficiency, and create seamless integrations between different systems.
+
+​
+Webhook security
+​
+Why webhook security is important?
+Webhooks are a powerful way to connect different systems and services. They allow you to send real-time data from one system to another. However, with great power comes great responsibility. Webhooks can be a security risk if not implemented correctly, as they can be exploited by attackers to send malicious data to your system.
+
+​
+Webhook security headers
+To ensure the integrity and authenticity of incoming webhook requests, we deliver three headers with each request:
+
+webhook-id: A unique identifier for the webhook request. This helps to detect and prevent replay attacks.
+webhook-timestamp: A timestamp indicating when the webhook request was sent. This is used to ensure that the request is recent and prevents replay attacks within a specific time window.
+webhook-signature: A signature generated using a secret key. This is used to verify the authenticity of the request, ensuring that it was sent by a trusted source.
+​
+Generating the string to sign for verification
+You must generate a content string that will be signed and verified. This content is created by concatenating the webhook-id, webhook-timestamp, and the request body with a period (.) separator. You can do this by following these steps:
+
+Retrieve the headers: Extract the webhook-id and webhook-timestamp from the request headers.
+Access the request body: Obtain the raw body of the webhook request.
+Concatenate the values: Combine the webhook-id, webhook-timestamp, and body into a single string using the format mentioned earlier.
+Here is an example of how you can generate the content to sign in Python:
+
+
+python.py
+
+javascript.js
+
+php.php
+
+java.java
+
+Copy
+
+Ask AI
+content_to_sign = f"{webhook_id}.{webhook_timestamp}.{body}"
+​
+Obtaining the secret key
+The secret key is a shared secret between your system and the webhook provider. It is used to generate the signature and verify the authenticity of the request. Make sure to keep the secret key secure and never expose it in your code or configuration files.
+
+To obtain the secret key, you can go to the User Dashboard and generate a new secret key. Copy the secret key and store it securely in your system.
+
+​
+Generating the signature
+For the webhook signature, we use HMAC-SHA256 as the hashing algorithm. You can generate the signature by following these steps:
+
+Encode the secret key as bytes.
+Obtain the HMAC-SHA256 hash as bytes of the content to sign using the secret key.
+Encode the hash in base64 to get the signature.
+Here is an example of how you can generate the signature in Python:
+
+
+python.py
+
+javascript.js
+
+php.php
+
+java.java
+
+Copy
+
+Ask AI
+import hmac
+import hashlib
+import base64
+
+def generate_signature(secret_key, content_to_sign):
+    secret_key_bytes = secret_key.encode()
+
+    hmac_bytes = hmac.new(secret_key_bytes, content_to_sign.encode(), hashlib.sha256).digest()
+
+    signature = base64.b64encode(hmac_bytes).decode()
+
+    return signature
+The obtained signature must be compared with the webhook-signature header in the incoming request to verify the authenticity of the request. If the signatures match, the request is considered valid, and you can process it further.
+
+The webhook-signature header is composed of a list of space-delimited signatures and their corresponding version identifiers. This allows you to rotate the secret key without breaking existing webhook integrations. For example, the header might look like this:
+
+
+Copy
+
+Ask AI
+v1,signature1 v2,signature2
+You should iterate over the list of signatures and verify each one using the corresponding secret key version. If any of the signatures match, the request is considered valid. For example, you can implement this logic in Python as follows:
+
+
+python.py
+
+javascript.js
+
+php.php
+
+java.java
+
+Copy
+
+Ask AI
+def verify_signature(generated_signature, header_signatures):
+    for signature in header_signatures.split():
+        version, expected_signature = signature.split(',')
+        if expected_signature == generated_signature:
+            return True
+    return False
+By following these steps, you can ensure the security of your webhook implementation and protect your system from unauthorized access and data tampering.
+Get Started
+Rate limiting
+To ensure the stability and performance of our API, we have implemented rate limiting based on IP address and API key. This is a crucial security measure to prevent abuse and overuse of the API. Here’s how our rate limiting works:
+
+Rate per day
+Rate per seconds
+Under your contracted API KEY, you have the following daily rate limit or Requests Per Day (RPD):
+
+Service	Free RPD	Premium RPD
+ai-powered-search	300	-
+images-templates	50	1000
+icons	100	2,500
+ai-image-generator classic fast	100	10,000
+image-upscaler	N/A	1250
+style-transfer	N/A	1250
+image-relight	N/A	1250
+mystic	N/A	6,000
+kling-pro	11	288
+kling-std	20	288
+kling-v2	5	288
+kling-elements-pro	11	288
+kling-elements-std	20	288
+Need a higher rate limit?
+If your application requires a higher rate limit than what’s currently provided, we’re here to help! Please reach out to our sales team with details about your use case and expected traffic. We will set you up with a custom plan in no time.
+Mystic
+Overview
+Freepik API's Mystic is a Freepik-exclusive AI image generation tool.
+Mystic AI image generation is a cutting-edge tool that produces stunningly realistic, high-resolution images. With options for 1K, 2K and 4K resolution, Mystic delivers sharp, detailed visuals that rival professional photography. From intricate facial features to complex textures, every element is rendered with exceptional clarity and precision.
+
+​
+Stunning 1K, 2K and 4K quality
+Enjoy razor-sharp 1K, 2K and 4K resolution with Freepik Mystic. Generate high-definition images with zero effort—no extra steps or upscaling needed. Just describe your vision, and Mystic will create beautifully detailed visuals ready for any project, from web design to large-format printing.
+
+​
+Effortless creation
+Transform your text descriptions into impressive, realistic results with custom parameters. Whether you need faces, hands, or text, everything is pixel-perfect and photo-realistic. Our state-of-the-art AI technology ensures that every generated image meets professional standards without requiring additional editing.
+
+​
+Versatile applications
+Perfect for a wide range of uses, including:
+
+Marketing materials that demand visual impact
+E-commerce product showcases with lifelike detail
+High-quality illustrations for publications
+Concept art for film and game development
+And much more!
+With Mystic AI, you’re equipped to create visuals that captivate and convince, all at the click of a button.
+
+POST /v1/ai/mystic
+Generate an image using Mystic
+
+GET /v1/ai/mystic/{task-id}
+Get the status of a Mystic image generation task
+
+GET /v1/ai/mystic
+Get a list of all Mystic image generation tasks, including their statuses and details.
+
+GET /v1/ai/loras
+Returns a curated list of available LoRAs (Low-Rank Adaptation) for Mystic image generation.
+
+​
+Frequently Asked Questions
+
+Is the upscaler technology the same as Magnific.ai?
+
+Yes! Also Relight and Style transfer. We plan to keep adding all of our AI tools as APIs you can enjoy and build amazing products with.
+
+
+I have a Magnific.ai subscription. Can I use my tokens on the API?
+
+No, these are separate products with different subscriptions.
+
+
+Are Freepik API and Freepik/Magnific versions of AI tools identical?
+
+Yes. There might be slight delays in pushing Magnific or Freepik web tools updates to the API though. We’ll keep the team updated on all changes through Discord and the Changelog.
+Mystic
+Create image from text - Mystic
+Convert descriptive text input into images using AI. This endpoint accepts a variety of parameters to customize the generated images.
+
+POST
+/
+v1
+/
+ai
+/
+mystic
+
+Try it
+​
+Important
+Mystic image generation mode is Freepik’s exclusive advanced AI workflow for ultra-realistic, high-resolution images.
+
+Make sure you get your webhook set up on every request in order to retrieve your generations.
+
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Body
+application/json
+​
+prompt
+string
+AI Model Prompt Description
+The prompt is a short text that describes the image you want to generate. It can range from simple descriptions, like "a cat", to detailed scenarios, such as "a cat with wings, playing the guitar, and wearing a hat". If no prompt is provided, the AI will generate a random image.
+
+Adding Characters to the Prompt
+You can introduce characters into the prompt using the following syntax:
+
+@character_name: Represents the character you want to include. Example: My friend @john is a great artist.
+Modifying Character Strength
+To adjust the influence or "strength" of a character in the image, use the following syntax:
+
+@character_name::strength: Specify the character’s strength by appending ::strength to their name, where strength is a numerical value. Example: My friend @john::200 is a great artist.
+Higher strength values will make the character more prominent in the generated image.
+
+​
+webhook_url
+string
+Optional callback URL that will receive asynchronous notifications whenever the task changes status. The payload sent to this URL is the same as the corresponding GET endpoint response, but without the data field.
+
+Example:
+"https://www.example.com/webhook"
+
+​
+structure_reference
+string
+Structure Reference
+Base64 image to use as structure reference. Using images as structure references allows you to influence the shape of your final image. This feature enables various creative applications such as coloring sketches, transforming cartoons into realistic images, texturing basic 3D models, or converting real images into cartoons. The outcome is entirely controlled by your prompt, offering limitless creative possibilities.
+
+​
+structure_strength
+integerdefault:50
+Note: This parameter only takes effect when a "structure_reference" image is provided.
+Allows to maintain the structure of the original image.
+
+Required range: 0 <= x <= 100
+​
+style_reference
+string
+Style Reference
+Base64 image to use as style reference. Using images as style references allows you to influence the aesthetic of your creation. This is possibly the most powerful tool of Mystic, as it truly lets you create incredibly unique images.
+
+​
+adherence
+integerdefault:50
+Note: This parameter only takes effect when a "style_reference" image is provided.
+Increasing this value will make your generation more faithful to the prompt, but it may transfer the style a bit less accurately. Higher values can help fix small artifacts, anatomical errors and text readability. Lower values will give you more creative images and closer to the style reference.
+
+Required range: 0 <= x <= 100
+​
+hdr
+integerdefault:50
+Note: This parameter only takes effect when a "style_reference" image is provided.
+Increasing this value can give you a more detailed image, at the cost of a more 'AI look' and slightly worse style transfer. Lower values have a more natural and artistic look but may increase artifacts.
+
+Required range: 0 <= x <= 100
+​
+resolution
+enum<string>default:2k
+Resolution of the image
+
+Available options: 1k, 2k, 4k 
+​
+aspect_ratio
+enum<string>default:square_1_1
+Image size with the aspect ratio. The aspect ratio is the proportional relationship between an image's width and height, expressed as *_width_height (e.g., square_1_1, widescreen_16_9). It is calculated by dividing the width by the height.
+
+If not present, the default is square_1_1.
+Note: For the fluid model, only this values are valid:
+
+square_1_1
+social_story_9_16
+widescreen_16_9
+traditional_3_4
+classic_4_3
+Available options: square_1_1, classic_4_3, traditional_3_4, widescreen_16_9, social_story_9_16, smartphone_horizontal_20_9, smartphone_vertical_9_20, standard_3_2, portrait_2_3, horizontal_2_1, vertical_1_2, social_5_4, social_post_4_5 
+Example:
+"square_1_1"
+
+​
+model
+enum<string>default:realism
+zen - for smoother, basic, and cleaner results. Fewer objects in the scene and less intricate details. The softer looking one.
+fluid - the model that adheres best to prompts with great average quality for all kind of images. It can generate really creative images! It will always follow your input no matter what. However, since it is using Google's Imagen 3, it is a bit over-moderated, and some simple prompts containing words like "war" may be flagged and not generated (sorry about that! But there's nothing we can do!).
+realism - with a more realistic color palette. It tries to give an extra boost of reality to your images, a kind of "less AI look". Works especially well with photographs but also magically works with illustrations too.
+IMPORTANT: You should use Zen or Fluid if you are trying to generate something that is really fantastic or a known character, Realism may not follow your prompt well.
+
+Available options: realism, fluid, zen 
+​
+creative_detailing
+integerdefault:33
+Higher values can achieve greater detail per pixel at higher resolutions at the cost of giving a somewhat more "HDR" or artificial look.
+Very high values can generate quite crazy things like eyes where they shouldn't appear, etc.
+
+Valid values range [0, 100], default 33
+
+Required range: 0 <= x <= 100
+​
+engine
+enum<string>default:automatic
+Select the engine for the AI model. Available options:
+
+automatic - default choice
+Illusio - for smoother illustrations, landscapes, and nature. The softer looking one.
+Sharpy - better for realistic images like photographs and for a more grainy look. It provides the sharpest and most detailed images. If you use it for illustrations it will give them more texture and a less softer look.
+Sparkle - also good for realistic images. It's a middle ground between Illusio and Sharpy.
+Available options: automatic, magnific_illusio, magnific_sharpy, magnific_sparkle 
+​
+fixed_generation
+booleandefault:false
+When this option is enabled, using the same settings will consistently produce the same image.
+Fixed generations are ideal for fine-tuning, as it allows for incremental changes to parameters (such as the prompt) to see subtle variations in the output.
+When disabled, expect each generation to introduce a degree of randomness, leading to more diverse outcomes.
+
+​
+filter_nsfw
+booleandefault:true
+When enabled, if the AI model return some nsfw image we will change it for a black image. This feature is experimental and may not be 100% accurate
+
+​
+styling
+object
+Styling options for the image
+
+
+Show child attributes
+
+Response
+200
+
+200
+application/json
+OK - The request has succeeded and the Mystic process has started.
+
+​
+data
+objectrequired
+
+Show child attributes
+
+Example:
+{
+  "generated": [
+    "https://openapi-generator.tech",
+    "https://openapi-generator.tech"
+  ],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Mystic
+Get the status of the Mystic task
+Get the status of the Mystic task
+
+GET
+/
+v1
+/
+ai
+/
+mystic
+/
+{task-id}
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Path Parameters
+​
+task-id
+stringrequired
+ID of the task
+
+Response
+200
+
+200
+application/json
+OK - The task exists and the status is returned
+
+​
+data
+objectrequired
+
+Show child attributes
+
+Example:
+{
+  "generated": [
+    "https://openapi-generator.tech",
+    "https://openapi-generator.tech"
+  ],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Mystic
+Get the status of all Mystic tasks
+Get the status of all Mystic tasks
+
+GET
+/
+v1
+/
+ai
+/
+mystic
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Response
+200
+
+200
+application/json
+OK - Get the status of all Mystic tasks
+
+​
+data
+object[]required
+
+Hide child attributes
+
+​
+task_id
+stringrequired
+Task identifier
+
+​
+status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED  curl --request GET \
+  --url https://api.freepik.com/v1/ai/mystic \
+  --header 'x-freepik-api-key: <api-key>' {
+  "data": [
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee92",
+      "status": "COMPLETED"
+    },
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee93",
+      "status": "COMPLETED"
+    }
+  ]
+} 
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/mystic/{task-id} \
+  --header 'x-freepik-api-key: <api-key>' 
+{
+  "data": {
+    "generated": [
+      "https://ai-statics.freepik.com/completed_task_image.jpg"
+    ],
+    "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+    "status": "COMPLETED",
+    "has_nsfw": [
+      false
+    ]
+  }
+}
+curl --request POST \
+  --url https://api.freepik.com/v1/ai/mystic \
+  --header 'Content-Type: application/json' \
+  --header 'x-freepik-api-key: <api-key>' \
+  --data '{
+  "prompt": "<string>",
+  "webhook_url": "https://www.example.com/webhook",
+  "structure_reference": "aSDinaTvuI8gbWludGxpZnk=",
+  "structure_strength": 50,
+  "style_reference": "aSDinaTvuI8gbWludGxpZnk=",
+  "adherence": 50,
+  "hdr": 50,
+  "resolution": "2k",
+  "aspect_ratio": "square_1_1",
+  "model": "realism",
+  "creative_detailing": 33,
+  "engine": "automatic",
+  "fixed_generation": false,
+  "filter_nsfw": true,
+  "styling": {
+    "styles": [
+      {
+        "name": "<string>",
+        "strength": 100
+      }
+    ],
+    "characters": [
+      {
+        "id": "<string>",
+        "strength": 100
+      }
+    ],
+    "colors": [
+      {
+        "color": "#FF0000",
+        "weight": 0.5
+      }
+    ]
+  }
+}'
+{
+  "generated": [],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "task_status": "IN_PROGRESS"
+}
+Mystic
+Get loras
+GET
+/
+v1
+/
+ai
+/
+loras
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Response
+200
+
+200
+application/json
+OK
+
+​
+data
+object[]
+
+Hide child attributes
+
+​
+default
+object[]
+List of default Loras
+
+
+Hide child attributes
+
+​
+id
+integerrequired
+Lora ID
+
+Required range: x >= 1
+Example:
+1
+
+​
+name
+stringrequired
+Lora name
+
+Example:
+"vintage-japanese"
+
+​
+description
+stringrequired
+Lora description
+
+Example:
+"Expect bold red colors and a sense of nostalgia, bringing to life classic Japanese elements."
+
+​
+category
+stringrequired
+Lora category
+
+Example:
+"illustration"
+
+​
+type
+stringrequired
+Lora type
+
+Example:
+"character"
+
+​
+preview
+stringrequired
+Preview image URL for the Lora
+
+Example:
+"https://www.example.com/4fef9987-75d0-44d1-b336-65f42f883bff.png"
+
+​
+training
+objectrequired
+
+Show child attributes
+
+Example:
+{ "defaultScale": 1.2, "status": "status" }
+Was this page helpful?
+
+
+Yes
+
+No
+Get the status of all Mystic tasks
+LoRAs training for custom styles
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/loras \
+  --header 'x-freepik-api-key: <api-key>'
+
+200
+
+500
+
+503
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "default": [
+      {
+        "id": 1,
+        "name": "vintage-japanese",
+        "description": "Expect bold red colors and a sense of nostalgia, bringing to life classic Japanese elements.",
+        "category": "illustration",
+        "type": "style",
+        "preview": "https://example.com/vintage-japanese-preview.jpg",
+        "training": {
+          "status": "completed",
+          "defaultScale": 1.2
+        }
+      },
+      {
+        "id": 2,
+        "name": "sara",
+        "description": "sara",
+        "category": "people",
+        "type": "character",
+        "preview": "https://example.com/sara-preview.jpg",
+        "training": {
+          "status": "completed",
+          "defaultScale": 1.2
+        }
+      },
+      {
+        "id": 3,
+        "name": "glasses",
+        "description": "glasses",
+        "category": "glasses",
+        "type": "product",
+        "preview": "https://example.com/glasses-preview.jpg",
+        "training": {
+          "status": "completed",
+          "defaultScale": 1.2
+        }
+      }
+    ],
+    "customs": []
+  }
+}
+Mystic
+LoRAs training for custom styles
+Create you own custom style using LoRAs training
+
+For now you can check the status of the training calling v1/ai/loras. We are working on it
+
+POST
+/
+v1
+/
+ai
+/
+loras
+/
+styles
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Body
+application/json
+​
+name
+stringrequired
+Name of the LoRA style. This name will be used to identify the style in the system.
+
+​
+quality
+enum<string>required
+Quality of the LoRA style
+
+Available options: medium, high, ultra 
+​
+images
+string[]required
+List of images to train the LoRA style
+
+Required array length: 6 - 20 elements
+Url of the image to train the LoRA style
+
+​
+description
+string
+Description of the LoRA style
+
+​
+webhook_url
+string
+Webhook URL to notify the user when the task is completed
+
+Response
+200
+
+200
+application/json
+OK - The request has succeeded and the style is processing
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+​
+data.generated
+string[]required
+URL of the generated image
+
+Example:
+{
+  "generated": [
+    "https://openapi-generator.tech",
+    "https://openapi-generator.tech"
+  ],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Get loras
+LoRAs training for custom characters
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request POST \
+  --url https://api.freepik.com/v1/ai/loras/styles \
+  --header 'Content-Type: application/json' \
+  --header 'x-freepik-api-key: <api-key>' \
+  --data '{
+  "name": "my-awesome-style",
+  "description": "string",
+  "quality": "high",
+  "images": [
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string"
+  ],
+  "webhook_url": "https://my-webhook-url.com/endpoint"
+}'
+
+
+
+Copy
+
+Ask AI
+{
+  "generated": [],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "task_status": "IN_PROGRESS" 
+Mystic
+LoRAs training for custom characters
+Create you own custom character using LoRAs training
+
+For now you can check the status of the training calling v1/ai/loras. We are working on it
+
+POST
+/
+v1
+/
+ai
+/
+loras
+/
+characters
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Body
+application/json
+​
+name
+stringrequired
+Name of the LoRA character. This name will be used to identify the style in the system.
+
+​
+quality
+enum<string>required
+Quality of the LoRA character
+
+Available options: high, ultra 
+​
+gender
+enum<string>required
+Available options: male, female, neutral, custom 
+​
+images
+string[]required
+List of images to train the LoRA character
+
+Required array length: 8 - 20 elements
+Url of the image to train the LoRA character
+
+​
+description
+string
+Description of the LoRA character
+
+​
+webhook_url
+string
+Webhook URL to notify the user when the task is completed
+
+Response
+200
+
+200
+application/json
+OK - The request has succeeded and the character is processing
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+​
+data.generated
+string[]required
+URL of the generated image
+
+Example:
+{
+  "generated": [
+    "https://openapi-generator.tech",
+    "https://openapi-generator.tech"
+  ],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+LoRAs training for custom styles
+Create image from text - Classic fast
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request POST \
+  --url https://api.freepik.com/v1/ai/loras/characters \
+  --header 'Content-Type: application/json' \
+  --header 'x-freepik-api-key: <api-key>' \
+  --data '{
+  "name": "my-awesome-character",
+  "description": "string",
+  "quality": "high",
+  "gender": "male",
+  "images": [
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string",
+    "string"
+  ],
+  "webhook_url": "https://my-webhook-url.com/endpoint"
+}'
+
+
+
+Copy
+
+Ask AI
+{
+  "generated": [],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "task_status": "IN_PROGRESS"
+}
+Google Imagen 3
+Create image from text - Imagen3
+Convert descriptive text input into images using AI. This endpoint accepts a variety of parameters to customize the generated images.
+
+POST
+/
+v1
+/
+ai
+/
+text-to-image
+/
+imagen3
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Body
+application/json
+​
+prompt
+stringrequired
+The prompt to be used while generating the image
+
+Example:
+"A beautiful sunset over a calm ocean"
+
+​
+webhook_url
+string
+Optional callback URL that will receive asynchronous notifications whenever the task changes status. The payload sent to this URL is the same as the corresponding GET endpoint response, but without the data field.
+
+Example:
+"https://www.example.com/webhook"
+
+​
+num_images
+integerdefault:1
+Specifies the number of images to generate in a single request.
+Valid values range [1, 4], default 1.
+
+Required range: 1 <= x <= 4
+Example:
+1
+
+​
+aspect_ratio
+enum<string>default:square_1_1
+The aspect ratio of the image
+
+Available options: square_1_1, social_story_9_16, widescreen_16_9, traditional_3_4, classic_4_3 
+Example:
+"square_1_1"
+
+​
+styling
+object
+
+Show child attributes
+
+​
+person_generation
+enum<string>default:allow_all
+Allow person generation
+
+Available options: dont_allow, allow_adult, allow_all 
+​
+safety_settings
+enum<string>default:block_none
+Safety settings options
+
+Available options: block_low_and_above, block_medium_and_above, block_only_high, block_none 
+Response
+200
+
+200
+application/json
+OK - The request has succeeded and the Imagen3 process has started.
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+​
+data.generated
+string[]required
+URL of the generated image
+
+Example:
+{
+  "generated": [
+    "https://openapi-generator.tech",
+    "https://openapi-generator.tech"
+  ],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Create image from text - Classic fast
+Get the status of the Imagen3 task
+
+
+
+Copy
+
+Ask AI
+curl --request POST \
+  --url https://api.freepik.com/v1/ai/text-to-image/imagen3 \
+  --header 'Content-Type: application/json' \
+  --header 'x-freepik-api-key: <api-key>' \
+  --data '{
+  "prompt": "Crazy dog in the space",
+  "num_images": 1,
+  "aspect_ratio": "square_1_1",
+  "styling": {
+    "style": "anime",
+    "effects": {
+      "color": "pastel",
+      "lightning": "warm",
+      "framing": "portrait"
+    }
+  },
+  "person_generation": "allow_adult",
+  "safety_settings": "block_low_and_above"
+}'
+
+
+
+Copy
+
+Ask AI
+{
+  "generated": [],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "task_status": "IN_PROGRESS"
+}
+Google Imagen 3
+Get the status of the Imagen3 task
+Get the status of the Imagen3 task
+
+GET
+/
+v1
+/
+ai
+/
+text-to-image
+/
+imagen3
+/
+{task-id}
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Path Parameters
+​
+task-id
+stringrequired
+ID of the task
+
+Response
+200
+
+200
+application/json
+OK - The task exists and the status is returned
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+​
+data.generated
+string[]required
+URL of the generated image
+
+Example:
+{
+  "generated": [
+    "https://openapi-generator.tech",
+    "https://openapi-generator.tech"
+  ],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Create image from text - Imagen3
+Get the status of all Imagen3 tasks
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/text-to-image/imagen3/{task-id} \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "generated": [
+      "iVBORw0KGgoAAAANSUhEUgAABAAAAAQACAIAAADwf7zUAAAAg3pUWHRSYXcgcHJvZmlsZSB0eXBlIGlwdGMAAAiZTYs7Ds",
+      "npqaxtJUKl7c8fs4/Aqyzw3cea9eAjHX88Av7/H/LHFPdjf2I8LUIm5/mYi8UD1IsOK1sZSBO9M+CcS1IiuAUzlVkyolEioFZfnIGSqM9+d01i1CtyO+ju"
+    ],
+    "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+    "status": "COMPLETED"
+  }
+}
+Google Imagen 3
+Get the status of all Imagen3 tasks
+Get the status of all Imagen3 tasks
+
+GET
+/
+v1
+/
+ai
+/
+text-to-image
+/
+imagen3
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Response
+200
+
+200
+application/json
+OK - Get the status of all Imagen3 tasks
+
+​
+data
+object[]required
+
+Hide child attributes
+
+​
+task_id
+stringrequired
+Task identifier
+
+​
+status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+Was this page helpful?
+
+
+Yes
+
+No
+Get the status of the Imagen3 task
+Create image from text - Flux dev
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/text-to-image/imagen3 \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": [
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee92",
+      "status": "COMPLETED"
+    },
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee93",
+      "status": "COMPLETED"
+    }
+  ]
+}
+Flux dev
+Create image from text - Flux dev
+Convert descriptive text input into images using AI. This endpoint accepts a variety of parameters to customize the generated images.
+
+POST
+/
+v1
+/
+ai
+/
+text-to-image
+/
+flux-dev
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Body
+application/json
+​
+prompt
+string
+The prompt is a short text that describes the image you want to generate. It can range from simple descriptions, like "a cat", to detailed scenarios, such as "a cat with wings, playing the guitar, and wearing a hat". If no prompt is provided, the AI will generate a random image.
+
+​
+webhook_url
+string
+Optional callback URL that will receive asynchronous notifications whenever the task changes status. The payload sent to this URL is the same as the corresponding GET endpoint response, but without the data field.
+
+Example:
+"https://www.example.com/webhook"
+
+​
+aspect_ratio
+enum<string>default:square_1_1
+Image size with the aspect ratio. The aspect ratio is the proportional relationship between an image's width and height, expressed as *_width_height (e.g., square_1_1, widescreen_16_9). It is calculated by dividing the width by the height.
+
+If not present, the default is square_1_1.
+
+Available options: square_1_1, classic_4_3, traditional_3_4, widescreen_16_9, social_story_9_16, standard_3_2, portrait_2_3, horizontal_2_1, vertical_1_2, social_post_4_5 
+Example:
+"square_1_1"
+
+​
+styling
+object
+Styling options for the image
+
+
+Show child attributes
+
+​
+seed
+integer
+Seed for the image generation. If not provided, a random seed will be used.
+
+Required range: 1 <= x <= 4294967295
+Response
+200
+
+200
+application/json
+OK - Get the status of the flux-dev task
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+Example:
+{
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Get the status of all Imagen3 tasks
+Get the status of the flux-dev task
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request POST \
+  --url https://api.freepik.com/v1/ai/text-to-image/flux-dev \
+  --header 'Content-Type: application/json' \
+  --header 'x-freepik-api-key: <api-key>' \
+  --data '{
+  "prompt": "<string>",
+  "webhook_url": "https://www.example.com/webhook",
+  "aspect_ratio": "square_1_1",
+  "styling": {
+    "effects": {
+      "color": "softhue",
+      "framing": "portrait",
+      "lightning": "iridescent"
+    },
+    "colors": [
+      {
+        "color": "#FF0000",
+        "weight": 0.5
+      }
+    ]
+  },
+  "seed": 2147483648
+}'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+    "status": "IN_PROGRESS"
+  }
+}
+Flux dev
+Get the status of the flux-dev task
+Get the status of the flux-dev task
+
+GET
+/
+v1
+/
+ai
+/
+text-to-image
+/
+flux-dev
+/
+{task-id}
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Path Parameters
+​
+task-id
+stringrequired
+ID of the task
+
+Response
+200
+
+200
+application/json
+OK - The task exists and the status is returned
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+​
+data.generated
+string[]required
+URL of the generated image
+
+Example:
+{
+  "generated": [
+    "https://openapi-generator.tech",
+    "https://openapi-generator.tech"
+  ],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Create image from text - Flux dev
+Get the status of the flux-dev task
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/text-to-image/flux-dev/{task-id} \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "generated": [
+      "https://ai-statics.freepik.com/completed_task_image.jpg"
+    ],
+    "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee92",
+    "status": "COMPLETED"
+  }
+}
+Flux dev
+Get the status of the flux-dev task
+Get the status of the flux-dev task
+
+GET
+/
+v1
+/
+ai
+/
+text-to-image
+/
+flux-dev
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Response
+200
+
+200
+application/json
+OK - Get the status of all flux-dev tasks
+
+​
+data
+object[]required
+
+Hide child attributes
+
+​
+task_id
+stringrequired
+Task identifier
+
+​
+status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+Was this page helpful?
+
+
+Yes
+
+No
+Get the status of the flux-dev task
+(Beta) Reimagine Flux
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/text-to-image/flux-dev \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": [
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee92",
+      "status": "COMPLETED"
+    },
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee93",
+      "status": "COMPLETED"
+    }
+  ]
+}
+Reimagine Flux
+(Beta) Reimagine Flux
+(Beta, synchronous) Reimagine Flux is a new AI model that allows you to generate images from text prompts.
+
+POST
+/
+v1
+/
+ai
+/
+beta
+/
+text-to-image
+/
+reimagine-flux
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Body
+application/json
+​
+image
+stringrequired
+Base64 image to do the reimagination
+
+​
+prompt
+string
+Example:
+"A beautiful sunset over a calm ocean"
+
+​
+webhook_url
+string
+Optional callback URL that will receive asynchronous notifications whenever the task changes status. The payload sent to this URL is the same as the corresponding GET endpoint response, but without the data field.
+
+Example:
+"https://www.example.com/webhook"
+
+​
+imagination
+enum<string>
+Imagination type
+
+Available options: wild, subtle, vivid 
+​
+aspect_ratio
+enum<string>default:original
+Image size with the aspect ratio. The aspect ratio is the proportional relationship between an image's width and height, expressed as *_width_height (e.g., square_1_1, widescreen_16_9). It is calculated by dividing the width by the height.
+
+If not present, the default is original.
+
+Available options: original, square_1_1, classic_4_3, traditional_3_4, widescreen_16_9, social_story_9_16, standard_3_2, portrait_2_3, horizontal_2_1, vertical_1_2, social_post_4_5 
+Response
+200
+
+200
+application/json
+Success - The image has been generated
+
+​
+task_id
+stringrequired
+Task identifier
+
+​
+status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+​
+generated
+string[]required
+URL of the generated image
+
+Was this page helpful?
+
+
+Yes
+
+No
+Get the status of the flux-dev task
+Overview
+
+
+
+Copy
+
+Ask AI
+curl --request POST \
+  --url https://api.freepik.com/v1/ai/beta/text-to-image/reimagine-flux \
+  --header 'Content-Type: application/json' \
+  --header 'x-freepik-api-key: <api-key>' \
+  --data '{
+  "webhook_url": "https://api.ejemplo.com/webhook",
+  "image": "iVBORw0KGgoAAAANSUhEUgAA...",
+  "prompt": "Un hermoso atardecer sobre un océano tranquilo",
+  "imagination": "wild",
+  "aspect_ratio": "square_1_1"
+}'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "generated": [
+      "https://ai-statics.freepik.com/completed_task_image.jpg"
+    ],
+    "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+    "status": "COMPLETED"
+  }
+}
+Upscaler - Magnific API
+Overview
+​
+Overview
+Freepik API uses Magnific.ai technology, now available as a comprehensive API service.
+The Magnific Upscaler enhances images to higher resolutions. This powerful tool does more than just increase image size - it also improves quality and adds detail. By leveraging advanced upscaling technology, our API allows you to transform your images with custom prompts and fine-tuned parameters, achieving impressive results.
+
+​
+Use Cases
+The Magnific Upscaler can be applied to a wide range of image types and industries, including:
+
+Portraits: Enhance facial details and skin textures
+Illustrations: Sharpen lines and improve color vibrancy
+Video game assets: Upscale textures and character models
+Landscapes: Bring out intricate details in nature scenes
+Science fiction imagery: Enhance futuristic and space-themed visuals
+Fantasy art: Improve magical and mythical elements
+Film stills: Increase resolution for better visual quality
+Graphic design: Upscale logos and marketing materials
+Architectural renderings: Enhance building details and textures, jumping from quick sketches to high quality renders
+Interior design: Improve quality of room layouts and furniture details
+Food photography: Bring out textures and colors in culinary images
+​
+Upscale an Image with Magnific
+Create an upscaling task for an image.
+
+POST /v1/ai/image-upscaler
+Upscale an image using Magnific 
+Upscaler - Magnific API
+Upscale an image with Magnific
+This asynchronous endpoint enables image upscaling using advanced AI algorithms. Upon submission, it returns a unique task_id which can be used to track the progress of the upscaling process. For real-time production use, include the optional webhook_url parameter to receive an automated notification once the task has been completed. This allows for seamless integration and efficient task management without the need for continuous polling.
+
+POST
+/
+v1
+/
+ai
+/
+image-upscaler
+
+Try it
+​
+Important
+For a comprehensive guide on this service, including use cases and detailed functionality, check out our Image Upscaler Guide.
+
+​
+Request
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Body
+application/json
+​
+image
+stringrequired
+Base64 image to upscale
+The resulted image can't exceed maximum allowed size of 25.3 million pixels.
+
+​
+webhook_url
+string
+Optional callback URL that will receive asynchronous notifications whenever the task changes status. The payload sent to this URL is the same as the corresponding GET endpoint response, but without the data field.
+
+Example:
+"https://www.example.com/webhook"
+
+​
+scale_factor
+enum<string>default:2x
+Configure scale factor of the image. For higher scales, the image will take longer to process
+
+Available options: 2x, 4x, 8x, 16x 
+​
+optimized_for
+enum<string>default:standard
+Styles to optimize the upscale process
+
+Available options: standard, soft_portraits, hard_portraits, art_n_illustration, videogame_assets, nature_n_landscapes, films_n_photography, 3d_renders, science_fiction_n_horror 
+​
+prompt
+string
+Prompt to guide the upscale process. Reusing the same prompt for AI-generated images will improve the results
+
+​
+creativity
+integerdefault:0
+Increase or decrease AI's creativity.
+Valid values range [-10, 10], default 0.
+
+Required range: -10 <= x <= 10
+​
+hdr
+integerdefault:0
+Increase or decrease the level of definition and detail.
+Valid values range [-10, 10], default 0.
+
+Required range: -10 <= x <= 10
+​
+resemblance
+integerdefault:0
+Adjust the level of resemblance to the original image.
+Valid values range [-10, 10], default 0.
+
+Required range: -10 <= x <= 10
+​
+fractality
+integerdefault:0
+Control the strength of the prompt and intricacy per square pixel.
+Valid values range [-10, 10], default 0.
+
+Required range: -10 <= x <= 10
+​
+engine
+enum<string>default:automatic
+Magnific model engines
+
+Available options: automatic, magnific_illusio, magnific_sharpy, magnific_sparkle 
+Response
+200
+
+200
+application/json
+OK - The request has succeeded and the upscaling process has started. The result will be notified by a Webhook call
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+​
+data.generated
+string[]required
+URL of the generated image
+
+Example:
+{
+  "generated": [
+    "https://openapi-generator.tech",
+    "https://openapi-generator.tech"
+  ],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Overview
+Get the status of the upscaling task
+
+
+
+Copy
+
+Ask AI
+curl --request POST \
+  --url https://api.freepik.com/v1/ai/image-upscaler \
+  --header 'Content-Type: application/json' \
+  --header 'x-freepik-api-key: <api-key>' \
+  --data '{
+  "image": "iVBORw0KGgoAAAANSUhEUgAAASwAAAEsAQAAAABRBrPYAAABrElEQVR4nO3BMQEAAADCoPVPbQ0Po...",
+  "webhook_url": "https://httpbin.org/post",
+  "scale_factor": "2x",
+  "optimized_for": "standard",
+  "prompt": "Crazy dog in the space",
+  "creativity": 2,
+  "hdr": 1,
+  "resemblance": 0,
+  "fractality": -1,
+  "engine": "magnific_sparkle"
+}'
+
+
+
+Copy
+
+Ask AI
+{
+  "generated": [],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "task_status": "IN_PROGRESS"
+} 
+Upscaler - Magnific API
+Get the status of the upscaling task
+Get the status of the upscaling task
+
+GET
+/
+v1
+/
+ai
+/
+image-upscaler
+/
+{task-id}
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Path Parameters
+​
+task-id
+stringrequired
+ID of the task
+
+Response
+200
+
+200
+application/json
+OK - The task exists and the status is returned
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+​
+data.generated
+string[]required
+URL of the generated image
+
+Example:
+{
+  "generated": [
+    "https://openapi-generator.tech",
+    "https://openapi-generator.tech"
+  ],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Upscale an image with Magnific
+Get the status of all upscaling tasks
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/image-upscaler/{task-id} \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "generated": [
+      "https://ai-statics.freepik.com/completed_task_image.jpg"
+    ],
+    "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+    "status": "COMPLETED"
+  }
+}
+Upscaler - Magnific API
+Get the status of all upscaling tasks
+Get the status of all upscaling tasks
+
+GET
+/
+v1
+/
+ai
+/
+image-upscaler
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Response
+200
+
+200
+application/json
+OK - Get the status of all upscaling tasks
+
+​
+data
+object[]required
+
+Hide child attributes
+
+​
+task_id
+stringrequired
+Task identifier
+
+​
+status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+Was this page helpful?
+
+
+Yes
+
+No
+Get the status of the upscaling task
+Overview
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/image-upscaler \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": [
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee92",
+      "status": "COMPLETED"
+    },
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee93",
+      "status": "COMPLETED"
+    }
+  ]
+}
+elight - Magnific API
+Relight an image
+Relight an image using AI. This endpoint accepts a variety of parameters to customize the generated images.
+
+POST
+/
+v1
+/
+ai
+/
+image-relight
+
+Try it
+​
+Important
+Upscaler endpoints are only available for premium API users. You can upgrade your account here.
+
+​
+Request
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Body
+application/json
+​
+image
+stringrequired
+Base64 image to do the relight
+
+​
+webhook_url
+string
+Optional callback URL that will receive asynchronous notifications whenever the task changes status. The payload sent to this URL is the same as the corresponding GET endpoint response, but without the data field.
+
+Example:
+"https://www.example.com/webhook"
+
+​
+prompt
+string
+You can guide the generation process and influence the light transfer with a descriptive prompt. For example, if the reference image is a brightly lit scene, adding something like "A sunlit forest clearing at golden hour" will be helpful.
+
+You can also use your imagination to alter lighting conditions in images: transforming a daytime scene into a moonlit night, enhancing the warmth of a sunset, or even dramatic changes like casting shadows of towering structures across a cityscape.
+
+IMPORTANT: You can emphasize specific aspects of the light in your prompt by using a number in parentheses, ranging from 1 to 1.4, like "(dark scene:1.3)".
+
+​
+transfer_light_from_reference_image
+string
+Base64 Reference image for light transfer. Incompatible with 'transfer_light_from_lightmap'
+
+​
+transfer_light_from_lightmap
+string
+Base64 Lightmap for light transfer. Icompatible with 'transfer_light_from_reference_image'
+
+​
+light_transfer_strength
+integerdefault:100
+It allows you to specify the level of light transfer, meaning the intensity that your prompt, reference image, or lightmap will have. A value of 0% will keep your image closest to the original, while 100% represents the maximum possible light transfer.
+
+If you enable "Interpolate from original", lower values on this slider will make the result even more similar to your original image.
+Valid values range [0, 100], default 100
+
+Required range: 0 <= x <= 100
+​
+interpolate_from_original
+booleandefault:false
+When enabled, this feature will make your final image interpolate from the original using the "Light transfer strength" slider, at the cost of sometimes restricting the generation's freedom.
+
+If disabled, the generation will be freer and will generally produce better results. However, for example, if you want to generate all the frames of a video where a room transitions from having the lights off and very dim lighting to gradually becoming fully illuminated as a new day begins, activating this option might be useful (together with gradually ingreasing the "Light transfer strength" slider).
+
+​
+change_background
+booleandefault:true
+When enabled, it will change the background based on your prompt and/or reference image. This is super useful for product placement and portraits. However, don’t forget to disable it if your scene is something like a landscape or an interior.
+
+​
+style
+enum<string>default:standard
+Available options: standard, darker_but_realistic, clean, smooth, brighter, contrasted_n_hdr, just_composition 
+​
+preserve_details
+booleandefault:true
+It will try to maintain the texture and small details of the original image. Especially good for product photography, texts, etc. Disable it if you prefer a smoother result.
+
+​
+advanced_settings
+object
+
+Show child attributes
+
+Response
+200
+
+200
+application/json
+OK - The request has succeeded and the relight process has started.
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+​
+data.generated
+string[]required
+URL of the generated image
+
+Example:
+{
+  "generated": [
+    "https://openapi-generator.tech",
+    "https://openapi-generator.tech"
+  ],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Overview
+Get the status of the relight task
+
+
+
+Copy
+
+Ask AI
+curl --request POST \
+  --url https://api.freepik.com/v1/ai/image-relight \
+  --header 'Content-Type: application/json' \
+  --header 'x-freepik-api-key: <api-key>' \
+  --data '{
+  "image": "iVBORw0KGgoAAAANSUhEUgAAASwAAAEsAQAAAABRBrPYAAABrElEQVR4nO3BMQEAAADCoPVPbQ0Po...",
+  "prompt": "A sunlit forest clearing at golden hour",
+  "transfer_light_from_reference_image": "iVBORw0KGgoAAAANSUhEUgAAASwAAAEsAQAAAABRBrPYAAABrElEQVR4nO3BMQEAAADCoPVPbQ0Po...",
+  "light_transfer_strength": 100,
+  "interpolate_from_original": false,
+  "change_background": true,
+  "style": "smooth",
+  "advanced_settings": {
+    "whites": 60,
+    "blacks": 60,
+    "brightness": 30,
+    "contrast": 40,
+    "saturation": 50,
+    "engine": "illusio",
+    "transfer_light_a": "low",
+    "transfer_light_b": "soft_in",
+    "fixed_generation": true
+  }
+}'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "generated": [
+      "https://openapi-generator.tech",
+      "https://openapi-generator.tech"
+    ],
+    "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+    "status": "IN_PROGRESS"
+  }
+}
+Relight - Magnific API
+Get the status of the relight task
+Get the status of the relight task
+
+GET
+/
+v1
+/
+ai
+/
+image-relight
+/
+{task-id}
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Path Parameters
+​
+task-id
+stringrequired
+ID of the task
+
+Response
+200
+
+200
+application/json
+OK - The task exists and the status is returned
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+​
+data.generated
+string[]required
+URL of the generated image
+
+Example:
+{
+  "generated": [
+    "https://openapi-generator.tech",
+    "https://openapi-generator.tech"
+  ],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Relight an image
+Get the status of all relight tasks
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/image-relight/{task-id} \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "generated": [
+      "https://ai-statics.freepik.com/completed_task_image.jpg"
+    ],
+    "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+    "status": "COMPLETED"
+  }
+}
+Relight - Magnific API
+Get the status of all relight tasks
+Get the status of all relight tasks
+
+GET
+/
+v1
+/
+ai
+/
+image-relight
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Response
+200
+
+200
+application/json
+OK - Get the status of all relight tasks
+
+​
+data
+object[]required
+
+Hide child attributes
+
+​
+task_id
+stringrequired
+Task identifier
+
+​
+status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+Was this page helpful?
+
+
+Yes
+
+No
+Get the status of the relight task
+Overview
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/image-relight \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": [
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee92",
+      "status": "COMPLETED"
+    },
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee93",
+      "status": "COMPLETED"
+    }
+  ]
+}
+Style Transfer - Magnific API
+Overview
+Original image
+Black and white
+Wild nature
+Wood and brick
+Style transfer examples (from left top to right bottom): Original image, then apply black and white, wild nature, wood and brick styles via prompts.
+
+Freepik API uses Magnific.ai technology, now available as a comprehensive API service.
+Image Style Transfer is a powerful AI-driven tool that allows you to transform any image by applying various artistic styles. This technology goes beyond simple filters, enabling you to control the amount of style transferred and maintain structural integrity. With our API, you can:
+
+Apply predefined artistic styles
+Use custom images as style references
+Fine-tune the style transfer process with advanced parameters
+Transform images while preserving important details
+Combine style transfer with upscaling for high-resolution results
+Whether you’re a professional artist, game developer, or just looking to have fun with your photos, Image Style Transfer opens up a world of creative possibilities.
+
+​
+Use Cases
+Image Style Transfer can be applied to various industries and creative projects, some examples are:
+
+Video Game Development: Transform concept art and create stylized game assets
+Film and VFX: Create dramatic lighting effects and stylized scenes
+Interior Design: Visualize room makeovers with different design styles
+3D Rendering: Texturize and light 3D renders using reference images
+Sketch Transformation: Convert sketches into detailed, styled artwork
+​
+Key Features
+Control Over Style Intensity: Adjust the strength of the style transfer to find the perfect balance between the original image and the new style.
+Structure Preservation: Maintain important details and structural elements of the original image while applying new styles.
+Prompt-Guided Transformations: Use text prompts to further refine and direct the style transfer process.
+Multiple Style Engines: Choose from various AI engines optimized for different types of style transfers.
+By leveraging the power of AI, Image Style Transfer enables creators to push the boundaries of visual art and design, saving hours of manual work and opening up new realms of creative possibility.
+
+POST /v1/ai/image-style-transfer
+API Reference: Image Style Transfer
+Style Transfer - Magnific API
+Style transfer an image using AI
+POST
+/
+v1
+/
+ai
+/
+image-style-transfer
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Body
+application/json
+​
+image
+stringrequired
+Base64 Image to style transfer
+
+​
+reference_image
+stringrequired
+Base64 Reference image for style transfer
+
+​
+webhook_url
+string
+Optional callback URL that will receive asynchronous notifications whenever the task changes status. The payload sent to this URL is the same as the corresponding GET endpoint response, but without the data field.
+
+Example:
+"https://www.example.com/webhook"
+
+​
+prompt
+string
+Prompt for the AI model
+
+​
+style_strength
+integerdefault:100
+Percentage of style strength
+
+Required range: 0 <= x <= 100
+​
+structure_strength
+integerdefault:50
+Allows to maintain the structure of the original image
+
+Required range: 0 <= x <= 100
+​
+is_portrait
+booleandefault:false
+Is the image a portrait
+
+​
+portrait_style
+enum<string>default:standard
+Portrait style
+
+Available options: standard, pop, super_pop 
+​
+portrait_beautifier
+enum<string>
+Portrait beautifier
+
+Available options: beautify_face, beautify_face_max 
+​
+flavor
+enum<string>default:faithful
+Flavor of the transferring style
+
+Available options: faithful, gen_z, psychedelia, detaily, clear, donotstyle, donotstyle_sharp 
+​
+engine
+enum<string>default:balanced
+Available options: balanced, definio, illusio, 3d_cartoon, colorful_anime, caricature, real, super_real, softy 
+​
+fixed_generation
+booleandefault:false
+When this option is enabled, using the same settings will consistently produce the same image.
+Fixed generations are ideal for fine-tuning, as it allows for incremental changes to parameters (such as the prompt) to see subtle variations in the output.
+When disabled, expect each generation to introduce a degree of randomness, leading to more diverse outcomes.
+
+Response
+200
+
+200
+application/json
+OK - The request has succeeded and the Style Transfer process has started.
+
+​
+task_id
+stringrequired
+Task identifier
+
+​
+task_status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+​
+generated
+string[]required
+URL of the generated image
+
+Was this page helpful?
+
+
+Yes
+
+No
+Overview
+Get the status of all Style Transfer tasks
+
+
+
+Copy
+
+Ask AI
+curl --request POST \
+  --url https://api.freepik.com/v1/ai/image-style-transfer \
+  --header 'Content-Type: application/json' \
+  --header 'x-freepik-api-key: <api-key>' \
+  --data '{
+  "image": "iVBORw0KGgoAAAANSUhEUgAA...",
+  "reference_image": "iVBORw0KGgoAAAANSUhEUgAA..."
+}'
+
+
+
+Copy
+
+Ask AI
+{
+  "generated": [],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "task_status": "IN_PROGRESS"
+}
+Style Transfer - Magnific API
+Get the status of all Style Transfer tasks
+Get the status of all Style Transfer tasks
+
+GET
+/
+v1
+/
+ai
+/
+image-style-transfer
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Response
+200
+
+200
+application/json
+OK - Get the status of all Style Transfer tasks
+
+​
+data
+object[]required
+
+Hide child attributes
+
+​
+task_id
+stringrequired
+Task identifier
+
+​
+status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+Was this page helpful?
+
+
+Yes
+
+No
+Style transfer an image using AI
+Get the status of the Style Transfer task
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/image-style-transfer \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": [
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee92",
+      "status": "COMPLETED"
+    },
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee93",
+      "status": "COMPLETED"
+    }
+  ]
+}
+Style Transfer - Magnific API
+Get the status of the Style Transfer task
+Get the status of the Style Transfer task
+
+GET
+/
+v1
+/
+ai
+/
+image-style-transfer
+/
+{task-id}
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Path Parameters
+​
+task-id
+stringrequired
+ID of the task
+
+Response
+200
+
+200
+application/json
+OK - The task exists and the status is returned
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+​
+data.generated
+string[]required
+URL of the generated image
+
+Example:
+{
+  "generated": [
+    "https://openapi-generator.tech",
+    "https://openapi-generator.tech"
+  ],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Get the status of all Style Transfer tasks
+Remove the background of an image
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/image-style-transfer/{task-id} \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "generated": [
+      "https://ai-statics.freepik.com/completed_task_image.jpg"
+    ],
+    "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+    "status": "COMPLETED"
+  }
+}
+Remove Background
+Remove the background of an image
+This endpoint removes the background from an image provided via a URL. The URLs in the response are temporary and valid for 5 minutes only.
+
+POST
+/
+v1
+/
+ai
+/
+beta
+/
+remove-background
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Body
+application/x-www-form-urlencoded
+​
+image_url
+string
+The URL of the image whose background needs to be removed.
+
+Example:
+"https://img.freepik.com/free-vector/cute-cat-sitting-cartoon-vector-icon-illustration-animal-nature-icon-concept-isolated-premium-vector-flat-cartoon-style_138676-4148.jpg?w=2000&t=st=1725353998~exp=1725357598~hmac=a17f90afeeff454b36c0715f84eed2b388cd9c4a7ce59fcdff075fa41770e469"
+
+Response
+200 - application/json
+Successful background removal.
+
+​
+original
+string
+URL of the original image.
+
+​
+high_resolution
+string
+URL of the high-resolution image with the background removed.
+
+​
+preview
+string
+URL of the preview version of the image.
+
+​
+url
+string
+Direct URL for downloading the high-resolution image.
+
+Was this page helpful?
+
+
+Yes
+
+No
+Get the status of the Style Transfer task
+Get the status of all image expand tasks
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request POST \
+  --url https://api.freepik.com/v1/ai/beta/remove-background \
+  --header 'Content-Type: application/x-www-form-urlencoded' \
+  --header 'x-freepik-api-key: <api-key>' \
+  --data 'image_url=https://img.freepik.com/free-vector/cute-cat-sitting-cartoon-vector-icon-illustration-animal-nature-icon-concept-isolated-premium-vector-flat-cartoon-style_138676-4148.jpg?w=2000&t=st=1725353998~exp=1725357598~hmac=a17f90afeeff454b36c0715f84eed2b388cd9c4a7ce59fcdff075fa41770e469'
+
+200
+
+Copy
+
+Ask AI
+{
+  "original": "https://api.freepik.com/v1/ai/beta/images/original/037ea4ea-e8ad84a8c7/thumbnail.jpg",
+  "high_resolution": "https://api.freepik.com/v1/ai/beta/images/download/037ead-44cd8ad84a8c7/high.png",
+  "preview": "https://api.freepik.com/v1/ai/beta/images/download/037ea4eacad84a8c7/preview.png",
+  "url": "https://api.freepik.com/v1/ai/beta/images/download/037ea4ea-720d-411e8ad84a8c7/high.png"
+}
+Image Expand API
+Get the status of all image expand tasks
+GET
+/
+v1
+/
+ai
+/
+image-expand
+/
+flux-pro
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Response
+200
+
+200
+application/json
+OK - Returns a list of tasks for the current type of Task
+
+​
+data
+object[]required
+
+Hide child attributes
+
+​
+task_id
+stringrequired
+Task identifier
+
+​
+status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+Was this page helpful?
+
+
+Yes
+
+No
+Remove the background of an image
+Image expand using AI Flux Pro
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/image-expand/flux-pro \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": [
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+      "status": "IN_PROGRESS"
+    }
+  ]
+}
+Image Expand API
+Image expand using AI Flux Pro
+This endpoint allows you to expand an image using the AI Flux Pro model. The image will be expanded based on the provided parameters.
+
+POST
+/
+v1
+/
+ai
+/
+image-expand
+/
+flux-pro
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Body
+application/json
+​
+image
+stringrequired
+Base64 image to expand
+
+​
+webhook_url
+string
+Optional callback URL that will receive asynchronous notifications whenever the task changes status. The payload sent to this URL is the same as the corresponding GET endpoint response, but without the data field.
+
+Example:
+"https://www.example.com/webhook"
+
+​
+prompt
+string
+The description of the changes you want to make. This text guides the expansion process, allowing you to specify features, styles, or modifications for the expanded areas.
+
+​
+left
+integer | null
+Pixel to expand on the left
+
+Required range: 0 <= x <= 2048
+​
+right
+integer | null
+Pixel to expand on the right
+
+Required range: 0 <= x <= 2048
+​
+top
+integer | null
+Pixel to expand on the top
+
+Required range: 0 <= x <= 2048
+​
+bottom
+integer | null
+Pixel to expand on the bottom
+
+Required range: 0 <= x <= 2048
+Response
+200
+
+200
+application/json
+OK - The task exists and the status is returned
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+​
+data.generated
+string[]required
+URL of the generated image
+
+Example:
+{
+  "generated": [
+    "https://openapi-generator.tech",
+    "https://openapi-generator.tech"
+  ],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Get the status of all image expand tasks
+Get the status of one image expand task
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request POST \
+  --url https://api.freepik.com/v1/ai/image-expand/flux-pro \
+  --header 'Content-Type: application/json' \
+  --header 'x-freepik-api-key: <api-key>' \
+  --data '{
+  "webhook_url": "https://www.example.com/webhook",
+  "image": "aSDinaTvuI8gbWludGxpZnk=",
+  "prompt": "<string>",
+  "left": 1024,
+  "right": 1024,
+  "top": 1024,
+  "bottom": 1024
+}'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "generated": [],
+    "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+    "status": "CREATED"
+  }
+} 
+Image Expand API
+Get the status of one image expand task
+GET
+/
+v1
+/
+ai
+/
+image-expand
+/
+flux-pro
+/
+{task-id}
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Path Parameters
+​
+task-id
+stringrequired
+ID of the task
+
+Response
+200
+
+200
+application/json
+OK - The task exists and the status is returned
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+​
+data.generated
+string[]required
+URL of the generated image
+
+Example:
+{
+  "generated": [
+    "https://openapi-generator.tech",
+    "https://openapi-generator.tech"
+  ],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Image expand using AI Flux Pro
+Create a video from an image - Kling 2.1 master model
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/image-expand/flux-pro/{task-id} \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "generated": [],
+    "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+    "status": "CREATED"
+  }
+}
+Kling v2.1 Master
+Create a video from an image - Kling 2.1 master model
+Generate a video from an image using the Kling 2.1 Master model.
+
+POST
+/
+v1
+/
+ai
+/
+image-to-video
+/
+kling-v2-1-master
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Body
+application/json
+Image to Video
+Text to Video
+​
+duration
+enum<string>required
+Duration of the generated video in seconds
+
+Available options: 5, 10 
+​
+webhook_url
+string
+Optional callback URL that will receive asynchronous notifications whenever the task changes status. The payload sent to this URL is the same as the corresponding GET endpoint response, but without the data field.
+
+Example:
+"https://www.example.com/webhook"
+
+​
+image
+string
+Reference Image. Supports Base64 encoding or URL (ensure accessibility). For URL, must be publicly accessible. The image file size cannot exceed 10MB, and the resolution should not be less than 300x300px. Aspect ratio should be between 1:2.5 ~ 2.5:1.
+
+​
+prompt
+string
+(Required when image is not provided) Text prompt describing the desired motion, cannot exceed 2500 characters
+
+​
+negative_prompt
+string
+Text prompt describing what to avoid in the generated video, cannot exceed 2500 characters
+
+​
+cfg_scale
+numberdefault:0.5
+Flexibility in video generation; The higher the value, the lower the model's degree of flexibility, and the stronger the relevance to the user's prompt.
+
+Required range: 0 <= x <= 1
+​
+static_mask
+string
+Static mask image for defining motion brush application areas.
+
+● Supports both Base64 encoding and image URLs (ensure URLs are publicly accessible and follow the same format requirements as the image field).
+● Supported image formats include .jpg / .jpeg / .png.
+● The aspect ratio of the mask image MUST match the input image (image field); otherwise, the task will fail.
+● The resolutions of the static_mask image and the dynamic_masks.mask images must be identical; otherwise, the task will fail.
+● The static brush feature allows you to define areas where motion will be applied in the generated video.
+
+​
+dynamic_masks
+object[]
+
+Show child attributes
+
+Response
+200
+
+200
+application/json
+OK - Get the status of the kling-std task
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+Example:
+{
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Get the status of one image expand task
+Get the list of the kling-v2-1-std tasks
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request POST \
+  --url https://api.freepik.com/v1/ai/image-to-video/kling-v2-1-master \
+  --header 'Content-Type: application/json' \
+  --header 'x-freepik-api-key: <api-key>' \
+  --data '{
+  "webhook_url": "https://www.example.com/webhook",
+  "image": "<string>",
+  "prompt": "<string>",
+  "negative_prompt": "<string>",
+  "duration": "5",
+  "cfg_scale": 0.5,
+  "static_mask": "<string>",
+  "dynamic_masks": [
+    {
+      "mask": "<string>",
+      "trajectories": [
+        {
+          "x": 123,
+          "y": 123
+        }
+      ]
+    }
+  ]
+}'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+    "status": "IN_PROGRESS"
+  }
+}
+Kling v2.1 Master
+Get the list of the kling-v2-1-std tasks
+Get the list of the kling-v2-1-std tasks
+
+GET
+/
+v1
+/
+ai
+/
+image-to-video
+/
+kling-v2-1-master
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Response
+200
+
+200
+application/json
+OK - The list of the kling-v2-1-std tasks is returned
+
+​
+data
+object[]required
+
+Hide child attributes
+
+​
+task_id
+stringrequired
+Task identifier
+
+​
+status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+Was this page helpful?
+
+
+Yes
+
+No
+Create a video from an image - Kling 2.1 master model
+Get the status of the kling-v2-1-master task
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/image-to-video/kling-v2-1-master \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": [
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+      "status": "IN_PROGRESS"
+    }
+  ]
+}
+Kling v2.1 Master
+Get the status of the kling-v2-1-master task
+Get the status of the kling-v2-1-master task
+
+GET
+/
+v1
+/
+ai
+/
+image-to-video
+/
+kling-v2-1-master
+/
+{task-id}
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Path Parameters
+​
+task-id
+stringrequired
+ID of the task
+
+Response
+200
+
+200
+application/json
+OK - The task exists and the status is returned
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+​
+data.generated
+string[]required
+URL of the generated image
+
+Example:
+{
+  "generated": [
+    "https://openapi-generator.tech",
+    "https://openapi-generator.tech"
+  ],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Get the list of the kling-v2-1-std tasks
+Create a video from an image - Kling 2.1 pro model
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/image-to-video/kling-v2-1-master/{task-id} \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "generated": [
+      "https://ai-statics.freepik.com/completed_task_image.jpg"
+    ],
+    "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee92",
+    "status": "COMPLETED"
+  }
+}
+Kling Pro v2.1
+Create a video from an image - Kling 2.1 pro model
+Generate a video from an image using the Kling 2.1 Pro model.
+
+POST
+/
+v1
+/
+ai
+/
+image-to-video
+/
+kling-v2-1-pro
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Body
+application/json
+​
+duration
+enum<string>required
+Duration of the generated video in seconds
+
+Available options: 5, 10 
+​
+webhook_url
+string
+Optional callback URL that will receive asynchronous notifications whenever the task changes status. The payload sent to this URL is the same as the corresponding GET endpoint response, but without the data field.
+
+Example:
+"https://www.example.com/webhook"
+
+​
+image
+string
+Reference Image. Supports Base64 encoding or URL (ensure accessibility). For URL, must be publicly accessible. The image file size cannot exceed 10MB, and the resolution should not be less than 300x300px. Aspect ratio should be between 1:2.5 ~ 2.5:1.
+
+​
+prompt
+string
+(Required when image is not provided) Text prompt describing the desired motion, cannot exceed 2500 characters
+
+​
+negative_prompt
+string
+Text prompt describing what to avoid in the generated video, cannot exceed 2500 characters
+
+​
+cfg_scale
+numberdefault:0.5
+Flexibility in video generation; The higher the value, the lower the model's degree of flexibility, and the stronger the relevance to the user's prompt.
+
+Required range: 0 <= x <= 1
+​
+static_mask
+string
+Static mask image for defining motion brush application areas.
+
+● Supports both Base64 encoding and image URLs (ensure URLs are publicly accessible and follow the same format requirements as the image field).
+● Supported image formats include .jpg / .jpeg / .png.
+● The aspect ratio of the mask image MUST match the input image (image field); otherwise, the task will fail.
+● The resolutions of the static_mask image and the dynamic_masks.mask images must be identical; otherwise, the task will fail.
+● The static brush feature allows you to define areas where motion will be applied in the generated video.
+
+​
+dynamic_masks
+object[]
+
+Show child attributes
+
+Response
+200
+
+200
+application/json
+OK - Get the status of the kling-v2-1-pro task
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+Example:
+{
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Get the status of the kling-v2-1-master task
+Get the list of the kling-v2-1-pro tasks
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request POST \
+  --url https://api.freepik.com/v1/ai/image-to-video/kling-v2-1-pro \
+  --header 'Content-Type: application/json' \
+  --header 'x-freepik-api-key: <api-key>' \
+  --data '{
+  "webhook_url": "https://www.example.com/webhook",
+  "image": "<string>",
+  "prompt": "<string>",
+  "negative_prompt": "<string>",
+  "duration": "5",
+  "cfg_scale": 0.5,
+  "static_mask": "<string>",
+  "dynamic_masks": [
+    {
+      "mask": "<string>",
+      "trajectories": [
+        {
+          "x": 123,
+          "y": 123
+        }
+      ]
+    }
+  ]
+}'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+    "status": "IN_PROGRESS"
+  }
+}
+Kling Pro v2.1
+Get the list of the kling-v2-1-pro tasks
+Get the list of the kling-v2-1-pro tasks
+
+GET
+/
+v1
+/
+ai
+/
+image-to-video
+/
+kling-v2-1-pro
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Response
+200
+
+200
+application/json
+OK - The list of the kling-v2-1-pro tasks is returned
+
+​
+data
+object[]required
+
+Hide child attributes
+
+​
+task_id
+stringrequired
+Task identifier
+
+​
+status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+Was this page helpful?
+
+
+Yes
+
+No
+Create a video from an image - Kling 2.1 pro model
+Get the status of the kling-v2-1 task
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/image-to-video/kling-v2-1-pro \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": [
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+      "status": "IN_PROGRESS"
+    }
+  ]
+}
+Kling Pro v2.1
+Get the status of the kling-v2-1 task
+Get the status of the kling-v2-1 task
+
+GET
+/
+v1
+/
+ai
+/
+image-to-video
+/
+kling-v2-1
+/
+{task-id}
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Path Parameters
+​
+task-id
+stringrequired
+ID of the task
+
+Response
+200
+
+200
+application/json
+OK - The task exists and the status is returned
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+​
+data.generated
+string[]required
+URL of the generated image
+
+Example:
+{
+  "generated": [
+    "https://openapi-generator.tech",
+    "https://openapi-generator.tech"
+  ],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Get the list of the kling-v2-1-pro tasks
+Create a video from an image - Kling 2.1 standard model
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/image-to-video/kling-v2-1/{task-id} \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "generated": [
+      "https://ai-statics.freepik.com/completed_task_image.jpg"
+    ],
+    "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee92",
+    "status": "COMPLETED"
+  }
+}
+Kling Std v2.1
+Create a video from an image - Kling 2.1 standard model
+Generate a video from an image using the Kling 2.1 Std model.
+
+POST
+/
+v1
+/
+ai
+/
+image-to-video
+/
+kling-v2-1-std
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Body
+application/json
+​
+duration
+enum<string>required
+Duration of the generated video in seconds
+
+Available options: 5, 10 
+​
+webhook_url
+string
+Optional callback URL that will receive asynchronous notifications whenever the task changes status. The payload sent to this URL is the same as the corresponding GET endpoint response, but without the data field.
+
+Example:
+"https://www.example.com/webhook"
+
+​
+image
+string
+Reference Image. Supports Base64 encoding or URL (ensure accessibility). For URL, must be publicly accessible. The image file size cannot exceed 10MB, and the resolution should not be less than 300x300px. Aspect ratio should be between 1:2.5 ~ 2.5:1.
+
+​
+prompt
+string
+(Required when image is not provided) Text prompt describing the desired motion, cannot exceed 2500 characters
+
+​
+negative_prompt
+string
+Text prompt describing what to avoid in the generated video, cannot exceed 2500 characters
+
+​
+cfg_scale
+numberdefault:0.5
+Flexibility in video generation; The higher the value, the lower the model's degree of flexibility, and the stronger the relevance to the user's prompt.
+
+Required range: 0 <= x <= 1
+​
+static_mask
+string
+Static mask image for defining motion brush application areas.
+
+● Supports both Base64 encoding and image URLs (ensure URLs are publicly accessible and follow the same format requirements as the image field).
+● Supported image formats include .jpg / .jpeg / .png.
+● The aspect ratio of the mask image MUST match the input image (image field); otherwise, the task will fail.
+● The resolutions of the static_mask image and the dynamic_masks.mask images must be identical; otherwise, the task will fail.
+● The static brush feature allows you to define areas where motion will be applied in the generated video.
+
+​
+dynamic_masks
+object[]
+
+Show child attributes
+
+Response
+200
+
+200
+application/json
+OK - Get the status of the kling-std task
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+Example:
+{
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Get the status of the kling-v2-1 task
+Get the list of the kling-v2-1-std tasks
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request POST \
+  --url https://api.freepik.com/v1/ai/image-to-video/kling-v2-1-std \
+  --header 'Content-Type: application/json' \
+  --header 'x-freepik-api-key: <api-key>' \
+  --data '{
+  "webhook_url": "https://www.example.com/webhook",
+  "image": "<string>",
+  "prompt": "<string>",
+  "negative_prompt": "<string>",
+  "duration": "5",
+  "cfg_scale": 0.5,
+  "static_mask": "<string>",
+  "dynamic_masks": [
+    {
+      "mask": "<string>",
+      "trajectories": [
+        {
+          "x": 123,
+          "y": 123
+        }
+      ]
+    }
+  ]
+}'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+    "status": "IN_PROGRESS"
+  }
+} 
+Kling Std v2.1
+Get the list of the kling-v2-1-std tasks
+Get the list of the kling-v2-1-std tasks
+
+GET
+/
+v1
+/
+ai
+/
+image-to-video
+/
+kling-v2-1-std
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Response
+200
+
+200
+application/json
+OK - The list of the kling-v2-1-std tasks is returned
+
+​
+data
+object[]required
+
+Hide child attributes
+
+​
+task_id
+stringrequired
+Task identifier
+
+​
+status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+Was this page helpful?
+
+
+Yes
+
+No
+Create a video from an image - Kling 2.1 standard model
+Get the status of the kling-v2-1 task
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/image-to-video/kling-v2-1-std \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": [
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+      "status": "IN_PROGRESS"
+    }
+  ]
+}
+Kling Std v2.1
+Get the status of the kling-v2-1 task
+Get the status of the kling-v2-1 task
+
+GET
+/
+v1
+/
+ai
+/
+image-to-video
+/
+kling-v2-1
+/
+{task-id}
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Path Parameters
+​
+task-id
+stringrequired
+ID of the task
+
+Response
+200
+
+200
+application/json
+OK - The task exists and the status is returned
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+​
+data.generated
+string[]required
+URL of the generated image
+
+Example:
+{
+  "generated": [
+    "https://openapi-generator.tech",
+    "https://openapi-generator.tech"
+  ],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Get the list of the kling-v2-1-std tasks
+Create a video from an image using the Kling v2 model
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/image-to-video/kling-v2-1/{task-id} \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "generated": [
+      "https://ai-statics.freepik.com/completed_task_image.jpg"
+    ],
+    "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee92",
+    "status": "COMPLETED"
+  }
+}
+
+Kling v2
+Create a video from an image using the Kling v2 model
+Create a video from an image using the Kling v2 model
+
+POST
+/
+v1
+/
+ai
+/
+image-to-video
+/
+kling-v2
+
+Try it
+​
+Important
+The service allows up to 3 concurrent requests per user.
+
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Body
+application/json
+​
+image
+stringrequired
+Reference Image. Supports Base64 encoding or URL (ensure accessibility). For URL, must be publicly accessible. The image file size cannot exceed 10MB, and the resolution should not be less than 300x300px. Aspect ratio should be between 1:2.5 ~ 2.5:1.
+
+Example:
+"https://img.freepik.com/free-photo/closeup-vertical-shot-cute-european-shorthair-cat_181624-34587.jpg?t=st=1746439555~exp=1746443155~hmac=a7507c7d4a48a81b22bf222d1e0f1808043c9113ef8aac31a595c9128914e8ed&w=740"
+
+​
+duration
+enum<string>required
+Duration of the generated video in seconds
+
+Available options: 5, 10 
+Example:
+"5"
+
+​
+webhook_url
+string
+Optional callback URL that will receive asynchronous notifications whenever the task changes status. The payload sent to this URL is the same as the corresponding GET endpoint response, but without the data field.
+
+Example:
+"https://www.example.com/webhook"
+
+​
+prompt
+string
+Text prompt describing the desired motion, cannot exceed 2500 characters
+
+Example:
+"A cat moving his head"
+
+​
+negative_prompt
+string
+Text prompt describing what to avoid in the generated video, cannot exceed 2500 characters
+
+Example:
+"Blurred or poor quality images"
+
+​
+cfg_scale
+numberdefault:0.5
+Flexibility in video generation; The higher the value, the lower the model's degree of flexibility, and the stronger the relevance to the user's prompt.
+
+Required range: 0 <= x <= 1
+Response
+200
+
+200
+application/json
+OK - Get the status of the kling-v2 task
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+Example:
+{
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Get the status of the kling-v2-1 task
+Get the list of the kling-v2 tasks
+
+
+
+Copy
+
+Ask AI
+curl --request POST \
+  --url https://api.freepik.com/v1/ai/image-to-video/kling-v2 \
+  --header 'Content-Type: application/json' \
+  --header 'x-freepik-api-key: <api-key>' \
+  --data '{
+  "image": "https://storage.googleapis.com/fc-freepik-pro-rev1-eu-static/landing-api/examples/freepik__upload__53227.png",
+  "duration": "5"
+}'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+    "status": "IN_PROGRESS"
+Kling v2
+Get the list of the kling-v2 tasks
+Get the list of the kling-v2 tasks
+
+GET
+/
+v1
+/
+ai
+/
+image-to-video
+/
+kling-v2
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Response
+200
+
+200
+application/json
+OK - The list of the kling-v2 tasks is returned
+
+​
+data
+object[]required
+
+Hide child attributes
+
+​
+task_id
+stringrequired
+Task identifier
+
+​
+status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+Was this page helpful?
+
+
+Yes
+
+No
+Create a video from an image using the Kling v2 model
+Get the status of the kling-v2 task
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/image-to-video/kling-v2 \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": [
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+      "status": "IN_PROGRESS"
+    }
+  ]
+}
+Kling v2
+Get the status of the kling-v2 task
+Get the status of the kling-v2 task
+
+GET
+/
+v1
+/
+ai
+/
+image-to-video
+/
+kling-v2
+/
+{task-id}
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Path Parameters
+​
+task-id
+stringrequired
+ID of the task
+
+Response
+200
+
+200
+application/json
+OK - The task exists and the status is returned
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+​
+data.generated
+string[]required
+URL of the generated image
+
+Example:
+{
+  "generated": [
+    "https://openapi-generator.tech",
+    "https://openapi-generator.tech"
+  ],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Get the list of the kling-v2 tasks
+Create a video from an image - Kling 1.6 pro model
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/image-to-video/kling-v2/{task-id} \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "generated": [
+      "https://ai-statics.freepik.com/completed_task_image.jpg"
+    ],
+    "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee92",
+    "status": "COMPLETED"
+  }
+}
+Kling Elements Pro 1.6
+Create a video from an image - Kling Elements Pro model
+Generate a video from an image using the Kling Elements Pro model.
+
+POST
+/
+v1
+/
+ai
+/
+image-to-video
+/
+kling-elements-pro
+
+Try it
+​
+Important
+The service allows up to 3 concurrent requests per user.
+
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Body
+application/json
+​
+images
+string[]required
+Array of up to 4 images to use for video generation. Images must be at least 300x300px, aspect ratio between 1:2.5 ~ 2.5:1, and under 10MB
+
+Maximum length: 4
+Image URL (must be accessible). Supported formats: jpg, jpeg, png
+
+​
+prompt
+string
+Positive text prompt
+
+Maximum length: 2500
+​
+negative_prompt
+string
+Negative text prompt
+
+Maximum length: 2500
+​
+duration
+enum<string>
+Duration of the generated video in seconds
+
+Available options: 5, 10 
+​
+aspect_ratio
+enum<string>default:widescreen_16_9
+Aspect ratio for the generated video
+
+Available options: widescreen_16_9, social_story_9_16, square_1_1 
+​
+webhook_url
+string
+Optional callback URL that will receive asynchronous notifications whenever the task changes status. The payload sent to this URL is the same as the corresponding GET endpoint response, but without the data field.
+
+Example:
+"https://www.example.com/webhook"
+
+Response
+200
+
+200
+application/json
+OK - Get the status of the kling-elements-pro task
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+Example:
+{
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Get the status of the kling task
+Get the list of the kling-elements-pro tasks
+
+
+
+Copy
+
+Ask AI
+curl --request POST \
+  --url https://api.freepik.com/v1/ai/image-to-video/kling-elements-pro \
+  --header 'Content-Type: application/json' \
+  --header 'x-freepik-api-key: <api-key>' \
+  --data '{
+  "images": [
+    "https://img.freepik.com/foto-gratis/disparo-aislado-gatito-jengibre-sentado-frente-blanco-mirando-derecha_181624-45937.jpg?semt=ais_hybrid&w=740"
+  ]
+}'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+    "status": "IN_PROGRESS"
+  }
+}
+Kling Elements Pro 1.6
+Get the list of the kling-elements-pro tasks
+Get the list of the kling-elements-pro tasks
+
+GET
+/
+v1
+/
+ai
+/
+image-to-video
+/
+kling-elements-pro
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Response
+200
+
+200
+application/json
+OK - The list of the kling-elements-pro tasks is returned
+
+​
+data
+object[]required
+
+Hide child attributes
+
+​
+task_id
+stringrequired
+Task identifier
+
+​
+status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+Was this page helpful?
+
+
+Yes
+
+No
+Create a video from an image - Kling Elements Pro model
+Get the status of the kling-elements task
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/image-to-video/kling-elements-pro \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": [
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+      "status": "IN_PROGRESS"
+    }
+  ]
+}
+Kling Elements Pro 1.6
+Get the status of the kling-elements task
+Get the status of the kling-elements task
+
+GET
+/
+v1
+/
+ai
+/
+image-to-video
+/
+kling-elements
+/
+{task-id}
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Path Parameters
+​
+task-id
+stringrequired
+ID of the task
+
+Response
+200
+
+200
+application/json
+OK - The task exists and the status is returned
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+​
+data.generated
+string[]required
+URL of the generated image
+
+Example:
+{
+  "generated": [
+    "https://openapi-generator.tech",
+    "https://openapi-generator.tech"
+  ],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Get the list of the kling-elements-pro tasks
+Create a video from an image - Kling Elements Std model
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/image-to-video/kling-elements/{task-id} \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "generated": [
+      "https://openapi-generator.tech",
+      "https://openapi-generator.tech"
+    ],
+    "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+    "status": "IN_PROGRESS"
+  }
+}
+Kling Elements Std 1.6
+Create a video from an image - Kling Elements Std model
+Generate a video from an image using the Kling Elements Std model.
+
+POST
+/
+v1
+/
+ai
+/
+image-to-video
+/
+kling-elements-std
+
+Try it
+​
+Important
+The service allows up to 3 concurrent requests per user.
+
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Body
+application/json
+​
+images
+string[]required
+Array of up to 4 images to use for video generation. Images must be at least 300x300px, aspect ratio between 1:2.5 ~ 2.5:1, and under 10MB
+
+Maximum length: 4
+Image URL (must be accessible). Supported formats: jpg, jpeg, png
+
+​
+prompt
+string
+Positive text prompt
+
+Maximum length: 2500
+​
+negative_prompt
+string
+Negative text prompt
+
+Maximum length: 2500
+​
+duration
+enum<string>
+Duration of the generated video in seconds
+
+Available options: 5, 10 
+​
+aspect_ratio
+enum<string>default:widescreen_16_9
+Aspect ratio for the generated video
+
+Available options: widescreen_16_9, social_story_9_16, square_1_1 
+​
+webhook_url
+string
+Optional callback URL that will receive asynchronous notifications whenever the task changes status. The payload sent to this URL is the same as the corresponding GET endpoint response, but without the data field.
+
+Example:
+"https://www.example.com/webhook"
+
+Response
+200
+
+200
+application/json
+OK - Get the status of the kling-elements-std task
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+Example:
+{
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Get the status of the kling-elements task
+Get the list of the kling-elements-std tasks
+
+
+
+Copy
+
+Ask AI
+curl --request POST \
+  --url https://api.freepik.com/v1/ai/image-to-video/kling-elements-std \
+  --header 'Content-Type: application/json' \
+  --header 'x-freepik-api-key: <api-key>' \
+  --data '{
+  "images": [
+    "https://img.freepik.com/foto-gratis/disparo-aislado-gatito-jengibre-sentado-frente-blanco-mirando-derecha_181624-45937.jpg?semt=ais_hybrid&w=740"
+  ]
+}'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+    "status": "IN_PROGRESS"
+  }
+}
+Kling Elements Std 1.6
+Get the list of the kling-elements-std tasks
+Get the list of the kling-elements-std tasks
+
+GET
+/
+v1
+/
+ai
+/
+image-to-video
+/
+kling-elements-std
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Response
+200
+
+200
+application/json
+OK - The list of the kling-elements-std tasks is returned
+
+​
+data
+object[]required
+
+Hide child attributes
+
+​
+task_id
+stringrequired
+Task identifier
+
+​
+status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+Was this page helpful?
+
+
+Yes
+
+No
+Create a video from an image - Kling Elements Std model
+Get the status of the kling-elements task
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/image-to-video/kling-elements-std \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": [
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+      "status": "IN_PROGRESS"
+    }
+  ]
+}
+Kling Elements Std 1.6
+Get the status of the kling-elements task
+Get the status of the kling-elements task
+
+GET
+/
+v1
+/
+ai
+/
+image-to-video
+/
+kling-elements
+/
+{task-id}
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Path Parameters
+​
+task-id
+stringrequired
+ID of the task
+
+Response
+200
+
+200
+application/json
+OK - The task exists and the status is returned
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+​
+data.generated
+string[]required
+URL of the generated image
+
+Example:
+{
+  "generated": [
+    "https://openapi-generator.tech",
+    "https://openapi-generator.tech"
+  ],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Get the list of the kling-elements-std tasks
+AI Icon generation
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/image-to-video/kling-elements/{task-id} \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "generated": [
+      "https://openapi-generator.tech",
+      "https://openapi-generator.tech"
+    ],
+    "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+    "status": "IN_PROGRESS"
+  }
+}
+Icon generation API
+AI Icon generation
+Create stunning icons in different styles and formats (png, svg) from text prompts using our advanced AI models.
+
+POST
+/
+v1
+/
+ai
+/
+text-to-icon
+
+Try it
+​
+Description
+Generate an icon from a text prompt.
+
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Body
+application/json
+​
+prompt
+stringrequired
+The prompt to generate the icon
+
+Example:
+"A cute cat icon"
+
+​
+webhook_url
+stringrequired
+The webhook URL to receive the result
+
+Example:
+"https://example.com/webhook"
+
+​
+format
+enum<string>default:png
+The format of the icon
+
+Available options: png, svg 
+Example:
+"svg"
+
+​
+style
+enum<string>default:solid
+The style to use for the icon
+
+Available options: solid, outline, color, flat, sticker 
+Example:
+"solid"
+
+​
+num_inference_steps
+integer
+The number of inference steps to use for the generation
+
+Required range: 10 <= x <= 50
+Example:
+10
+
+​
+guidance_scale
+number
+The guidance scale to use for the generation
+
+Required range: 0 <= x <= 10
+Example:
+7
+
+Response
+200
+
+200
+application/json
+Success - The request has succeeded and the Text to Icon process has started.
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+​
+data.generated
+string[]required
+URL of the generated image
+
+Example:
+{
+  "generated": [
+    "https://openapi-generator.tech",
+    "https://openapi-generator.tech"
+  ],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Get the status of the kling-elements task
+AI Icon preview generation
+
+
+
+Copy
+
+Ask AI
+curl --request POST \
+  --url https://api.freepik.com/v1/ai/text-to-icon \
+  --header 'Content-Type: application/json' \
+  --header 'x-freepik-api-key: <api-key>' \
+  --data '{
+  "prompt": "Sliced avocado and chips",
+  "webhook_url": "https://example.com/webhook"
+}'
+
+
+
+Copy
+
+Ask AI
+{
+  "generated": [],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "task_status": "IN_PROGRESS"
+}
+Freepik API home pagedark logo
+Information
+
+API home
+Dashboard
+Pricing
+Contact us
+Legal
+
+Terms of Service
+License agreement
+Privacy Policy
+Copyright information
+discord
+facebook
+x
+instagram
+youtube
+linkedin
+Icon generation API
+AI Icon preview generation
+Create stunning previews icons in different styles and formats (png, svg) from text prompts using our advanced AI models.
+
+POST
+/
+v1
+/
+ai
+/
+text-to-icon
+/
+preview
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Body
+application/json
+​
+prompt
+stringrequired
+The prompt to generate the icon
+
+Example:
+"A cute cat icon"
+
+​
+webhook_url
+stringrequired
+The webhook URL to receive the result
+
+Example:
+"https://example.com/webhook"
+
+​
+style
+enum<string>default:solid
+The style to use for the icon
+
+Available options: solid, outline, color, flat, sticker 
+Example:
+"solid"
+
+​
+num_inference_steps
+integer
+The number of inference steps to use for the generation
+
+Required range: 10 <= x <= 50
+Example:
+10
+
+​
+guidance_scale
+number
+The guidance scale to use for the generation
+
+Required range: 0 <= x <= 10
+Example:
+7
+
+Response
+200
+
+200
+application/json
+Success - The request has succeeded and the Text to Icon process has started.
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+​
+data.generated
+string[]required
+URL of the generated image
+
+Example:
+{
+  "generated": [
+    "https://openapi-generator.tech",
+    "https://openapi-generator.tech"
+  ],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+AI Icon generation
+Download an icon preview
+
+
+
+Copy
+
+Ask AI
+curl --request POST \
+  --url https://api.freepik.com/v1/ai/text-to-icon/preview \
+  --header 'Content-Type: application/json' \
+  --header 'x-freepik-api-key: <api-key>' \
+  --data '{
+  "prompt": "Sliced avocado and chips",
+  "webhook_url": "https://example.com/webhook"
+}'
+
+
+
+Copy
+
+Ask AI
+{
+  "generated": [],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "task_status": "IN_PROGRESS"
+}
+Icon generation API
+Download an icon preview
+Download the generated AI icon in the specified format png or svg.
+
+POST
+/
+v1
+/
+ai
+/
+text-to-icon
+/
+{task-id}
+/
+render
+/
+{format}
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Path Parameters
+​
+task-id
+stringrequired
+ID of the task
+
+​
+format
+enum<string>default:pngrequired
+The format of the icon
+
+Available options: png, svg 
+Example:
+"svg"
+
+Response
+200
+
+200
+application/json
+Success - The request has succeeded and the Text to Icon process has started.
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+​
+data.generated
+string[]required
+URL of the generated image
+
+Example:
+{
+  "generated": [
+    "https://openapi-generator.tech",
+    "https://openapi-generator.tech"
+  ],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+AI Icon preview generation
+Analyzes an image to determine its likelihood of being AI-generated
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request POST \
+  --url https://api.freepik.com/v1/ai/text-to-icon/{task-id}/render/{format} \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "generated": [],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "task_status": "IN_PROGRESS"
+}
+AI image classifier API
+Analyzes an image to determine its likelihood of being AI-generated
+Accepts an image file as input and analyzes it to determine the probability that the image was generated by artificial intelligence, providing a confidence score.
+
+POST
+/
+v1
+/
+ai
+/
+classifier
+/
+image
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Body
+application/json
+​
+image
+
+Option 1 · string
+required
+Base64-encoded image string or URL pointing to an image.
+Base64-encoded image string.
+
+Response
+200
+
+200
+application/json
+OK - The request has succeeded, and the image has been classified.
+
+​
+data
+object[]required
+
+Hide child attributes
+
+​
+class_name
+enum<string>
+The type of classification
+
+Available options: not_ai, ai 
+Example:
+"not_ai"
+
+​
+probability
+number
+The probability of the classification
+
+Example:
+0.9489172697067261
+
+Was this page helpful?
+
+
+Yes
+
+No
+Download an icon preview
+Overview
+
+
+
+Copy
+
+Ask AI
+curl --request POST \
+  --url https://api.freepik.com/v1/ai/classifier/image \
+  --header 'Content-Type: application/json' \
+  --header 'x-freepik-api-key: <api-key>' \
+  --data '{
+  "image": "/9j/4AAQSkZJRgABAQEASABIAAD/4gKwSUNDX1BST0ZJTEUAAQEAAAKgbGNtcwQwAABtbnRyUkdCIFhZWiAH6AALAA4ADgAIADphY3NwQVBQTAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA9tYAAQAAAADTLWxjbXMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA1kZXNjAAABIAAAAEBjcHJ0AAABYAAAADZ3dHB0AAABmAAAABRjaGFkAAABrAAAACxyWFlaAAAB2AAAABRiWFlaAAAB7AAAABRnWFlaAAACAAAAABRyVFJDAAACFAAAACBnVFJDAAACFAAAACBiVFJDAAACFAAAACBjaHJtAAACNAAAACRkbW5kAAACWAAAACRkbWRkAAACfAAAACRtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACQAAAAcAEcASQBNAFAAIABiAHUAaQBsAHQALQBpAG4AIABzAFIARwBCbWx1YwAAAAAAAAABAAAADGVuVVMAAAAaAAAAHABQAHUAYgBsAGkAYwAgAEQAbwBtAGEAaQBuAABYWVogAAAAAAAA9tYAAQAAAADTLXNmMzIAAAAAAAEMQgAABd7///MlAAAHkwAA/ZD///uh///9ogAAA9wAAMBuWFlaIAAAAAAAAG+gAAA49QAAA5BYWVogAAAAAAAAJJ8AAA..."
+}'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": [
+    {
+      "class_name": "not_ai",
+      "probability": 0.9489172697067261
+    },
+    {
+      "class_name": "ai",
+      "probability": 0.051082730293273926
+    }
+  ]
+}
+Search and features
+Search and filter resources with advanced options
+Retrieve a list of resources based on various filter criteria such as orientation, content type, license, and more.
+
+GET
+/
+v1
+/
+resources
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Headers
+​
+Accept-Language
+string
+Specifies the search query language using the ISO 639-1 (2-letter
+language code) and the ISO 3166-1 (2-letter country code) for language variants.
+The API will use "en-US" as a default language for processing if a code is not
+provided, or does not exist.
+
+Query Parameters
+​
+page
+integer
+Page number. It must be greater than 0 and less than or equal to 100.
+
+​
+limit
+integer
+Limit results per page. It must be greater than 0.
+
+​
+order
+enum<string>default:relevance
+Specifies the order in which search results are returned. The available options allow you to prioritize results based on different criteria:
+
+relevance: Prioritizes results that are most relevant to the search query.
+recent: Sorts results by the most recent updates.
+Available options: relevance, recent 
+​
+term
+string
+Search term. If only term comes, it is searched for term, if only slug comes, it is searched for slug and if both come, it is searched for slug
+
+​
+filters[orientation][landscape]
+numberdefault:0
+Filters results to only include resources with a landscape orientation. Set to 1 to enable, 0 to disable.
+
+​
+filters[orientation][portrait]
+numberdefault:0
+Filters results to only include resources with a portrait orientation. Set to 1 to enable, 0 to disable.
+
+​
+filters[orientation][square]
+numberdefault:0
+Filters results to only include resources with a square orientation. Set to 1 to enable, 0 to disable.
+
+​
+filters[orientation][panoramic]
+numberdefault:0
+Filters results to only include resources with a panoramic orientation. Set to 1 to enable, 0 to disable.
+
+​
+filters[content_type][photo]
+numberdefault:0
+Filters results to only include resources of type photo. Set to 1 to enable, 0 to disable.
+
+​
+filters[content_type][psd]
+numberdefault:0
+Filters results to only include resources of type PSD (Photoshop Document). Set to 1 to enable, 0 to disable.
+
+​
+filters[content_type][vector]
+numberdefault:0
+Filters results to only include resources of type vector. Set to 1 to enable, 0 to disable.
+
+​
+filters[license][freemium]
+numberdefault:0
+Filters results to only include resources with a freemium license. Set to 1 to enable, 0 to disable.
+
+​
+filters[license][premium]
+numberdefault:0
+Filters results to only include resources with a premium license. Set to 1 to enable, 0 to disable.
+
+​
+filters[people][include]
+numberdefault:0
+Filter by included people
+
+​
+filters[people][exclude]
+numberdefault:0
+Filter by excluded people
+
+​
+filters[people][number]
+enum<string>
+Filter by number of people
+
+Available options: 1, 2, 3, more_than_three 
+​
+filters[people][age]
+enum<string>
+Filter by age of the people
+
+Available options: infant, child, teen, young-adult, adult, senior, elder 
+​
+filters[people][gender]
+enum<string>
+Filter by gender of the people
+
+Available options: male, female 
+​
+filters[people][ethnicity]
+enum<string>
+Filter by ethnicity of the people
+
+Available options: south-asian, middle-eastern, east-asian, black, hispanic, indian, white, multiracial, southeast-asian 
+​
+filters[period]
+enum<string>
+Filters results based on the time period in which the resources were added.
+
+Available options: last-month, last-quarter, last-semester, last-year 
+​
+filters[color]
+enum<string>
+Filters results by the predominant color in the resources.
+
+Available options: black, blue, gray, green, orange, red, white, yellow, purple, cyan, pink 
+​
+filters[author]
+numberdefault:0
+Filters results to include resources by a specific author, identified by their author ID.
+
+​
+filters[ai-generated][excluded]
+numberdefault:0
+Excludes AI-generated images from the results. Set to 1 to exclude, 0 to include.
+
+​
+filters[ai-generated][only]
+numberdefault:0
+Filters results to only include AI-generated images. Set to 1 to include only AI-generated images, 0 to include all images.
+
+​
+filters[vector][type]
+enum<string>
+File type for vectors
+
+Available options: jpg, ai, eps, svg 
+​
+filters[vector][style]
+enum<string>
+Style type for vectors, ignored if content_type exists and it is not vector
+
+Available options: watercolor, flat, cartoon, geometric, gradient, isometric, 3d, hand-drawn 
+​
+filters[psd][type]
+enum<string>
+File type for psd
+
+Available options: jpg, psd 
+​
+filters[ids]
+string
+Filter by list of ids. This filter is incompatible with any other filters. In case of using this filter, the rest of filters will be ignored.
+
+Response
+200
+
+200
+application/json
+Ok Response
+
+​
+data
+object[]
+A list of resources.
+
+Option 1
+Option 2
+
+Show child attributes
+
+​
+meta
+object
+Metainformation about pagination
+
+
+Show child attributes
+
+Example:
+{
+  "per_page": 1,
+  "total": 1,
+  "last_page": 1,
+  "current_page": 1,
+  "clean_search": true
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Overview
+Get detailed resource information by ID
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/resources \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": [
+    {
+      "id": 770011,
+      "title": "Sports car",
+      "url": "https://www.freepik.com/free-icon/sports-car_770011.htm",
+      "filename": "sports-car.zip",
+      "licenses": [
+        {
+          "type": "freemium",
+          "url": "https://www.freepik.com/profile/license/pdf/770011?lang=en"
+        }
+      ],
+      "products": [],
+      "meta": {
+        "published_at": "2022-01-14T20:45:28.000Z",
+        "is_new": true,
+        "available_formats": {
+          "jpg": {
+            "total": 2,
+            "items": [
+              {
+                "id": 444,
+                "name": "Sports car",
+                "colorspace": "RGB",
+                "size": 100
+              },
+              {
+                "id": 555,
+                "name": "Sports car",
+                "colorspace": "RGB",
+                "size": 200
+              }
+            ]
+          }
+        }
+      },
+      "image": {
+        "type": "photo",
+        "orientation": "square",
+        "source": {
+          "url": "https://img.flaticon.com/icons/png/512/67/67994.png",
+          "key": "large",
+          "size": "128x128"
+        }
+      },
+      "related": {
+        "serie": [],
+        "others": [],
+        "keywords": []
+      },
+      "stats": {
+        "downloads": 52527,
+        "likes": 137
+      },
+      "author": {
+        "id": 744082,
+        "name": "flaticon",
+        "avatar": "https://avatar.cdnpk.net/744082.jpg",
+        "slug": "flaticon"
+      }
+    },
+    {
+      "id": 1540200,
+      "title": "Grey car logo collection",
+      "url": "https://www.freepik.com/free-vector/grey-car-logo-collection_1540200.htm",
+      "filename": "grey-car-logo-collection.zip",
+      "licenses": [
+        {
+          "type": "freemium",
+          "url": "https://www.freepik.com/profile/license/pdf/1540200?lang=en"
+        }
+      ],
+      "products": [
+        {
+          "type": "essential",
+          "url": "https://www.freepik.com/profile/license/pdf/1540200?lang=en"
+        }
+      ],
+      "meta": {
+        "published_at": "2022-01-14T16:06:23.000Z",
+        "is_new": true,
+        "available_formats": {
+          "jpg": {
+            "total": 2,
+            "items": [
+              {
+                "id": 444,
+                "size": 100
+              },
+              {
+                "id": 555,
+                "size": 200
+              }
+            ]
+          }
+        }
+      },
+      "image": {
+        "type": "vector",
+        "orientation": "square",
+        "source": {
+          "url": "https://",
+          "key": "large",
+          "size": "626x626"
+        }
+      },
+      "related": {
+        "serie": [],
+        "others": [],
+        "keywords": []
+      },
+      "stats": {
+        "downloads": 1639,
+        "likes": 18
+      },
+      "author": {
+        "id": 23,
+        "name": "freepik",
+        "avatar": "https://avatar.cdnpk.net/23.jpg",
+        "slug": "freepik"
+      }
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 32,
+    "per_page": 2,
+    "total": 63
+  }
+}
+Search and features
+Search and filter resources with advanced options
+Retrieve a list of resources based on various filter criteria such as orientation, content type, license, and more.
+
+GET
+/
+v1
+/
+resources
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Headers
+​
+Accept-Language
+string
+Specifies the search query language using the ISO 639-1 (2-letter
+language code) and the ISO 3166-1 (2-letter country code) for language variants.
+The API will use "en-US" as a default language for processing if a code is not
+provided, or does not exist.
+
+Query Parameters
+​
+page
+integer
+Page number. It must be greater than 0 and less than or equal to 100.
+
+​
+limit
+integer
+Limit results per page. It must be greater than 0.
+
+​
+order
+enum<string>default:relevance
+Specifies the order in which search results are returned. The available options allow you to prioritize results based on different criteria:
+
+relevance: Prioritizes results that are most relevant to the search query.
+recent: Sorts results by the most recent updates.
+Available options: relevance, recent 
+​
+term
+string
+Search term. If only term comes, it is searched for term, if only slug comes, it is searched for slug and if both come, it is searched for slug
+
+​
+filters[orientation][landscape]
+numberdefault:0
+Filters results to only include resources with a landscape orientation. Set to 1 to enable, 0 to disable.
+
+​
+filters[orientation][portrait]
+numberdefault:0
+Filters results to only include resources with a portrait orientation. Set to 1 to enable, 0 to disable.
+
+​
+filters[orientation][square]
+numberdefault:0
+Filters results to only include resources with a square orientation. Set to 1 to enable, 0 to disable.
+
+​
+filters[orientation][panoramic]
+numberdefault:0
+Filters results to only include resources with a panoramic orientation. Set to 1 to enable, 0 to disable.
+
+​
+filters[content_type][photo]
+numberdefault:0
+Filters results to only include resources of type photo. Set to 1 to enable, 0 to disable.
+
+​
+filters[content_type][psd]
+numberdefault:0
+Filters results to only include resources of type PSD (Photoshop Document). Set to 1 to enable, 0 to disable.
+
+​
+filters[content_type][vector]
+numberdefault:0
+Filters results to only include resources of type vector. Set to 1 to enable, 0 to disable.
+
+​
+filters[license][freemium]
+numberdefault:0
+Filters results to only include resources with a freemium license. Set to 1 to enable, 0 to disable.
+
+​
+filters[license][premium]
+numberdefault:0
+Filters results to only include resources with a premium license. Set to 1 to enable, 0 to disable.
+
+​
+filters[people][include]
+numberdefault:0
+Filter by included people
+
+​
+filters[people][exclude]
+numberdefault:0
+Filter by excluded people
+
+​
+filters[people][number]
+enum<string>
+Filter by number of people
+
+Available options: 1, 2, 3, more_than_three 
+​
+filters[people][age]
+enum<string>
+Filter by age of the people
+
+Available options: infant, child, teen, young-adult, adult, senior, elder 
+​
+filters[people][gender]
+enum<string>
+Filter by gender of the people
+
+Available options: male, female 
+​
+filters[people][ethnicity]
+enum<string>
+Filter by ethnicity of the people
+
+Available options: south-asian, middle-eastern, east-asian, black, hispanic, indian, white, multiracial, southeast-asian 
+​
+filters[period]
+enum<string>
+Filters results based on the time period in which the resources were added.
+
+Available options: last-month, last-quarter, last-semester, last-year 
+​
+filters[color]
+enum<string>
+Filters results by the predominant color in the resources.
+
+Available options: black, blue, gray, green, orange, red, white, yellow, purple, cyan, pink 
+​
+filters[author]
+numberdefault:0
+Filters results to include resources by a specific author, identified by their author ID.
+
+​
+filters[ai-generated][excluded]
+numberdefault:0
+Excludes AI-generated images from the results. Set to 1 to exclude, 0 to include.
+
+​
+filters[ai-generated][only]
+numberdefault:0
+Filters results to only include AI-generated images. Set to 1 to include only AI-generated images, 0 to include all images.
+
+​
+filters[vector][type]
+enum<string>
+File type for vectors
+
+Available options: jpg, ai, eps, svg 
+​
+filters[vector][style]
+enum<string>
+Style type for vectors, ignored if content_type exists and it is not vector
+
+Available options: watercolor, flat, cartoon, geometric, gradient, isometric, 3d, hand-drawn 
+​
+filters[psd][type]
+enum<string>
+File type for psd
+
+Available options: jpg, psd 
+​
+filters[ids]
+string
+Filter by list of ids. This filter is incompatible with any other filters. In case of using this filter, the rest of filters will be ignored.
+
+Response
+200
+
+200
+application/json
+Ok Response
+
+​
+data
+object[]
+A list of resources.
+
+Option 1
+Option 2
+
+Show child attributes
+
+​
+meta
+object
+Metainformation about pagination
+
+
+Show child attributes
+
+Example:
+{
+  "per_page": 1,
+  "total": 1,
+  "last_page": 1,
+  "current_page": 1,
+  "clean_search": true
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Overview
+Get detailed resource information by ID
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/resources \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": [
+    {
+      "id": 770011,
+      "title": "Sports car",
+      "url": "https://www.freepik.com/free-icon/sports-car_770011.htm",
+      "filename": "sports-car.zip",
+      "licenses": [
+        {
+          "type": "freemium",
+          "url": "https://www.freepik.com/profile/license/pdf/770011?lang=en"
+        }
+      ],
+      "products": [],
+      "meta": {
+        "published_at": "2022-01-14T20:45:28.000Z",
+        "is_new": true,
+        "available_formats": {
+          "jpg": {
+            "total": 2,
+            "items": [
+              {
+                "id": 444,
+                "name": "Sports car",
+                "colorspace": "RGB",
+                "size": 100
+              },
+              {
+                "id": 555,
+                "name": "Sports car",
+                "colorspace": "RGB",
+                "size": 200
+              }
+            ]
+          }
+        }
+      },
+      "image": {
+        "type": "photo",
+        "orientation": "square",
+        "source": {
+          "url": "https://img.flaticon.com/icons/png/512/67/67994.png",
+          "key": "large",
+          "size": "128x128"
+        }
+      },
+      "related": {
+        "serie": [],
+        "others": [],
+        "keywords": []
+      },
+      "stats": {
+        "downloads": 52527,
+        "likes": 137
+      },
+      "author": {
+        "id": 744082,
+        "name": "flaticon",
+        "avatar": "https://avatar.cdnpk.net/744082.jpg",
+        "slug": "flaticon"
+      }
+    },
+    {
+      "id": 1540200,
+      "title": "Grey car logo collection",
+      "url": "https://www.freepik.com/free-vector/grey-car-logo-collection_1540200.htm",
+      "filename": "grey-car-logo-collection.zip",
+      "licenses": [
+        {
+          "type": "freemium",
+          "url": "https://www.freepik.com/profile/license/pdf/1540200?lang=en"
+        }
+      ],
+      "products": [
+        {
+          "type": "essential",
+          "url": "https://www.freepik.com/profile/license/pdf/1540200?lang=en"
+        }
+      ],
+      "meta": {
+        "published_at": "2022-01-14T16:06:23.000Z",
+        "is_new": true,
+        "available_formats": {
+          "jpg": {
+            "total": 2,
+            "items": [
+              {
+                "id": 444,
+                "size": 100
+              },
+              {
+                "id": 555,
+                "size": 200
+              }
+            ]
+          }
+        }
+      },
+      "image": {
+        "type": "vector",
+        "orientation": "square",
+        "source": {
+          "url": "https://",
+          "key": "large",
+          "size": "626x626"
+        }
+      },
+      "related": {
+        "serie": [],
+        "others": [],
+        "keywords": []
+      },
+      "stats": {
+        "downloads": 1639,
+        "likes": 18
+      },
+      "author": {
+        "id": 23,
+        "name": "freepik",
+        "avatar": "https://avatar.cdnpk.net/23.jpg",
+        "slug": "freepik"
+      }
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 32,
+    "per_page": 2,
+    "total": 63
+  }
+}
+Search and features
+Search and filter icons by specified order
+Get a list of icons based on the provided parameters and ordering criteria.
+
+GET
+/
+v1
+/
+icons
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Headers
+​
+Accept-Language
+string
+Specifies the search query language using the ISO 639-1 (2-letter
+language code) and the ISO 3166-1 (2-letter country code) for language variants.
+The API will use "en-US" as a default language for processing if a code is not
+provided, or does not exist.
+
+Query Parameters
+​
+term
+string
+Search term. If only term comes, it is searched for term, if only slug comes, it is searched for slug and if both come, it is searched for slug
+
+​
+slug
+string
+Search by slug
+
+​
+page
+integer
+Page number. It must be greater than 0.
+
+​
+per_page
+integer
+Results per page. It must be greater than 0.
+
+​
+family-id
+integer
+Icon family id.
+
+Required range: x >= 1
+​
+order
+enum<string>default:relevance
+Define order of results.
+
+Note: If the term or slug parameter is used, the order will be the similarity of the search.
+Available options: relevance, recent 
+​
+filters[color]
+enum<string>
+Filter by color.
+
+Available options: gradient, solid-black, multicolor, azure, black, blue, chartreuse, cyan, gray, green, orange, red, rose, spring-green, violet, white, yellow 
+Example:
+"red"
+
+​
+filters[shape]
+enum<string>
+Filter by shape.
+
+Available options: outline, fill, lineal-color, hand-drawn 
+​
+filters[period]
+enum<string>
+Filter by period.
+
+Available options: three-months, six-months, one-year, all 
+​
+filters[free_svg]
+enum<string>
+Filter by free svg, for free or premium item or all for both
+
+Available options: all, free, premium 
+​
+filters[icon_type][]
+enum<string>[]
+Filter of available icon types.
+
+
+Show child attributes
+
+​
+thumbnail_size
+string
+Size of the thumbnail.
+If the size is not specified, the API will return 128 as a default size.
+
+Response
+200
+
+200
+application/json
+OK Response
+
+​
+data
+object[]
+
+Show child attributes
+
+​
+meta
+object
+
+Show child attributes
+
+Example:
+{
+  "pagination": {
+    "per_page": 1,
+    "total": 1,
+    "last_page": 1,
+    "current_page": 1
+  }
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Get detailed resource information by ID
+Get detailed icon information by ID
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/icons \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": [
+    {
+      "free_svg": true,
+      "created": "2023-03-07T23:05:26.000Z",
+      "author": {
+        "assets": 0,
+        "name": "John Doe",
+        "id": 2147483647,
+        "avatar": "https://avatar.cdnpk.net/61668527-220726032514.jpg",
+        "slug": "merry-christmas"
+      },
+      "name": "a woman reads a book in a tablet sits in the luxurious back of the library",
+      "style": {
+        "name": "Meticulous Yellow shadow",
+        "id": 50
+      },
+      "id": 52912,
+      "family": {
+        "total": 1200,
+        "name": "Outline",
+        "id": 1
+      },
+      "thumbnails": [
+        {
+          "width": 512,
+          "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+          "height": 512
+        },
+        {
+          "width": 512,
+          "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+          "height": 512
+        }
+      ],
+      "slug": "a-woman-reads-a-book-in-a-tablet-sits-in-the-luxurious-back-of-the-library",
+      "tags": [
+        {
+          "name": "Dog",
+          "slug": "dog"
+        },
+        {
+          "name": "Dog",
+          "slug": "dog"
+        }
+      ]
+    },
+    {
+      "free_svg": true,
+      "created": "2023-03-07T23:05:26.000Z",
+      "author": {
+        "assets": 0,
+        "name": "John Doe",
+        "id": 2147483647,
+        "avatar": "https://avatar.cdnpk.net/61668527-220726032514.jpg",
+        "slug": "merry-christmas"
+      },
+      "name": "a woman reads a book in a tablet sits in the luxurious back of the library",
+      "style": {
+        "name": "Meticulous Yellow shadow",
+        "id": 50
+      },
+      "id": 52912,
+      "family": {
+        "total": 1200,
+        "name": "Outline",
+        "id": 1
+      },
+      "thumbnails": [
+        {
+          "width": 512,
+          "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+          "height": 512
+        },
+        {
+          "width": 512,
+          "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+          "height": 512
+        }
+      ],
+      "slug": "a-woman-reads-a-book-in-a-tablet-sits-in-the-luxurious-back-of-the-library",
+      "tags": [
+        {
+          "name": "Dog",
+          "slug": "dog"
+        },
+        {
+          "name": "Dog",
+          "slug": "dog"
+        }
+      ]
+    }
+  ],
+  "meta": {
+    "pagination": {
+      "per_page": 1,
+      "total": 1,
+      "last_page": 1,
+      "current_page": 1
+    }
+  }
+}
+Freepik API home pagedark logo
+Information
+
+API home
+Dashboard
+Pricing
+Contact us
+Legal
+
+Terms of Service
+License agreement
+Privacy Policy
+Copyright information
+discord
+facebook
+x
+instagram
+youtube
+linkedin
+Search and features
+Get detailed icon information by ID
+Get detailed information about a specific icon identified by its unique ID.
+
+GET
+/
+v1
+/
+icons
+/
+{id}
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Headers
+​
+Accept-Language
+string
+Specifies the search query language using the ISO 639-1 (2-letter
+language code) and the ISO 3166-1 (2-letter country code) for language variants.
+The API will use "en-US" as a default language for processing if a code is not
+provided, or does not exist.
+
+Path Parameters
+​
+id
+integerrequired
+Icon resource ID
+
+Response
+200
+
+200
+application/json
+OK
+
+​
+data
+object
+
+Show child attributes
+
+Example:
+{
+  "free_svg": true,
+  "related": {
+    "visual_concept": [
+      {
+        "free_svg": true,
+        "created": "2023-03-07T23:05:26.000Z",
+        "author": {
+          "assets": 0,
+          "name": "John Doe",
+          "id": 2147483647,
+          "avatar": "https://avatar.cdnpk.net/61668527-220726032514.jpg",
+          "slug": "merry-christmas"
+        },
+        "name": "a woman reads a book in a tablet sits in the luxurious back of the library",
+        "style": {
+          "name": "Meticulous Yellow shadow",
+          "id": 50
+        },
+        "id": 52912,
+        "family": { "total": 1200, "name": "Outline", "id": 1 },
+        "thumbnails": [
+          {
+            "width": 512,
+            "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+            "height": 512
+          },
+          {
+            "width": 512,
+            "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+            "height": 512
+          }
+        ],
+        "slug": "a-woman-reads-a-book-in-a-tablet-sits-in-the-luxurious-back-of-the-library"
+      },
+      {
+        "free_svg": true,
+        "created": "2023-03-07T23:05:26.000Z",
+        "author": {
+          "assets": 0,
+          "name": "John Doe",
+          "id": 2147483647,
+          "avatar": "https://avatar.cdnpk.net/61668527-220726032514.jpg",
+          "slug": "merry-christmas"
+        },
+        "name": "a woman reads a book in a tablet sits in the luxurious back of the library",
+        "style": {
+          "name": "Meticulous Yellow shadow",
+          "id": 50
+        },
+        "id": 52912,
+        "family": { "total": 1200, "name": "Outline", "id": 1 },
+        "thumbnails": [
+          {
+            "width": 512,
+            "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+            "height": 512
+          },
+          {
+            "width": 512,
+            "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+            "height": 512
+          }
+        ],
+        "slug": "a-woman-reads-a-book-in-a-tablet-sits-in-the-luxurious-back-of-the-library"
+      }
+    ],
+    "style": [
+      {
+        "free_svg": true,
+        "created": "2023-03-07T23:05:26.000Z",
+        "author": {
+          "assets": 0,
+          "name": "John Doe",
+          "id": 2147483647,
+          "avatar": "https://avatar.cdnpk.net/61668527-220726032514.jpg",
+          "slug": "merry-christmas"
+        },
+        "name": "a woman reads a book in a tablet sits in the luxurious back of the library",
+        "style": {
+          "name": "Meticulous Yellow shadow",
+          "id": 50
+        },
+        "id": 52912,
+        "family": { "total": 1200, "name": "Outline", "id": 1 },
+        "thumbnails": [
+          {
+            "width": 512,
+            "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+            "height": 512
+          },
+          {
+            "width": 512,
+            "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+            "height": 512
+          }
+        ],
+        "slug": "a-woman-reads-a-book-in-a-tablet-sits-in-the-luxurious-back-of-the-library"
+      },
+      {
+        "free_svg": true,
+        "created": "2023-03-07T23:05:26.000Z",
+        "author": {
+          "assets": 0,
+          "name": "John Doe",
+          "id": 2147483647,
+          "avatar": "https://avatar.cdnpk.net/61668527-220726032514.jpg",
+          "slug": "merry-christmas"
+        },
+        "name": "a woman reads a book in a tablet sits in the luxurious back of the library",
+        "style": {
+          "name": "Meticulous Yellow shadow",
+          "id": 50
+        },
+        "id": 52912,
+        "family": { "total": 1200, "name": "Outline", "id": 1 },
+        "thumbnails": [
+          {
+            "width": 512,
+            "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+            "height": 512
+          },
+          {
+            "width": 512,
+            "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+            "height": 512
+          }
+        ],
+        "slug": "a-woman-reads-a-book-in-a-tablet-sits-in-the-luxurious-back-of-the-library"
+      }
+    ],
+    "variants": [
+      {
+        "free_svg": true,
+        "created": "2023-03-07T23:05:26.000Z",
+        "author": {
+          "assets": 0,
+          "name": "John Doe",
+          "id": 2147483647,
+          "avatar": "https://avatar.cdnpk.net/61668527-220726032514.jpg",
+          "slug": "merry-christmas"
+        },
+        "name": "a woman reads a book in a tablet sits in the luxurious back of the library",
+        "style": {
+          "name": "Meticulous Yellow shadow",
+          "id": 50
+        },
+        "id": 52912,
+        "family": { "total": 1200, "name": "Outline", "id": 1 },
+        "thumbnails": [
+          {
+            "width": 512,
+            "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+            "height": 512
+          },
+          {
+            "width": 512,
+            "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+            "height": 512
+          }
+        ],
+        "slug": "a-woman-reads-a-book-in-a-tablet-sits-in-the-luxurious-back-of-the-library"
+      },
+      {
+        "free_svg": true,
+        "created": "2023-03-07T23:05:26.000Z",
+        "author": {
+          "assets": 0,
+          "name": "John Doe",
+          "id": 2147483647,
+          "avatar": "https://avatar.cdnpk.net/61668527-220726032514.jpg",
+          "slug": "merry-christmas"
+        },
+        "name": "a woman reads a book in a tablet sits in the luxurious back of the library",
+        "style": {
+          "name": "Meticulous Yellow shadow",
+          "id": 50
+        },
+        "id": 52912,
+        "family": { "total": 1200, "name": "Outline", "id": 1 },
+        "thumbnails": [
+          {
+            "width": 512,
+            "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+            "height": 512
+          },
+          {
+            "width": 512,
+            "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+            "height": 512
+          }
+        ],
+        "slug": "a-woman-reads-a-book-in-a-tablet-sits-in-the-luxurious-back-of-the-library"
+      }
+    ]
+  },
+  "created": "2023-03-07T23:05:26.000Z",
+  "author": {
+    "assets": 0,
+    "name": "John Doe",
+    "id": 2147483647,
+    "avatar": "https://avatar.cdnpk.net/61668527-220726032514.jpg",
+    "slug": "merry-christmas"
+  },
+  "name": "a woman reads a book in a tablet sits in the luxurious back of the library",
+  "style": {
+    "name": "Meticulous Yellow shadow",
+    "id": 50
+  },
+  "id": 52912,
+  "family": { "total": 1200, "name": "Outline", "id": 1 },
+  "thumbnails": [
+    {
+      "width": 512,
+      "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+      "height": 512
+    },
+    {
+      "width": 512,
+      "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+      "height": 512
+    }
+  ],
+  "slug": "a-woman-reads-a-book-in-a-tablet-sits-in-the-luxurious-back-of-the-library",
+  "tags": [
+    { "name": "Dog", "slug": "dog" },
+    { "name": "Dog", "slug": "dog" }
+  ]
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Search and filter icons by specified order
+Download an icon
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/icons/{id} \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "free_svg": true,
+    "related": {
+      "visual_concept": [
+        {
+          "free_svg": true,
+          "created": "2023-03-07T23:05:26.000Z",
+          "author": {
+            "assets": 0,
+            "name": "John Doe",
+            "id": 2147483647,
+            "avatar": "https://avatar.cdnpk.net/61668527-220726032514.jpg",
+            "slug": "merry-christmas"
+          },
+          "name": "a woman reads a book in a tablet sits in the luxurious back of the library",
+          "style": {
+            "name": "Meticulous Yellow shadow",
+            "id": 50
+          },
+          "id": 52912,
+          "family": {
+            "total": 1200,
+            "name": "Outline",
+            "id": 1
+          },
+          "thumbnails": [
+            {
+              "width": 512,
+              "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+              "height": 512
+            },
+            {
+              "width": 512,
+              "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+              "height": 512
+            }
+          ],
+          "slug": "a-woman-reads-a-book-in-a-tablet-sits-in-the-luxurious-back-of-the-library"
+        },
+        {
+          "free_svg": true,
+          "created": "2023-03-07T23:05:26.000Z",
+          "author": {
+            "assets": 0,
+            "name": "John Doe",
+            "id": 2147483647,
+            "avatar": "https://avatar.cdnpk.net/61668527-220726032514.jpg",
+            "slug": "merry-christmas"
+          },
+          "name": "a woman reads a book in a tablet sits in the luxurious back of the library",
+          "style": {
+            "name": "Meticulous Yellow shadow",
+            "id": 50
+          },
+          "id": 52912,
+          "family": {
+            "total": 1200,
+            "name": "Outline",
+            "id": 1
+          },
+          "thumbnails": [
+            {
+              "width": 512,
+              "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+              "height": 512
+            },
+            {
+              "width": 512,
+              "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+              "height": 512
+            }
+          ],
+          "slug": "a-woman-reads-a-book-in-a-tablet-sits-in-the-luxurious-back-of-the-library"
+        }
+      ],
+      "style": [
+        {
+          "free_svg": true,
+          "created": "2023-03-07T23:05:26.000Z",
+          "author": {
+            "assets": 0,
+            "name": "John Doe",
+            "id": 2147483647,
+            "avatar": "https://avatar.cdnpk.net/61668527-220726032514.jpg",
+            "slug": "merry-christmas"
+          },
+          "name": "a woman reads a book in a tablet sits in the luxurious back of the library",
+          "style": {
+            "name": "Meticulous Yellow shadow",
+            "id": 50
+          },
+          "id": 52912,
+          "family": {
+            "total": 1200,
+            "name": "Outline",
+            "id": 1
+          },
+          "thumbnails": [
+            {
+              "width": 512,
+              "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+              "height": 512
+            },
+            {
+              "width": 512,
+              "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+              "height": 512
+            }
+          ],
+          "slug": "a-woman-reads-a-book-in-a-tablet-sits-in-the-luxurious-back-of-the-library"
+        },
+        {
+          "free_svg": true,
+          "created": "2023-03-07T23:05:26.000Z",
+          "author": {
+            "assets": 0,
+            "name": "John Doe",
+            "id": 2147483647,
+            "avatar": "https://avatar.cdnpk.net/61668527-220726032514.jpg",
+            "slug": "merry-christmas"
+          },
+          "name": "a woman reads a book in a tablet sits in the luxurious back of the library",
+          "style": {
+            "name": "Meticulous Yellow shadow",
+            "id": 50
+          },
+          "id": 52912,
+          "family": {
+            "total": 1200,
+            "name": "Outline",
+            "id": 1
+          },
+          "thumbnails": [
+            {
+              "width": 512,
+              "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+              "height": 512
+            },
+            {
+              "width": 512,
+              "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+              "height": 512
+            }
+          ],
+          "slug": "a-woman-reads-a-book-in-a-tablet-sits-in-the-luxurious-back-of-the-library"
+        }
+      ],
+      "variants": [
+        {
+          "free_svg": true,
+          "created": "2023-03-07T23:05:26.000Z",
+          "author": {
+            "assets": 0,
+            "name": "John Doe",
+            "id": 2147483647,
+            "avatar": "https://avatar.cdnpk.net/61668527-220726032514.jpg",
+            "slug": "merry-christmas"
+          },
+          "name": "a woman reads a book in a tablet sits in the luxurious back of the library",
+          "style": {
+            "name": "Meticulous Yellow shadow",
+            "id": 50
+          },
+          "id": 52912,
+          "family": {
+            "total": 1200,
+            "name": "Outline",
+            "id": 1
+          },
+          "thumbnails": [
+            {
+              "width": 512,
+              "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+              "height": 512
+            },
+            {
+              "width": 512,
+              "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+              "height": 512
+            }
+          ],
+          "slug": "a-woman-reads-a-book-in-a-tablet-sits-in-the-luxurious-back-of-the-library"
+        },
+        {
+          "free_svg": true,
+          "created": "2023-03-07T23:05:26.000Z",
+          "author": {
+            "assets": 0,
+            "name": "John Doe",
+            "id": 2147483647,
+            "avatar": "https://avatar.cdnpk.net/61668527-220726032514.jpg",
+            "slug": "merry-christmas"
+          },
+          "name": "a woman reads a book in a tablet sits in the luxurious back of the library",
+          "style": {
+            "name": "Meticulous Yellow shadow",
+            "id": 50
+          },
+          "id": 52912,
+          "family": {
+            "total": 1200,
+            "name": "Outline",
+            "id": 1
+          },
+          "thumbnails": [
+            {
+              "width": 512,
+              "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+              "height": 512
+            },
+            {
+              "width": 512,
+              "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+              "height": 512
+            }
+          ],
+          "slug": "a-woman-reads-a-book-in-a-tablet-sits-in-the-luxurious-back-of-the-library"
+        }
+      ]
+    },
+    "created": "2023-03-07T23:05:26.000Z",
+    "author": {
+      "assets": 0,
+      "name": "John Doe",
+      "id": 2147483647,
+      "avatar": "https://avatar.cdnpk.net/61668527-220726032514.jpg",
+      "slug": "merry-christmas"
+    },
+    "name": "a woman reads a book in a tablet sits in the luxurious back of the library",
+    "style": {
+      "name": "Meticulous Yellow shadow",
+      "id": 50
+    },
+    "id": 52912,
+    "family": {
+      "total": 1200,
+      "name": "Outline",
+      "id": 1
+    },
+    "thumbnails": [
+      {
+        "width": 512,
+        "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+        "height": 512
+      },
+      {
+        "width": 512,
+        "url": "https://v4.cdnpk.net/videvo_files/video/free/video0485/thumbnails/_import_61a866e2519c71.61070863_large.png",
+        "height": 512
+      }
+    ],
+    "slug": "a-woman-reads-a-book-in-a-tablet-sits-in-the-luxurious-back-of-the-library",
+    "tags": [
+      {
+        "name": "Dog",
+        "slug": "dog"
+      },
+      {
+        "name": "Dog",
+        "slug": "dog"
+      }
+    ]
+  }
+}
+Freepik API home pagedark logo
+Information
+
+API home
+Dashboard
+Pricing
+Contact us
+Legal
+
+Terms of Service
+License agreement
+Privacy Policy
+Copyright information
+discord
+facebook
+x
+instagram
+youtube
+linkedin
+cons
+Download an icon
+Download the specified icon by its unique ID in the requested format and size.
+
+GET
+/
+v1
+/
+icons
+/
+{id}
+/
+download
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Headers
+​
+Accept-Language
+string
+Specifies the search query language using the ISO 639-1 (2-letter
+language code) and the ISO 3166-1 (2-letter country code) for language variants.
+The API will use "en-US" as a default language for processing if a code is not
+provided, or does not exist.
+
+Path Parameters
+​
+id
+integerrequired
+Icon resource ID
+
+Query Parameters
+​
+format
+enum<string>
+These are the formats available for download
+
+Note: gif, mp4, aep, json, psd and eps are not available for standard and sticker icon types.
+Available options: svg, png, gif, mp4, aep, json, psd, eps 
+​
+png_size
+enum<integer>default:512
+These are the sizes available for png_url formats.
+
+Note: Only apply to format png.
+Available options: 512, 256, 128, 64, 32, 24, 16 
+Response
+200
+
+200
+application/json
+OK
+
+​
+data
+object
+
+Hide child attributes
+
+​
+data.filename
+string
+​
+data.url
+string
+Example:
+{
+  "filename": "filename",
+  "url": "https://openapi-generator.tech"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Get detailed icon information by ID
+Download an resource
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/icons/{id}/download \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "filename": "filename",
+    "url": "https://openapi-generator.tech"
+  }
+}
+mages and templates
+Download an resource
+Download a specific resource by providing the resource ID. This endpoint supports downloading various types of resources including vectors, PSDs, photos, and AI-generated content.
+
+GET
+/
+v1
+/
+resources
+/
+{resource-id}
+/
+download
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Headers
+​
+Accept-Language
+string
+Specifies the search query language using the ISO 639-1 (2-letter
+language code) and the ISO 3166-1 (2-letter country code) for language variants.
+The API will use "en-US" as a default language for processing if a code is not
+provided, or does not exist.
+
+Path Parameters
+​
+resource-id
+integerrequired
+Photo, video or PSD resource ID
+
+Query Parameters
+​
+image_size
+
+enum<string>
+Resizes the photo to a specified size while maintaining aspect ratio. Accepts a pixel value (100px to 2000px) or
+keywords small(1000px), medium(1500px), large(2000px), original corresponding to standard website sizes.
+The size depends on the image orientation, the longest side of the image will be resized to the specified size.
+If not specified, the highest resolution is provided. Applicable only to photos.
+
+Available options: small, medium, large, original 
+Response
+200
+
+200
+application/json
+OK Response
+
+​
+data
+objectrequired
+Option 1
+Option 2
+
+Hide child attributes
+
+​
+data.filename
+stringrequired
+Filename of the resource
+
+Minimum length: 1
+Example:
+"blackboard-template.zip"
+
+​
+data.url
+stringrequired
+Minimum length: 1
+Example:
+"https://downloadscdn5.freepik.com/d/1137445/blackboard-template.zip"
+
+​
+data.signed_url
+string | null
+The signed URL of the resource preview
+
+Example:
+"https://img.freepik.com/premium-photo/close-up-cat-resting_1048944-9269194.jpg?t=st=1725276607~exp=1725280207~hmac=1538f1b294fc3a19a19e9f02ceeb6594a9a1e36a900de85d47bbd386e27dddbe"
+
+Example:
+{
+  "signed_url": "https://img.freepik.com/premium-photo/close-up-cat-resting_1048944-9269194.jpg?t=st=1725276607~exp=1725280207~hmac=1538f1b294fc3a19a19e9f02ceeb6594a9a1e36a900de85d47bbd386e27dddbe",
+  "filename": "blackboard-template.zip",
+  "url": "https://downloadscdn5.freepik.com/d/1137445/blackboard-template.zip"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Download an icon
+Get available download formats for resource
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/resources/{resource-id}/download \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "filename": "Mother-and-daughter.zip",
+    "url": "https://downloadscdn5.freepik.com/d/999999/23/99999/8888888/mother-and-daughter.zip?token=exp=1689689298~hmac=1234567890abcde"
+  }
+}
+Images and templates
+Get available download formats for resource
+Retrieve a resource by specifying both the resource ID and the format. This endpoint allows for precise downloading of resources in the desired format.
+
+GET
+/
+v1
+/
+resources
+/
+{resource-id}
+/
+download
+/
+{resource-format}
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Path Parameters
+​
+resource-id
+integerrequired
+Photo, video or PSD resource ID
+
+​
+resource-format
+enum<string>required
+Resource format
+
+Available options: psd, ai, eps, atn, fonts, resources, png, jpg, 3d-render, svg, mockup 
+Example:
+"svg"
+
+Response
+200
+
+200
+application/json
+OK
+
+​
+data
+object[]required
+
+Hide child attributes
+
+​
+filename
+stringrequired
+Filename of the resource
+
+Minimum length: 1
+Example:
+"blackboard-template.zip"
+
+​
+url
+stringrequired
+Minimum length: 1
+Example:
+"https://downloadscdn5.freepik.com/d/1137445/blackboard-template.zip"
+
+​
+signed_url
+string | null
+The signed URL of the resource preview
+
+Example:
+"https://img.freepik.com/premium-photo/close-up-cat-resting_1048944-9269194.jpg?t=st=1725276607~exp=1725280207~hmac=1538f1b294fc3a19a19e9f02ceeb6594a9a1e36a900de85d47bbd386e27dddbe"
+
+Was this page helpful?
+
+
+Yes
+
+No
+Download an resource
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/resources/{resource-id}/download/{resource-format} \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": [
+    {
+      "signed_url": "https://img.freepik.com/premium-photo/close-up-cat-resting_1048944-9269194.jpg?t=st=1725276607~exp=1725280207~hmac=1538f1b294fc3a19a19e9f02ceeb6594a9a1e36a900de85d47bbd386e27dddbe",
+      "filename": "blackboard-template.zip",
+      "url": "https://downloadscdn5.freepik.com/d/1137445/blackboard-template.zip"
+    },
+    {
+      "signed_url": "https://img.freepik.com/premium-photo/close-up-cat-resting_1048944-9269194.jpg?t=st=1725276607~exp=1725280207~hmac=1538f1b294fc3a19a19e9f02ceeb6594a9a1e36a900de85d47bbd386e27dddbe",
+      "filename": "blackboard-template.zip",
+      "url": "https://downloadscdn5.freepik.com/d/1137445/blackboard-template.zip"
+    }
+  ]
+}
+Mystic
+Create image from text - Mystic
+Convert descriptive text input into images using AI. This endpoint accepts a variety of parameters to customize the generated images.
+
+POST
+/
+v1
+/
+ai
+/
+mystic
+
+Try it
+​
+Important
+Mystic image generation mode is Freepik’s exclusive advanced AI workflow for ultra-realistic, high-resolution images.
+
+Make sure you get your webhook set up on every request in order to retrieve your generations.
+
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Body
+application/json
+​
+prompt
+string
+AI Model Prompt Description
+The prompt is a short text that describes the image you want to generate. It can range from simple descriptions, like "a cat", to detailed scenarios, such as "a cat with wings, playing the guitar, and wearing a hat". If no prompt is provided, the AI will generate a random image.
+
+Adding Characters to the Prompt
+You can introduce characters into the prompt using the following syntax:
+
+@character_name: Represents the character you want to include. Example: My friend @john is a great artist.
+Modifying Character Strength
+To adjust the influence or "strength" of a character in the image, use the following syntax:
+
+@character_name::strength: Specify the character’s strength by appending ::strength to their name, where strength is a numerical value. Example: My friend @john::200 is a great artist.
+Higher strength values will make the character more prominent in the generated image.
+
+​
+webhook_url
+string
+Optional callback URL that will receive asynchronous notifications whenever the task changes status. The payload sent to this URL is the same as the corresponding GET endpoint response, but without the data field.
+
+Example:
+"https://www.example.com/webhook"
+
+​
+structure_reference
+string
+Structure Reference
+Base64 image to use as structure reference. Using images as structure references allows you to influence the shape of your final image. This feature enables various creative applications such as coloring sketches, transforming cartoons into realistic images, texturing basic 3D models, or converting real images into cartoons. The outcome is entirely controlled by your prompt, offering limitless creative possibilities.
+
+​
+structure_strength
+integerdefault:50
+Note: This parameter only takes effect when a "structure_reference" image is provided.
+Allows to maintain the structure of the original image.
+
+Required range: 0 <= x <= 100
+​
+style_reference
+string
+Style Reference
+Base64 image to use as style reference. Using images as style references allows you to influence the aesthetic of your creation. This is possibly the most powerful tool of Mystic, as it truly lets you create incredibly unique images.
+
+​
+adherence
+integerdefault:50
+Note: This parameter only takes effect when a "style_reference" image is provided.
+Increasing this value will make your generation more faithful to the prompt, but it may transfer the style a bit less accurately. Higher values can help fix small artifacts, anatomical errors and text readability. Lower values will give you more creative images and closer to the style reference.
+
+Required range: 0 <= x <= 100
+​
+hdr
+integerdefault:50
+Note: This parameter only takes effect when a "style_reference" image is provided.
+Increasing this value can give you a more detailed image, at the cost of a more 'AI look' and slightly worse style transfer. Lower values have a more natural and artistic look but may increase artifacts.
+
+Required range: 0 <= x <= 100
+​
+resolution
+enum<string>default:2k
+Resolution of the image
+
+Available options: 1k, 2k, 4k 
+​
+aspect_ratio
+enum<string>default:square_1_1
+Image size with the aspect ratio. The aspect ratio is the proportional relationship between an image's width and height, expressed as *_width_height (e.g., square_1_1, widescreen_16_9). It is calculated by dividing the width by the height.
+
+If not present, the default is square_1_1.
+Note: For the fluid model, only this values are valid:
+
+square_1_1
+social_story_9_16
+widescreen_16_9
+traditional_3_4
+classic_4_3
+Available options: square_1_1, classic_4_3, traditional_3_4, widescreen_16_9, social_story_9_16, smartphone_horizontal_20_9, smartphone_vertical_9_20, standard_3_2, portrait_2_3, horizontal_2_1, vertical_1_2, social_5_4, social_post_4_5 
+Example:
+"square_1_1"
+
+​
+model
+enum<string>default:realism
+zen - for smoother, basic, and cleaner results. Fewer objects in the scene and less intricate details. The softer looking one.
+fluid - the model that adheres best to prompts with great average quality for all kind of images. It can generate really creative images! It will always follow your input no matter what. However, since it is using Google's Imagen 3, it is a bit over-moderated, and some simple prompts containing words like "war" may be flagged and not generated (sorry about that! But there's nothing we can do!).
+realism - with a more realistic color palette. It tries to give an extra boost of reality to your images, a kind of "less AI look". Works especially well with photographs but also magically works with illustrations too.
+IMPORTANT: You should use Zen or Fluid if you are trying to generate something that is really fantastic or a known character, Realism may not follow your prompt well.
+
+Available options: realism, fluid, zen 
+​
+creative_detailing
+integerdefault:33
+Higher values can achieve greater detail per pixel at higher resolutions at the cost of giving a somewhat more "HDR" or artificial look.
+Very high values can generate quite crazy things like eyes where they shouldn't appear, etc.
+
+Valid values range [0, 100], default 33
+
+Required range: 0 <= x <= 100
+​
+engine
+enum<string>default:automatic
+Select the engine for the AI model. Available options:
+
+automatic - default choice
+Illusio - for smoother illustrations, landscapes, and nature. The softer looking one.
+Sharpy - better for realistic images like photographs and for a more grainy look. It provides the sharpest and most detailed images. If you use it for illustrations it will give them more texture and a less softer look.
+Sparkle - also good for realistic images. It's a middle ground between Illusio and Sharpy.
+Available options: automatic, magnific_illusio, magnific_sharpy, magnific_sparkle 
+​
+fixed_generation
+booleandefault:false
+When this option is enabled, using the same settings will consistently produce the same image.
+Fixed generations are ideal for fine-tuning, as it allows for incremental changes to parameters (such as the prompt) to see subtle variations in the output.
+When disabled, expect each generation to introduce a degree of randomness, leading to more diverse outcomes.
+
+​
+filter_nsfw
+booleandefault:true
+When enabled, if the AI model return some nsfw image we will change it for a black image. This feature is experimental and may not be 100% accurate
+
+​
+styling
+object
+Styling options for the image
+
+
+Show child attributes
+
+Response
+200
+
+200
+application/json
+OK - The request has succeeded and the Mystic process has started.
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+​
+data.generated
+string[]required
+URL of the generated image
+
+Example:
+{
+  "generated": [
+    "https://openapi-generator.tech",
+    "https://openapi-generator.tech"
+  ],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+Overview
+Get the status of the Mystic task
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request POST \
+  --url https://api.freepik.com/v1/ai/mystic \
+  --header 'Content-Type: application/json' \
+  --header 'x-freepik-api-key: <api-key>' \
+  --data '{
+  "prompt": "<string>",
+  "webhook_url": "https://www.example.com/webhook",
+  "structure_reference": "aSDinaTvuI8gbWludGxpZnk=",
+  "structure_strength": 50,
+  "style_reference": "aSDinaTvuI8gbWludGxpZnk=",
+  "adherence": 50,
+  "hdr": 50,
+  "resolution": "2k",
+  "aspect_ratio": "square_1_1",
+  "model": "realism",
+  "creative_detailing": 33,
+  "engine": "automatic",
+  "fixed_generation": false,
+  "filter_nsfw": true,
+  "styling": {
+    "styles": [
+      {
+        "name": "<string>",
+        "strength": 100
+      }
+    ],
+    "characters": [
+      {
+        "id": "<string>",
+        "strength": 100
+      }
+    ],
+    "colors": [
+      {
+        "color": "#FF0000",
+        "weight": 0.5
+      }
+    ]
+  }
+}'
+
+
+
+Copy
+
+Ask AI
+{
+  "generated": [],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "task_status": "IN_PROGRESS"
+}
+Mystic
+Get the status of the Mystic task
+Get the status of the Mystic task
+
+GET
+/
+v1
+/
+ai
+/
+mystic
+/
+{task-id}
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Path Parameters
+​
+task-id
+stringrequired
+ID of the task
+
+Response
+200
+
+200
+application/json
+OK - The task exists and the status is returned
+
+​
+data
+objectrequired
+
+Hide child attributes
+
+​
+data.task_id
+stringrequired
+Task identifier
+
+​
+data.status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+​
+data.generated
+string[]required
+URL of the generated image
+
+Example:
+{
+  "generated": [
+    "https://openapi-generator.tech",
+    "https://openapi-generator.tech"
+  ],
+  "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+  "status": "IN_PROGRESS"
+}
+Was this page helpful?
+
+
+Yes
+
+No
+
+Mystic
+Get the status of all Mystic tasks
+Get the status of all Mystic tasks
+
+GET
+/
+v1
+/
+ai
+/
+mystic
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Response
+200
+
+200
+application/json
+OK - Get the status of all Mystic tasks
+
+​
+data
+object[]required
+
+Hide child attributes
+
+​
+task_id
+stringrequired
+Task identifier
+
+​
+status
+enum<string>required
+Task status
+
+Available options: IN_PROGRESS, COMPLETED, FAILED 
+Was this page helpful?
+
+
+Yes
+
+No
+Get the status of the Mystic task
+Get loras
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/mystic \
+  --header 'x-freepik-api-key: <api-key>'
+
+
+
+Copy
+
+Ask AI
+{
+  "data": [
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee92",
+      "status": "COMPLETED"
+    },
+    {
+      "task_id": "046b6c7f-0b8a-43b9-b35d-6489e6daee93",
+      "status": "COMPLETED"
+    }
+  ]
+}
+Mystic
+Get loras
+GET
+/
+v1
+/
+ai
+/
+loras
+
+Try it
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Response
+200
+
+200
+application/json
+OK
+
+​
+data
+object[]
+
+Hide child attributes
+
+​
+default
+object[]
+List of default Loras
+
+
+Hide child attributes
+
+​
+id
+integerrequired
+Lora ID
+
+Required range: x >= 1
+Example:
+1
+
+​
+name
+stringrequired
+Lora name
+
+Example:
+"vintage-japanese"
+
+​
+description
+stringrequired
+Lora description
+
+Example:
+"Expect bold red colors and a sense of nostalgia, bringing to life classic Japanese elements."
+
+​
+category
+stringrequired
+Lora category
+
+Example:
+"illustration"
+
+​
+type
+stringrequired
+Lora type
+
+Example:
+"character"
+
+​
+preview
+stringrequired
+Preview image URL for the Lora
+
+Example:
+"https://www.example.com/4fef9987-75d0-44d1-b336-65f42f883bff.png"
+
+​
+training
+objectrequired
+
+Show child attributes
+
+Example:
+{ "defaultScale": 1.2, "status": "status" }
+Was this page helpful?
+
+
+Yes
+
+No
+Get the status of all Mystic tasks
+LoRAs training for custom styles
+
+cURL
+
+Python
+
+JavaScript
+
+PHP
+
+Go
+
+Java
+
+Copy
+
+Ask AI
+curl --request GET \
+  --url https://api.freepik.com/v1/ai/loras \
+  --header 'x-freepik-api-key: <api-key>'
+
+200
+
+500
+
+503
+
+Copy
+
+Ask AI
+{
+  "data": {
+    "default": [
+      {
+        "id": 1,
+        "name": "vintage-japanese",
+        "description": "Expect bold red colors and a sense of nostalgia, bringing to life classic Japanese elements.",
+        "category": "illustration",
+        "type": "style",
+        "preview": "https://example.com/vintage-japanese-preview.jpg",
+        "training": {
+          "status": "completed",
+          "defaultScale": 1.2
+        }
+      },
+      {
+        "id": 2,
+        "name": "sara",
+        "description": "sara",
+        "category": "people",
+        "type": "character",
+        "preview": "https://example.com/sara-preview.jpg",
+        "training": {
+          "status": "completed",
+          "defaultScale": 1.2
+        }
+      },
+      {
+        "id": 3,
+        "name": "glasses",
+        "description": "glasses",
+        "category": "glasses",
+        "type": "product",
+        "preview": "https://example.com/glasses-preview.jpg",
+        "training": {
+          "status": "completed",
+          "defaultScale": 1.2
+        }
+      }
+    ],
+    "customs": []
+  }
+}
+Freepik API home pagedark logo
+Information
+
+API home
+Dashboard
+Pricing
+Contact us
+Legal
+
+Terms of Service
+License agreement
+Privacy Policy
+Copyright information
+discord
+facebook
+x
+instagram
+youtube
+linkedin

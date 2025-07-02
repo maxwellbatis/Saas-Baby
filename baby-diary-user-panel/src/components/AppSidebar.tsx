@@ -21,7 +21,8 @@ import {
   Baby,
   Palette,
   LogOut,
-  ShoppingBag
+  ShoppingBag,
+  BookOpen
 } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/button';
@@ -56,6 +57,11 @@ const AppSidebar = () => {
       title: "Saúde",
       url: "/health",
       icon: Activity,
+    },
+    {
+      title: "Cursos",
+      url: "/courses",
+      icon: BookOpen,
     },
     {
       title: "Loja",

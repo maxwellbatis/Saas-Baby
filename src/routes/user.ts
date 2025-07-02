@@ -2922,4 +2922,267 @@ router.post('/pedidos', authenticateUser, createPedido);
 router.put('/pedidos/:id', authenticateUser, updatePedido);
 router.delete('/pedidos/:id', authenticateUser, deletePedido);
 
+// Rotas de cursos para usuários
+router.get('/courses', async (req: Request, res: Response) => {
+  try {
+    const courses = await prisma.course.findMany({
+      where: { isActive: true },
+      include: {
+        modules: {
+          include: {
+            lessons: {
+              include: {
+                materials: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    // Adicionar informações de progresso para usuários inscritos (se autenticados)
+    const coursesWithProgress = await Promise.all(
+      courses.map(async (course: any) => {
+        let enrollment: any = null;
+        let progress = 0;
+        let lastAccessed = null;
+        let enrolledAt = null;
+        let isEnrolled = false;
+
+        // Se o usuário estiver autenticado, buscar informações de progresso
+        if (req.user && req.user.userId) {
+          enrollment = await prisma.userCourseProgress.findFirst({
+            where: {
+              userId: req.user.userId,
+              courseId: course.id
+            }
+          });
+
+          const totalLessons = course.modules.reduce((total: number, module: any) => 
+            total + module.lessons.length, 0
+          );
+
+          // Calcular progresso baseado no status das aulas
+          const completedLessons = course.modules.reduce((total: number, module: any) => 
+            total + module.lessons.filter((lesson: any) => 
+              enrollment?.status === 'completed'
+            ).length, 0
+          );
+
+          progress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+          lastAccessed = enrollment?.updatedAt;
+          enrolledAt = enrollment?.updatedAt;
+          isEnrolled = !!enrollment;
+        }
+
+        return {
+          ...course,
+          isEnrolled,
+          progress,
+          lastAccessed,
+          enrolledAt
+        };
+      })
+    );
+
+    res.json({ success: true, data: coursesWithProgress });
+    return;
+  } catch (error) {
+    console.error('Erro ao buscar cursos:', error);
+    res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+    return;
+  }
+});
+
+router.get('/courses/:id', authenticateUser, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    const course = await prisma.course.findUnique({
+      where: { id },
+      include: {
+        modules: {
+          include: {
+            lessons: {
+              include: {
+                materials: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!course) {
+      return res.status(404).json({ success: false, error: 'Curso não encontrado' });
+    }
+
+    // Verificar se usuário está inscrito
+    const enrollment = await prisma.userCourseProgress.findFirst({
+      where: {
+        userId: req.user!.userId,
+        courseId: id
+      }
+    });
+
+    // Adicionar status de conclusão das aulas
+    const courseWithProgress = {
+      ...course,
+      isEnrolled: !!enrollment,
+      modules: course.modules.map(module => ({
+        ...module,
+        lessons: module.lessons.map(lesson => ({
+          ...lesson,
+          isCompleted: enrollment?.status === 'completed' || false
+        }))
+      }))
+    };
+
+    res.json({ success: true, data: courseWithProgress });
+    return;
+  } catch (error) {
+    console.error('Erro ao buscar curso:', error);
+    res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+    return;
+  }
+});
+
+router.post('/courses/:id/enroll', authenticateUser, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    // Verificar se curso existe
+    const course = await prisma.course.findUnique({
+      where: { id }
+    });
+
+    if (!course) {
+      return res.status(404).json({ success: false, error: 'Curso não encontrado' });
+    }
+
+    // Verificar se já está inscrito
+    const existingEnrollment = await prisma.userCourseProgress.findFirst({
+      where: {
+        userId: req.user!.userId,
+        courseId: id
+      }
+    });
+
+    if (existingEnrollment) {
+      return res.status(400).json({ success: false, error: 'Você já está inscrito neste curso' });
+    }
+
+    // Criar inscrição
+    const enrollment = await prisma.userCourseProgress.create({
+      data: {
+        userId: req.user!.userId,
+        courseId: id!,
+        lessonId: null,
+        status: 'in_progress',
+        progress: 0
+      }
+    });
+
+    res.json({ success: true, data: enrollment });
+    return;
+  } catch (error) {
+    console.error('Erro ao inscrever no curso:', error);
+    res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+    return;
+  }
+});
+
+router.post('/courses/lessons/:id/complete', authenticateUser, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    // Verificar se a aula existe
+    const lesson = await prisma.courseLesson.findUnique({
+      where: { id },
+      include: {
+        module: {
+          include: {
+            course: true
+          }
+        }
+      }
+    });
+
+    if (!lesson) {
+      return res.status(404).json({ success: false, error: 'Aula não encontrada' });
+    }
+
+    // Verificar se usuário está inscrito no curso
+    const enrollment = await prisma.userCourseProgress.findFirst({
+      where: {
+        userId: req.user!.userId,
+        courseId: lesson.module.course.id
+      }
+    });
+
+    if (!enrollment) {
+      return res.status(400).json({ success: false, error: 'Você precisa estar inscrito no curso' });
+    }
+
+    // Atualizar progresso
+    await prisma.userCourseProgress.update({
+      where: { id: enrollment.id },
+      data: {
+        status: 'completed',
+        progress: 100
+      }
+    });
+
+    res.json({ success: true, message: 'Aula marcada como completa' });
+    return;
+  } catch (error) {
+    console.error('Erro ao marcar aula como completa:', error);
+    res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+    return;
+  }
+});
+
+router.get('/my-courses', authenticateUser, async (req: Request, res: Response) => {
+  try {
+    const enrollments = await prisma.userCourseProgress.findMany({
+      where: { userId: req.user!.userId },
+      include: {
+        course: {
+          include: {
+            modules: {
+              include: {
+                lessons: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: { updatedAt: 'desc' }
+    }) as any[];
+
+    const coursesWithProgress = enrollments.map(enrollment => {
+      const totalLessons = enrollment.course.modules.reduce((total: number, module: any) => 
+        total + module.lessons.length, 0
+      );
+
+      const progress = enrollment.progress || 0;
+
+      return {
+        ...enrollment.course,
+        progress,
+        lastAccessed: enrollment.updatedAt,
+        enrolledAt: enrollment.updatedAt
+      };
+    });
+
+    res.json({ success: true, data: coursesWithProgress });
+    return;
+  } catch (error) {
+    console.error('Erro ao buscar meus cursos:', error);
+    res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+    return;
+  }
+});
+
 export default router;

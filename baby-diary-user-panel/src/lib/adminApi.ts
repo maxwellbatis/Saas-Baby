@@ -199,6 +199,82 @@ export const adminMemories = {
   }
 };
 
+export const adminCourses = {
+  getCourses: async () => {
+    const response = await adminApi.get('/admin/courses');
+    return response.data;
+  },
+
+  getCourse: async (id: string) => {
+    const response = await adminApi.get(`/admin/courses/${id}`);
+    return response.data;
+  },
+
+  createCourse: async (data: any) => {
+    const response = await adminApi.post('/admin/courses', data);
+    return response.data;
+  },
+
+  updateCourse: async (id: string, data: any) => {
+    const response = await adminApi.put(`/admin/courses/${id}`, data);
+    return response.data;
+  },
+
+  deleteCourse: async (id: string) => {
+    const response = await adminApi.delete(`/admin/courses/${id}`);
+    return response.data;
+  },
+
+  createCourseModule: async (data: any) => {
+    const response = await adminApi.post('/admin/courses/modules', data);
+    return response.data;
+  },
+
+  updateCourseModule: async (id: string, data: any) => {
+    const response = await adminApi.put(`/admin/courses/modules/${id}`, data);
+    return response.data;
+  },
+
+  deleteCourseModule: async (id: string) => {
+    const response = await adminApi.delete(`/admin/courses/modules/${id}`);
+    return response.data;
+  },
+
+  createCourseLesson: async (data: any) => {
+    const response = await adminApi.post('/admin/courses/lessons', data);
+    return response.data;
+  },
+
+  updateCourseLesson: async (id: string, data: any) => {
+    const response = await adminApi.put(`/admin/courses/lessons/${id}`, data);
+    return response.data;
+  },
+
+  deleteCourseLesson: async (id: string) => {
+    const response = await adminApi.delete(`/admin/courses/lessons/${id}`);
+    return response.data;
+  },
+
+  createCourseMaterial: async (data: any) => {
+    const response = await adminApi.post('/admin/courses/materials', data);
+    return response.data;
+  },
+
+  deleteCourseMaterial: async (id: string) => {
+    const response = await adminApi.delete(`/admin/courses/materials/${id}`);
+    return response.data;
+  },
+
+  uploadCourseFile: async (formData: FormData) => {
+    const response = await adminApi.post('/admin/courses/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  }
+};
+
 export const adminMilestones = {
   getAll: async (params?: any) => {
     const response = await adminApi.get('/admin/milestones', { params });

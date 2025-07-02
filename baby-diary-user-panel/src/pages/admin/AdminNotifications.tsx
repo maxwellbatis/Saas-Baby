@@ -30,6 +30,7 @@ import {
 import { useToast } from '../../hooks/use-toast';
 import { adminNotifications, adminApi } from '../../lib/adminApi';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { apiFetch } from '../../config/api';
 
 interface NotificationStats {
   totalNotifications: number;
@@ -339,6 +340,114 @@ export const AdminNotifications: React.FC = () => {
       resetTemplateForm();
     }
     setIsTemplateModalOpen(true);
+  };
+
+  // Nova seção: Analytics e Disparo Manual de Email de Upgrade
+  const UpgradeEmailAnalytics: React.FC = () => {
+    const [logs, setLogs] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [filters, setFilters] = useState({ status: '', reason: '', email: '', page: 1, limit: 50 });
+    const [showSendModal, setShowSendModal] = useState(false);
+    const [sendEmails, setSendEmails] = useState('');
+    const [sendResult, setSendResult] = useState<any[]>([]);
+
+    const fetchLogs = async () => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams();
+        Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, String(v)); });
+        const res = await apiFetch(`/admin/upgrade-email-logs?${params.toString()}`);
+        setLogs(res.data || []);
+      } catch (err) {
+        setLogs([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    useEffect(() => { fetchLogs(); }, [filters]);
+
+    const handleSend = async () => {
+      setLoading(true);
+      try {
+        const emails = sendEmails.split(',').map(e => e.trim()).filter(Boolean);
+        const res = await apiFetch('/admin/upgrade-email/send', {
+          method: 'POST',
+          body: JSON.stringify({ emails }),
+        });
+        setSendResult(res.results || []);
+        setShowSendModal(false);
+        fetchLogs();
+      } catch (err) {
+        setSendResult([{ error: 'Erro ao enviar' }]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    return (
+      <div className="mt-8">
+        <h2 className="text-xl font-bold mb-4">Email de Upgrade - Analytics & Disparo Manual</h2>
+        <div className="mb-4 flex gap-2">
+          <input placeholder="Filtrar por email" value={filters.email} onChange={e => setFilters(f => ({ ...f, email: e.target.value }))} className="border rounded px-2 py-1" />
+          <select value={filters.status} onChange={e => setFilters(f => ({ ...f, status: e.target.value }))} className="border rounded px-2 py-1">
+            <option value="">Status</option>
+            <option value="success">Enviado</option>
+            <option value="failed">Falha</option>
+          </select>
+          <select value={filters.reason} onChange={e => setFilters(f => ({ ...f, reason: e.target.value }))} className="border rounded px-2 py-1">
+            <option value="">Motivo</option>
+            <option value="7_days">7 dias</option>
+            <option value="14_days">14 dias</option>
+            <option value="30_days">30 dias</option>
+            <option value="manual">Manual</option>
+          </select>
+          <button onClick={() => setShowSendModal(true)} className="bg-blue-600 text-white px-4 py-1 rounded">Disparar Email Manual</button>
+        </div>
+        {loading ? <div>Carregando...</div> : (
+          <table className="w-full text-sm border">
+            <thead>
+              <tr className="bg-gray-100">
+                <th>Email</th><th>Nome</th><th>Status</th><th>Motivo</th><th>Data</th><th>Erro</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map((log: any) => (
+                <tr key={log.id} className={log.status === 'failed' ? 'bg-red-50' : ''}>
+                  <td>{log.email}</td>
+                  <td>{log.user?.name}</td>
+                  <td>{log.status}</td>
+                  <td>{log.reason}</td>
+                  <td>{new Date(log.sentAt).toLocaleString('pt-BR')}</td>
+                  <td>{log.error}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        {/* Modal de disparo manual */}
+        {showSendModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
+              <h3 className="font-bold mb-2">Disparar Email de Upgrade Manual</h3>
+              <input type="text" className="border w-full mb-2 p-2" placeholder="Emails separados por vírgula" value={sendEmails} onChange={e => setSendEmails(e.target.value)} />
+              <div className="flex gap-2 justify-end">
+                <button onClick={() => setShowSendModal(false)} className="px-4 py-1 border rounded">Cancelar</button>
+                <button onClick={handleSend} className="px-4 py-1 bg-blue-600 text-white rounded">Enviar</button>
+              </div>
+              {sendResult.length > 0 && (
+                <div className="mt-2">
+                  <strong>Resultado:</strong>
+                  <ul>
+                    {sendResult.map((r, i) => <li key={i}>{r.email}: {r.status} {r.error && `- ${r.error}`}</li>)}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   if (statsLoading || templatesLoading || notificationsLoading || usersLoading || plansLoading) {
@@ -790,6 +899,8 @@ export const AdminNotifications: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <UpgradeEmailAnalytics />
     </div>
   );
 }; 

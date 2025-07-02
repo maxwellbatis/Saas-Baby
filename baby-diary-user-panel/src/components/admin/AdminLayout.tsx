@@ -19,7 +19,8 @@ import {
   Shield,
   Megaphone,
   ShoppingBag,
-  Package
+  Package,
+  BookOpen
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { 
@@ -42,6 +43,7 @@ const navigation = [
   { name: 'Planos', href: '/admin/plans', icon: CreditCard },
   { name: 'Gamificação', href: '/admin/gamification', icon: BarChart3 },
   { name: 'Marketing', href: '/admin/marketing', icon: Megaphone },
+  { name: 'Cursos', href: '/admin/courses', icon: BookOpen },
   { name: 'Loja', href: '/admin/loja', icon: ShoppingBag },
   { name: 'Pedidos', href: '/admin/pedidos', icon: Package },
   { name: 'Notificações', href: '/admin/notifications', icon: Bell },

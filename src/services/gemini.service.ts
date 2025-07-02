@@ -1,8 +1,16 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import prisma from '../config/database';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
+async function getGeminiApiKey(): Promise<string | undefined> {
+  const config = await prisma.integrationConfig.findUnique({ where: { key: 'GEMINI_API_KEY' } });
+  return config?.value || process.env.GEMINI_API_KEY;
+}
+
 export async function generateGeminiContent(prompt: string): Promise<string> {
+  const apiKey = await getGeminiApiKey();
+  if (!apiKey) throw new Error('Chave da Gemini não configurada');
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 

@@ -3,6 +3,7 @@ import prisma from '../config/database';
 import { getPublicPlans } from '@/controllers/public.controller';
 import { getActiveBanners } from '@/controllers/shop.controller';
 import { Request, Response } from 'express';
+import { optionalAuthenticateUser } from '../middlewares/auth';
 
 const router = Router();
 
@@ -335,6 +336,118 @@ router.get('/business-page-content', async (req: Request, res: Response) => {
     return res.json({ success: true, data: content });
   } catch (error) {
     console.error('Erro ao buscar conteúdo da página business:', error);
+    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+  }
+});
+
+// ===== ROTAS DE CURSOS PÚBLICAS =====
+
+// Listar todos os cursos ativos (público)
+router.get('/courses', async (req: Request, res: Response) => {
+  try {
+    const courses = await (prisma as any).course.findMany({
+      where: { isActive: true },
+      include: {
+        modules: {
+          include: {
+            lessons: {
+              include: {
+                materials: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    // Para usuários não autenticados, retornar apenas informações básicas
+    const coursesWithBasicInfo = courses.map((course: any) => ({
+      id: course.id,
+      title: course.title,
+      description: course.description,
+      thumbnail: course.thumbnail,
+      category: course.category,
+      author: course.author,
+      isActive: course.isActive,
+      createdAt: course.createdAt,
+      modules: course.modules,
+      isEnrolled: false,
+      progress: 0,
+      lastAccessed: null,
+      enrolledAt: null
+    }));
+
+    res.json({ success: true, data: coursesWithBasicInfo });
+  } catch (error) {
+    console.error('Erro ao buscar cursos:', error);
+    res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+  }
+});
+
+// Buscar curso específico por ID (público)
+router.get('/courses/:id', optionalAuthenticateUser, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    const course = await (prisma as any).course.findUnique({
+      where: { id },
+      include: {
+        modules: {
+          include: {
+            lessons: {
+              include: {
+                materials: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!course) {
+      return res.status(404).json({ success: false, error: 'Curso não encontrado' });
+    }
+
+    let isEnrolled = false;
+    let progress = 0;
+    let lastAccessed = null;
+    let enrolledAt = null;
+    let completedLessons: string[] = [];
+    // Se o usuário estiver autenticado, buscar inscrição e progresso
+    if (req.user && req.user.userId) {
+      const enrollment = await (prisma as any).userCourseProgress.findFirst({
+        where: {
+          userId: req.user.userId,
+          courseId: id
+        }
+      });
+      isEnrolled = !!enrollment;
+      progress = enrollment?.progress || 0;
+      lastAccessed = enrollment?.updatedAt || null;
+      enrolledAt = enrollment?.createdAt || null;
+      // Aqui você pode buscar as aulas concluídas se tiver esse controle por aula
+      // Exemplo: completedLessons = enrollment?.completedLessonsIds || [];
+    }
+
+    const courseWithBasicInfo = {
+      ...course,
+      isEnrolled,
+      progress,
+      lastAccessed,
+      enrolledAt,
+      modules: course.modules.map((module: any) => ({
+        ...module,
+        lessons: module.lessons.map((lesson: any) => ({
+          ...lesson,
+          isCompleted: completedLessons.includes(lesson.id)
+        }))
+      }))
+    };
+
+    return res.json({ success: true, data: courseWithBasicInfo });
+  } catch (error) {
+    console.error('Erro ao buscar curso:', error);
     return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });

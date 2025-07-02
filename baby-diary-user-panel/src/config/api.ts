@@ -1,7 +1,7 @@
 // Configuração centralizada da API
 export const API_CONFIG = {
   // URL base da API - pode ser sobrescrita por variável de ambiente
-  BASE_URL: import.meta.env.VITE_API_URL || 'https://api.babydiary.shop/api',
+  BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
   
   // Timeout padrão para requisições
   TIMEOUT: 10000,
@@ -22,7 +22,7 @@ console.log('🔧 Configuração API:', {
 
 // Função para obter a URL completa de um endpoint
 export const getApiUrl = (endpoint?: string): string => {
-  const baseUrl = import.meta.env.VITE_API_URL || 'https://api.babydiary.shop/api';
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
   
   if (!endpoint) {
     return baseUrl;
@@ -54,7 +54,8 @@ export const getAuthHeaders = (token?: string) => {
 // Função para fazer requisições à API
 export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
   const url = getApiUrl(endpoint);
-  const token = localStorage.getItem('token');
+  // Buscar adminToken primeiro, depois token comum
+  const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
   
   const config: RequestInit = {
     ...options,

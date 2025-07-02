@@ -6,6 +6,12 @@ import { NotificationService } from '@/services/notification.service';
 import stripe from '@/config/stripe';
 import { createPrice } from '@/config/stripe';
 import { Prisma } from '@prisma/client';
+import Stripe from 'stripe';
+import { getCloudinaryConfig } from '../config/cloudinary';
+import axios from 'axios';
+import { PrismaClient } from '@prisma/client';
+import emailService from '../services/email.service';
+import { uploadToCloudinary } from '../config/cloudinary';
 
 
 // Esquema de validação para criação e atualização de planos
@@ -908,5 +914,427 @@ export const deletePedidoAdmin = async (req: Request, res: Response) => {
       success: false,
       error: 'Erro interno do servidor',
     });
+  }
+};
+
+// Buscar chave de integração (ex: Freepik)
+export const getIntegrationConfig = async (req: Request, res: Response) => {
+  try {
+    const { key } = req.query;
+    if (!key) return res.status(400).json({ error: 'Key é obrigatória' });
+    const integrationConfig = await prisma.integrationConfig.findUnique({ where: { key: String(key) } });
+    if (!integrationConfig) return res.status(404).json({ error: 'Configuração não encontrada' });
+    return res.json({ value: integrationConfig.value });
+  } catch (err) {
+    return res.status(500).json({ error: 'Erro ao buscar configuração' });
+  }
+};
+
+// Atualizar/cadastrar chave de integração
+export const updateIntegrationConfig = async (req: Request, res: Response) => {
+  try {
+    const { key, value } = req.body;
+    if (!key || !value) return res.status(400).json({ error: 'Key e value são obrigatórios' });
+    const integrationConfig = await prisma.integrationConfig.upsert({
+      where: { key },
+      update: { value },
+      create: { key, value },
+    });
+    return res.json({ success: true, config: integrationConfig });
+  } catch (err) {
+    return res.status(500).json({ error: 'Erro ao atualizar configuração' });
+  }
+};
+
+export const testIntegrations = async (req: Request, res: Response) => {
+  const results: Array<{ name: string; status: 'success' | 'error'; message: string }> = [];
+
+  // Teste Stripe
+  try {
+    const stripeKeyConfig = await prisma.integrationConfig.findUnique({ where: { key: 'STRIPE_SECRET_KEY' } });
+    const stripeKey = process.env.STRIPE_SECRET_KEY || stripeKeyConfig?.value;
+    if (!stripeKey) throw new Error('Chave Stripe não configurada');
+    const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
+    await stripe.accounts.retrieve('acct_1'); // Conta fake, só para testar requisição
+    results.push({ name: 'stripe', status: 'success', message: 'Conexão com Stripe OK' });
+  } catch (e: any) {
+    results.push({ name: 'stripe', status: 'error', message: 'Erro na conexão com Stripe: ' + (e.message || e) });
+  }
+
+  // Teste Cloudinary
+  try {
+    const config = await getCloudinaryConfig();
+    if (!config.cloud_name || !config.api_key || !config.api_secret) throw new Error('Configuração Cloudinary incompleta');
+    // Testa autenticação via API
+    const ping = await axios.get(`https://api.cloudinary.com/v1_1/${config.cloud_name}/ping`, {
+      auth: { username: config.api_key, password: config.api_secret }
+    });
+    if (ping.data && ping.data.status === 'ok') {
+      results.push({ name: 'cloudinary', status: 'success', message: 'Conexão com Cloudinary OK' });
+    } else {
+      throw new Error('Resposta inesperada do Cloudinary');
+    }
+  } catch (e: any) {
+    results.push({ name: 'cloudinary', status: 'error', message: 'Erro na conexão com Cloudinary: ' + (e.message || e) });
+  }
+
+  // Teste Groq
+  try {
+    const groqKeyConfig = await prisma.integrationConfig.findUnique({ where: { key: 'GROQ_API_KEY' } });
+    const groqKey = process.env.GROQ_API_KEY || groqKeyConfig?.value;
+    if (!groqKey) throw new Error('Chave Groq não configurada');
+    const resp = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
+      model: 'llama-3-8b-8192',
+      messages: [{ role: 'user', content: 'ping' }],
+      max_tokens: 1
+    }, {
+      headers: { 'Authorization': `Bearer ${groqKey}` }
+    });
+    if (resp.data && resp.data.choices) {
+      results.push({ name: 'groq', status: 'success', message: 'Conexão com Groq OK' });
+    } else {
+      throw new Error('Resposta inesperada do Groq');
+    }
+  } catch (e: any) {
+    results.push({ name: 'groq', status: 'error', message: 'Erro na conexão com Groq: ' + (e.message || e) });
+  }
+
+  // Teste banco de dados
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    results.push({ name: 'database', status: 'success', message: 'Conexão com banco de dados OK' });
+  } catch (e: any) {
+    results.push({ name: 'database', status: 'error', message: 'Erro na conexão com banco de dados: ' + (e.message || e) });
+  }
+
+  res.json(results);
+};
+
+// Listar logs de envio de email de upgrade
+export const getUpgradeEmailLogs = async (req: Request, res: Response) => {
+  try {
+    const { page = 1, limit = 50, status, reason, email, userId } = req.query;
+    const where: any = {};
+    if (status) where.status = status;
+    if (reason) where.reason = reason;
+    if (email) where.email = { contains: email };
+    if (userId) where.userId = userId;
+    const skip = (Number(page) - 1) * Number(limit);
+    const [logs, total] = await Promise.all([
+      prisma.upgradeEmailLog.findMany({
+        where,
+        orderBy: { sentAt: 'desc' },
+        skip,
+        take: Number(limit),
+      }),
+      prisma.upgradeEmailLog.count({ where })
+    ]);
+    res.json({ logs, total });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar logs', details: err });
+  }
+};
+
+// Disparo manual de email de upgrade
+export const sendUpgradeEmailManual = async (req: Request, res: Response) => {
+  try {
+    const { userIds = [], emails = [], segment = '', reason = 'manual' } = req.body;
+    let users: any[] = [];
+    if (userIds.length) {
+      users = await prisma.user.findMany({ where: { id: { in: userIds } } });
+    } else if (emails.length) {
+      users = await prisma.user.findMany({ where: { email: { in: emails } } });
+    } else if (segment) {
+      // Exemplo: segmento free_users
+      if (segment === 'free_users') {
+        const freePlan = await prisma.plan.findFirst({ where: { name: { contains: 'Básico' } } });
+        if (freePlan) {
+          users = await prisma.user.findMany({ where: { planId: freePlan.id } });
+        }
+      } else if (segment === 'inactive_30d') {
+        const since = new Date();
+        since.setDate(since.getDate() - 30);
+        users = await prisma.user.findMany({ where: { lastLoginAt: { lt: since } } });
+      }
+      // Adicione outros segmentos conforme necessário
+    }
+    if (!users.length) {
+      return res.status(400).json({ error: 'Nenhum usuário encontrado para o disparo.' });
+    }
+    let success = 0, failed = 0;
+    for (const user of users) {
+      try {
+        const sent = await emailService.sendUpgradeIncentiveEmail({
+          email: user.email,
+          name: user.name || 'Usuário',
+          planName: 'Premium',
+          upgradeLink: 'https://app.babydiary.com.br/settings?upgrade=true'
+        });
+        await prisma.upgradeEmailLog.create({
+          data: {
+            userId: user.id,
+            email: user.email,
+            status: sent ? 'success' : 'failed',
+            reason,
+            error: sent ? null : 'Falha no envio (manual)'
+          }
+        });
+        if (sent) success++; else failed++;
+      } catch (e) {
+        failed++;
+      }
+    }
+    res.json({ total: users.length, success, failed });
+    return;
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao disparar email', details: err });
+    return;
+  }
+};
+
+// --- CURSOS (ESTILO NETFLIX) ---
+
+// Listar todos os cursos
+export const listCourses = async (req: Request, res: Response) => {
+  try {
+    const courses = await prisma.course.findMany({
+      include: { 
+        modules: {
+          include: {
+            lessons: {
+              include: {
+                materials: true
+              }
+            }
+          }
+        }, 
+        materials: true 
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    
+    // Adicionar contadores para cada curso
+    const coursesWithCounts = courses.map((course: any) => ({
+      ...course,
+      _count: {
+        modules: course.modules.length,
+        lessons: course.modules.reduce((total: number, module: any) => total + module.lessons.length, 0),
+        enrollments: 0 // Por enquanto, não temos inscrições implementadas
+      }
+    }));
+    
+    res.json({ success: true, data: coursesWithCounts });
+  } catch (error) {
+    console.error('Erro ao listar cursos:', error);
+    res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+  }
+};
+
+// Detalhar curso
+export const getCourse = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const course = await prisma.course.findUnique({
+    where: { id },
+    include: {
+      modules: {
+        include: {
+          lessons: { include: { materials: true } }
+        }
+      },
+      materials: true
+    }
+  });
+  if (!course) return res.status(404).json({ error: 'Curso não encontrado' });
+  res.json({ course });
+  return;
+};
+
+// Criar curso
+export const createCourse = async (req: Request, res: Response) => {
+  try {
+    const { title, description, category, author, thumbnail, isActive } = req.body;
+    const course = await prisma.course.create({
+      data: { 
+        title, 
+        description, 
+        category, 
+        author: author || 'Baby Diary',
+        thumbnail: thumbnail || '',
+        isActive: isActive !== undefined ? isActive : true
+      }
+    });
+    res.json({ success: true, data: course });
+  } catch (error) {
+    console.error('Erro ao criar curso:', error);
+    res.status(500).json({ error: 'Erro ao criar curso', details: error });
+  }
+};
+
+// Editar curso e salvar módulos/aulas/materiais
+export const updateCourse = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { title, description, thumbnail, category, author, isActive, modules = [], materials = [] } = req.body;
+  // Atualiza dados principais
+  const course = await prisma.course.update({
+    where: { id },
+    data: { title, description, thumbnail, category, author, isActive }
+  });
+  // Remove módulos/aulas/materiais antigos (na ordem correta para evitar violação de FK)
+  // Primeiro deleta materiais das aulas
+  await (prisma as any).courseMaterial.deleteMany({ 
+    where: { 
+      lessonId: { 
+        in: (await (prisma as any).courseLesson.findMany({ 
+          where: { module: { courseId: id } }, 
+          select: { id: true } 
+        })).map((l: any) => l.id)
+      } 
+    } 
+  });
+  
+  // Depois deleta as aulas
+  await (prisma as any).courseLesson.deleteMany({ 
+    where: { 
+      moduleId: { 
+        in: (await (prisma as any).courseModule.findMany({ 
+          where: { courseId: id }, 
+          select: { id: true } 
+        })).map((m: any) => m.id)
+      } 
+    } 
+  });
+  
+  // Depois deleta os módulos
+  await (prisma as any).courseModule.deleteMany({ where: { courseId: id } });
+  
+  // Por fim, deleta materiais gerais do curso
+  await (prisma as any).courseMaterial.deleteMany({ where: { courseId: id } });
+  // Recria módulos, aulas e materiais
+  for (const mod of modules) {
+    const createdModule = await (prisma as any).courseModule.create({
+      data: { courseId: String(id), title: mod.title, order: mod.order }
+    });
+    for (const les of mod.lessons || []) {
+      console.log('Salvando aula:', les.title, 'videoUrl:', les.videoUrl, 'thumbnail:', les.thumbnail);
+      const createdLesson = await (prisma as any).courseLesson.create({
+        data: { 
+          moduleId: createdModule.id, 
+          title: les.title, 
+          videoUrl: les.videoUrl, 
+          thumbnail: les.thumbnail || null,
+          order: les.order, 
+          duration: les.duration || 0 
+        }
+      });
+      for (const mat of les.materials || []) {
+        await (prisma as any).courseMaterial.create({
+          data: { lessonId: createdLesson.id, type: mat.type, title: mat.title, url: mat.url }
+        });
+      }
+    }
+  }
+  // Materiais gerais do curso
+  for (const mat of materials) {
+    await (prisma as any).courseMaterial.create({
+      data: { courseId: id, type: mat.type, title: mat.title, url: mat.url }
+    });
+  }
+  res.json({ course });
+  return;
+};
+
+// Excluir curso
+export const deleteCourse = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  await prisma.course.delete({ where: { id } });
+  res.json({ success: true });
+};
+
+// CRUD de módulos
+export const createCourseModule = async (req: Request, res: Response) => {
+  const { courseId, title, order } = req.body;
+  const module = await prisma.courseModule.create({ data: { courseId, title, order } });
+  res.json({ module });
+};
+export const updateCourseModule = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { title, order } = req.body;
+  const module = await prisma.courseModule.update({ where: { id }, data: { title, order } });
+  res.json({ module });
+};
+export const deleteCourseModule = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  await prisma.courseModule.delete({ where: { id } });
+  res.json({ success: true });
+};
+
+// CRUD de aulas
+export const createCourseLesson = async (req: Request, res: Response) => {
+  const { moduleId, title, videoUrl, thumbnail, order, duration } = req.body;
+  const lesson = await prisma.courseLesson.create({ 
+    data: { 
+      moduleId, 
+      title, 
+      videoUrl, 
+      thumbnail: thumbnail || null,
+      order, 
+      duration 
+    } 
+  });
+  res.json({ lesson });
+};
+export const updateCourseLesson = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { title, videoUrl, thumbnail, order, duration } = req.body;
+  const lesson = await prisma.courseLesson.update({ 
+    where: { id }, 
+    data: { 
+      title, 
+      videoUrl, 
+      thumbnail: thumbnail || null,
+      order, 
+      duration 
+    } 
+  });
+  res.json({ lesson });
+};
+export const deleteCourseLesson = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  await prisma.courseLesson.delete({ where: { id } });
+  res.json({ success: true });
+};
+
+// CRUD de materiais de apoio
+export const createCourseMaterial = async (req: Request, res: Response) => {
+  const { courseId, lessonId, type, title, url } = req.body;
+  const material = await prisma.courseMaterial.create({ data: { courseId, lessonId, type, title, url } });
+  res.json({ material });
+};
+export const deleteCourseMaterial = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  await prisma.courseMaterial.delete({ where: { id } });
+  res.json({ success: true });
+};
+
+export const uploadCourseFile = async (req: Request, res: Response): Promise<void> => {
+  try {
+    console.log('📁 Upload iniciado:', req.file?.originalname);
+    console.log('📋 Tipo:', req.body.type);
+    console.log('📏 Tamanho:', req.file?.size);
+    
+    if (!req.file) {
+      console.log('❌ Arquivo não encontrado');
+      res.status(400).json({ error: 'Arquivo não enviado' });
+      return;
+    }
+    
+    const { type } = req.body; // 'image', 'video', 'pdf', 'doc'
+    console.log('☁️ Fazendo upload para Cloudinary...');
+    const result = await uploadToCloudinary(req.file.buffer, req.file.originalname, type);
+    console.log('✅ Upload concluído:', result.secure_url);
+    res.json({ url: result.secure_url });
+  } catch (err) {
+    console.error('❌ Erro no upload:', err);
+    res.status(500).json({ error: 'Erro ao fazer upload', details: err });
   }
 }; 

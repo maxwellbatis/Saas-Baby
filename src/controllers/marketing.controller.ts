@@ -4,6 +4,7 @@ import { generateGeminiContent, generateMarketingContent as generateMarketingCon
 import { uploadImage, uploadMedia } from '@/config/cloudinary';
 import multer from 'multer';
 import { socialMediaAPI } from '@/services/socialMediaAPI.service';
+import fetch from 'node-fetch';
 
 // Configurar multer para upload de arquivos
 const storage = multer.memoryStorage();
@@ -485,31 +486,29 @@ export const generateMarketingContent = async (req: Request, res: Response) => {
 // (Opcional) Endpoint para integração com Gemini (Google AI)
 export const generateWithGemini = async (req: Request, res: Response) => {
   try {
-    const { prompt } = req.body;
-    
-    if (!prompt) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Prompt é obrigatório' 
-      });
-    }
+    const { prompt, mode = 'text' } = req.body;
+    if (!prompt) return res.status(400).json({ error: 'Prompt é obrigatório' });
 
-    const content = await generateGeminiContent(prompt);
-    
-    return res.json({
-      success: true,
-      data: {
-        content,
-        prompt
-      }
-    });
-  } catch (error) {
-    console.error('Erro ao gerar conteúdo com Gemini:', error);
-    return res.status(500).json({ 
-      success: false, 
-      error: 'Erro ao gerar conteúdo',
-      details: error instanceof Error ? error.message : 'Erro desconhecido'
-    });
+    let result;
+    if (mode === 'prompt-image') {
+      // Gemini gera prompt otimizado para IA de imagem
+      const imagePrompt = `Gere um prompt detalhado para uma IA de geração de imagem (ex: Stable Diffusion, Dall-E, Freepik) a partir da seguinte ideia: "${prompt}". O prompt deve ser descritivo, incluir estilo, cenário, iluminação, cores e evitar palavras técnicas. Responda apenas com o prompt pronto para IA de imagem.`;
+      const content = await generateGeminiContent(imagePrompt);
+      result = { prompt: content };
+    } else if (mode === 'prompt-video') {
+      // Gemini gera prompt otimizado para IA de vídeo
+      const videoPrompt = `Gere um prompt detalhado para uma IA de geração de vídeo (ex: Kling, Pika, Sora) a partir da seguinte ideia: "${prompt}". O prompt deve ser descritivo, incluir cenário, ação, estilo visual, duração sugerida e evitar palavras técnicas. Responda apenas com o prompt pronto para IA de vídeo.`;
+      const content = await generateGeminiContent(videoPrompt);
+      result = { prompt: content };
+    } else {
+      // Texto/copy normal
+      const content = await generateGeminiContent(prompt);
+      result = { content };
+    }
+    return res.json(result);
+  } catch (err) {
+    console.error('Erro ao gerar com Gemini:', err);
+    return res.status(500).json({ error: 'Erro ao gerar conteúdo com Gemini' });
   }
 };
 
@@ -2030,4 +2029,111 @@ function generateImprovementTips(hashtagData: any): string[] {
   }
 
   return tips;
-} 
+}
+
+// Geração de imagem com Freepik API
+export const generateImageWithFreepik = async (req: Request, res: Response) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt) return res.status(400).json({ error: 'Prompt é obrigatório' });
+
+    // Buscar chave Freepik do banco
+    const config = await prisma.integrationConfig.findUnique({ where: { key: 'FREEPIK_API_KEY' } });
+    const apiKey = config?.value || process.env.FREEPIK_API_KEY;
+    if (!apiKey) return res.status(500).json({ error: 'Chave da Freepik não configurada' });
+
+    // 1. Chama a Freepik API para criar a task
+    const freepikResp = await fetch('https://api.freepik.com/v1/ai/mystic', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-freepik-api-key': apiKey
+      },
+      body: JSON.stringify({
+        prompt,
+        resolution: '2k',
+        aspect_ratio: 'square_1_1'
+      })
+    });
+    const freepikData: any = await freepikResp.json();
+    if (!freepikData.data || !freepikData.data.task_id) {
+      return res.status(500).json({ error: 'Erro ao criar task na Freepik' });
+    }
+
+    // 2. Polling até a task estar pronta
+    let status = 'IN_PROGRESS';
+    let imageUrl = null;
+    while (status === 'IN_PROGRESS') {
+      await new Promise(r => setTimeout(r, 2000));
+      const statusResp = await fetch(`https://api.freepik.com/v1/ai/mystic/${freepikData.data.task_id}`, {
+        headers: { 'x-freepik-api-key': apiKey }
+      });
+      const statusData: any = await statusResp.json();
+      status = statusData.data.status;
+      if (status === 'COMPLETED') {
+        imageUrl = statusData.data.generated[0];
+      }
+      if (status === 'FAILED') {
+        return res.status(500).json({ error: 'Geração de imagem falhou' });
+      }
+    }
+
+    return res.json({ imageUrl });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro interno ao gerar imagem' });
+  }
+};
+
+// Geração de vídeo com Freepik API (Kling v2.1)
+export const generateVideoWithFreepik = async (req: Request, res: Response) => {
+  try {
+    const { prompt, image, duration = "5" } = req.body;
+    if (!prompt && !image) return res.status(400).json({ error: 'Prompt ou imagem é obrigatório' });
+
+    // Buscar chave Freepik do banco
+    const config = await prisma.integrationConfig.findUnique({ where: { key: 'FREEPIK_API_KEY' } });
+    const apiKey = config?.value || process.env.FREEPIK_API_KEY;
+    if (!apiKey) return res.status(500).json({ error: 'Chave da Freepik não configurada' });
+
+    const body: any = { duration };
+    if (prompt) body.prompt = prompt;
+    if (image) body.image = image;
+
+    const freepikResp = await fetch('https://api.freepik.com/v1/ai/image-to-video/kling-v2-1-master', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-freepik-api-key': apiKey
+      },
+      body: JSON.stringify(body)
+    });
+    const freepikData: any = await freepikResp.json();
+    if (!freepikData.data || !freepikData.data.task_id) {
+      return res.status(500).json({ error: 'Erro ao criar task de vídeo na Freepik' });
+    }
+
+    // Polling até o vídeo estar pronto
+    let status = 'IN_PROGRESS';
+    let videoUrl = null;
+    while (status === 'IN_PROGRESS') {
+      await new Promise(r => setTimeout(r, 2000));
+      const statusResp = await fetch(`https://api.freepik.com/v1/ai/image-to-video/kling-v2-1-master/${freepikData.data.task_id}`, {
+        headers: { 'x-freepik-api-key': apiKey }
+      });
+      const statusData: any = await statusResp.json();
+      status = statusData.data.status;
+      if (status === 'COMPLETED') {
+        videoUrl = statusData.data.generated[0];
+      }
+      if (status === 'FAILED') {
+        return res.status(500).json({ error: 'Geração de vídeo falhou' });
+      }
+    }
+
+    return res.json({ videoUrl });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro interno ao gerar vídeo' });
+  }
+}; 

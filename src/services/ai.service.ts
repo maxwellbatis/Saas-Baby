@@ -27,26 +27,32 @@ interface AIResponse {
 }
 
 export class AIService {
-  private readonly apiKey: string;
   private readonly baseUrl: string = 'https://api.groq.com/openai/v1/chat/completions';
 
   constructor() {
-    this.apiKey = process.env.GROQ_API_KEY || '';
-    if (!this.apiKey) {
+    // Não inicializa mais apiKey aqui
+  }
+
+  private async getGroqApiKey(): Promise<string> {
+    // Busca chave do banco primeiro, depois do .env
+    const config = await prisma.integrationConfig.findUnique({ where: { key: 'GROQ_API_KEY' } });
+    const apiKey = config?.value || process.env.GROQ_API_KEY;
+    if (!apiKey) {
       throw new Error('GROQ_API_KEY não configurada');
     }
+    return apiKey;
   }
 
   private async makeRequest(request: AIRequest): Promise<AIResponse> {
     try {
+      const apiKey = await this.getGroqApiKey();
       const response = await axios.post(this.baseUrl, request, {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
+          'Authorization': `Bearer ${apiKey}`,
         },
         timeout: 30000, // 30 segundos
       });
-
       return response.data;
     } catch (error) {
       console.error('Erro na requisição para Groq:', error);

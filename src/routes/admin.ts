@@ -20,6 +20,9 @@ import multer from 'multer';
 import { uploadToFirebaseStorage } from '@/config/firebase';
 import cloudinary from '../config/cloudinary';
 import fs from 'fs';
+import { getIntegrationConfig, updateIntegrationConfig, testIntegrations } from '../controllers/admin.controller';
+const { getUpgradeEmailLogs, sendUpgradeEmailManual } = require('../controllers/admin.controller');
+import { uploadCourseFile } from '../controllers/admin.controller';
 
 const router = Router();
 const notificationService = new NotificationService();
@@ -37,7 +40,11 @@ const upload = multer({
   },
   fileFilter: (req, file, cb) => {
     console.log('Mimetype recebido no upload:', file.mimetype);
-    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+    if (file.mimetype.startsWith('image/') || 
+        file.mimetype.startsWith('video/') || 
+        file.mimetype === 'application/pdf' ||
+        file.mimetype === 'application/msword' ||
+        file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
       cb(null, true);
     } else {
       cb(new Error('Tipo de arquivo não permitido'));
@@ -87,7 +94,7 @@ const handleMulterError = (error: any, req: Request, res: Response, next: NextFu
   if (error.message === 'Tipo de arquivo não permitido') {
     return res.status(400).json({
       success: false,
-      error: 'Tipo de arquivo não permitido. Apenas imagens e vídeos são aceitos.'
+      error: 'Tipo de arquivo não permitido. Apenas imagens, vídeos, PDFs e documentos são aceitos.'
     });
   }
   
@@ -3841,5 +3848,47 @@ router.post('/business-page-media', upload.single('mediaFile'), async (req: Requ
     });
   }
 });
+
+router.get('/integrations/config', authenticateAdmin, getIntegrationConfig);
+router.post('/integrations/config', authenticateAdmin, updateIntegrationConfig);
+router.get('/integrations/test', authenticateAdmin, testIntegrations);
+
+// Listar logs de envio de email de upgrade
+router.get('/upgrade-email-logs', authenticateAdmin, getUpgradeEmailLogs);
+
+// Disparar email de upgrade manualmente
+router.post('/upgrade-email/send', authenticateAdmin, sendUpgradeEmailManual);
+
+// --- CURSOS (ESTILO NETFLIX) ---
+import {
+  listCourses, getCourse, createCourse, updateCourse, deleteCourse,
+  createCourseModule, updateCourseModule, deleteCourseModule,
+  createCourseLesson, updateCourseLesson, deleteCourseLesson,
+  createCourseMaterial, deleteCourseMaterial
+} from '../controllers/admin.controller';
+
+// Cursos
+router.get('/courses', authenticateAdmin, listCourses);
+router.get('/courses/:id', authenticateAdmin, getCourse);
+router.post('/courses', authenticateAdmin, createCourse);
+router.put('/courses/:id', authenticateAdmin, updateCourse);
+router.delete('/courses/:id', authenticateAdmin, deleteCourse);
+
+// Módulos
+router.post('/courses/modules', authenticateAdmin, createCourseModule);
+router.put('/courses/modules/:id', authenticateAdmin, updateCourseModule);
+router.delete('/courses/modules/:id', authenticateAdmin, deleteCourseModule);
+
+// Aulas
+router.post('/courses/lessons', authenticateAdmin, createCourseLesson);
+router.put('/courses/lessons/:id', authenticateAdmin, updateCourseLesson);
+router.delete('/courses/lessons/:id', authenticateAdmin, deleteCourseLesson);
+
+// Materiais de apoio
+router.post('/courses/materials', authenticateAdmin, createCourseMaterial);
+router.delete('/courses/materials/:id', authenticateAdmin, deleteCourseMaterial);
+
+// Upload de arquivos para cursos (Cloudinary)
+router.post('/courses/upload', authenticateAdmin, upload.single('file'), uploadCourseFile);
 
 export default router; 

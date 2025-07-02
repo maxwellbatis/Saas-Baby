@@ -129,10 +129,31 @@ export const AdminSettings: React.FC = () => {
   });
   const { admin, getAdminProfile } = useAdminAuth();
   const { toast } = useToast();
+  const [freepikKey, setFreepikKey] = useState('');
+  const [freepikStatus, setFreepikStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [freepikMessage, setFreepikMessage] = useState('');
+  const [geminiKey, setGeminiKey] = useState('');
+  const [geminiStatus, setGeminiStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [geminiMessage, setGeminiMessage] = useState('');
+  const [groqKey, setGroqKey] = useState('');
+  const [groqStatus, setGroqStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [groqMessage, setGroqMessage] = useState('');
+  const [cloudinaryName, setCloudinaryName] = useState('');
+  const [cloudinaryKey, setCloudinaryKey] = useState('');
+  const [cloudinarySecret, setCloudinarySecret] = useState('');
+  const [cloudinaryStatus, setCloudinaryStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [cloudinaryMessage, setCloudinaryMessage] = useState('');
+  const [integrationTestResults, setIntegrationTestResults] = useState<any[]>([]);
+  const [integrationTestLoading, setIntegrationTestLoading] = useState(false);
+  const [integrationTestError, setIntegrationTestError] = useState('');
 
   useEffect(() => {
     loadSettings();
     loadProfile();
+    fetchFreepikKey();
+    fetchGeminiKey();
+    fetchGroqKey();
+    fetchCloudinary();
   }, []);
 
   const loadSettings = async () => {
@@ -338,31 +359,21 @@ export const AdminSettings: React.FC = () => {
   };
 
   const handleTestIntegrations = async () => {
+    setIntegrationTestLoading(true);
+    setIntegrationTestError('');
+    setIntegrationTestResults([]);
     try {
-      setLoading(true);
-      const response = await adminSettings.testIntegrations();
-      if (response.success) {
-        setIntegrationTests(response.data);
-        toast({
-          title: 'Sucesso',
-          description: 'Testes de integração concluídos'
-        });
-      } else {
-        toast({
-          title: 'Erro',
-          description: 'Erro ao testar integrações',
-          variant: 'destructive'
-        });
-      }
-    } catch (error) {
-      console.error('Erro ao testar integrações:', error);
-      toast({
-        title: 'Erro',
-        description: 'Erro de conexão',
-        variant: 'destructive'
+      const adminToken = localStorage.getItem('adminToken');
+      const res = await fetch(`${getApiUrl()}/admin/integrations/test`, {
+        headers: { 'Authorization': `Bearer ${adminToken}` }
       });
+      if (!res.ok) throw new Error('Erro ao testar integrações');
+      const data = await res.json();
+      setIntegrationTestResults(data);
+    } catch (err: any) {
+      setIntegrationTestError(err.message || 'Erro ao testar integrações');
     } finally {
-      setLoading(false);
+      setIntegrationTestLoading(false);
     }
   };
 
@@ -552,6 +563,209 @@ export const AdminSettings: React.FC = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchFreepikKey = async () => {
+    try {
+      setFreepikStatus('loading');
+      const adminToken = localStorage.getItem('adminToken');
+      const res = await fetch(`${getApiUrl()}/admin/integrations/config?key=FREEPIK_API_KEY`, {
+        headers: { 'Authorization': `Bearer ${adminToken}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setFreepikKey(data.value);
+        setFreepikStatus('success');
+      } else {
+        setFreepikKey('');
+        setFreepikStatus('idle');
+      }
+    } catch {
+      setFreepikStatus('error');
+    }
+  };
+
+  const handleSaveFreepikKey = async () => {
+    try {
+      setFreepikStatus('loading');
+      setFreepikMessage('');
+      const adminToken = localStorage.getItem('adminToken');
+      const res = await fetch(`${getApiUrl()}/admin/integrations/config`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${adminToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ key: 'FREEPIK_API_KEY', value: freepikKey })
+      });
+      if (res.ok) {
+        setFreepikStatus('success');
+        setFreepikMessage('Chave salva com sucesso!');
+        toast({ title: 'Chave Freepik atualizada!', variant: 'default' });
+      } else {
+        setFreepikStatus('error');
+        setFreepikMessage('Erro ao salvar chave.');
+        toast({ title: 'Erro ao salvar chave Freepik', variant: 'destructive' });
+      }
+    } catch {
+      setFreepikStatus('error');
+      setFreepikMessage('Erro ao salvar chave.');
+      toast({ title: 'Erro ao salvar chave Freepik', variant: 'destructive' });
+    }
+  };
+
+  const fetchGeminiKey = async () => {
+    try {
+      setGeminiStatus('loading');
+      const adminToken = localStorage.getItem('adminToken');
+      const res = await fetch(`${getApiUrl()}/admin/integrations/config?key=GEMINI_API_KEY`, {
+        headers: { 'Authorization': `Bearer ${adminToken}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setGeminiKey(data.value);
+        setGeminiStatus('success');
+      } else {
+        setGeminiKey('');
+        setGeminiStatus('idle');
+      }
+    } catch {
+      setGeminiStatus('error');
+    }
+  };
+
+  const handleSaveGeminiKey = async () => {
+    try {
+      setGeminiStatus('loading');
+      setGeminiMessage('');
+      const adminToken = localStorage.getItem('adminToken');
+      const res = await fetch(`${getApiUrl()}/admin/integrations/config`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${adminToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ key: 'GEMINI_API_KEY', value: geminiKey })
+      });
+      if (res.ok) {
+        setGeminiStatus('success');
+        setGeminiMessage('Chave salva com sucesso!');
+        toast({ title: 'Chave Gemini atualizada!', variant: 'default' });
+      } else {
+        setGeminiStatus('error');
+        setGeminiMessage('Erro ao salvar chave.');
+        toast({ title: 'Erro ao salvar chave Gemini', variant: 'destructive' });
+      }
+    } catch {
+      setGeminiStatus('error');
+      setGeminiMessage('Erro ao salvar chave.');
+      toast({ title: 'Erro ao salvar chave Gemini', variant: 'destructive' });
+    }
+  };
+
+  const fetchGroqKey = async () => {
+    try {
+      setGroqStatus('loading');
+      const adminToken = localStorage.getItem('adminToken');
+      const res = await fetch(`${getApiUrl()}/admin/integrations/config?key=GROQ_API_KEY`, {
+        headers: { 'Authorization': `Bearer ${adminToken}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setGroqKey(data.value);
+        setGroqStatus('success');
+      } else {
+        setGroqKey('');
+        setGroqStatus('idle');
+      }
+    } catch {
+      setGroqStatus('error');
+    }
+  };
+
+  const handleSaveGroqKey = async () => {
+    try {
+      setGroqStatus('loading');
+      setGroqMessage('');
+      const adminToken = localStorage.getItem('adminToken');
+      const res = await fetch(`${getApiUrl()}/admin/integrations/config`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${adminToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ key: 'GROQ_API_KEY', value: groqKey })
+      });
+      if (res.ok) {
+        setGroqStatus('success');
+        setGroqMessage('Chave salva com sucesso!');
+        toast({ title: 'Chave Groq atualizada!', variant: 'default' });
+      } else {
+        setGroqStatus('error');
+        setGroqMessage('Erro ao salvar chave.');
+        toast({ title: 'Erro ao salvar chave Groq', variant: 'destructive' });
+      }
+    } catch {
+      setGroqStatus('error');
+      setGroqMessage('Erro ao salvar chave.');
+      toast({ title: 'Erro ao salvar chave Groq', variant: 'destructive' });
+    }
+  };
+
+  const fetchCloudinary = async () => {
+    try {
+      setCloudinaryStatus('loading');
+      const adminToken = localStorage.getItem('adminToken');
+      const [nameRes, keyRes, secretRes] = await Promise.all([
+        fetch(`${getApiUrl()}/admin/integrations/config?key=CLOUDINARY_CLOUD_NAME`, { headers: { 'Authorization': `Bearer ${adminToken}` } }),
+        fetch(`${getApiUrl()}/admin/integrations/config?key=CLOUDINARY_API_KEY`, { headers: { 'Authorization': `Bearer ${adminToken}` } }),
+        fetch(`${getApiUrl()}/admin/integrations/config?key=CLOUDINARY_API_SECRET`, { headers: { 'Authorization': `Bearer ${adminToken}` } })
+      ]);
+      setCloudinaryName(nameRes.ok ? (await nameRes.json()).value : '');
+      setCloudinaryKey(keyRes.ok ? (await keyRes.json()).value : '');
+      setCloudinarySecret(secretRes.ok ? (await secretRes.json()).value : '');
+      setCloudinaryStatus('success');
+    } catch {
+      setCloudinaryStatus('error');
+    }
+  };
+
+  const handleSaveCloudinary = async () => {
+    try {
+      setCloudinaryStatus('loading');
+      setCloudinaryMessage('');
+      const adminToken = localStorage.getItem('adminToken');
+      const results = await Promise.all([
+        fetch(`${getApiUrl()}/admin/integrations/config`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: 'CLOUDINARY_CLOUD_NAME', value: cloudinaryName })
+        }),
+        fetch(`${getApiUrl()}/admin/integrations/config`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: 'CLOUDINARY_API_KEY', value: cloudinaryKey })
+        }),
+        fetch(`${getApiUrl()}/admin/integrations/config`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: 'CLOUDINARY_API_SECRET', value: cloudinarySecret })
+        })
+      ]);
+      if (results.every(r => r.ok)) {
+        setCloudinaryStatus('success');
+        setCloudinaryMessage('Chaves salvas com sucesso!');
+        toast({ title: 'Chaves Cloudinary atualizadas!', variant: 'default' });
+      } else {
+        setCloudinaryStatus('error');
+        setCloudinaryMessage('Erro ao salvar chaves.');
+        toast({ title: 'Erro ao salvar chaves Cloudinary', variant: 'destructive' });
+      }
+    } catch {
+      setCloudinaryStatus('error');
+      setCloudinaryMessage('Erro ao salvar chaves.');
+      toast({ title: 'Erro ao salvar chaves Cloudinary', variant: 'destructive' });
     }
   };
 
@@ -885,43 +1099,102 @@ export const AdminSettings: React.FC = () => {
 
         {/* Integrações */}
         <TabsContent value="integrations" className="space-y-6">
-          <Card>
+          <Card className="mb-6">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="w-5 h-5" />
-                Teste de Integrações
-              </CardTitle>
-              <CardDescription>
-                Verifique o status das integrações externas
-              </CardDescription>
+              <CardTitle>Integrações de API</CardTitle>
+              <CardDescription>Configure as chaves de API das integrações externas.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <Button onClick={handleTestIntegrations} disabled={loading} className="w-full">
-                <Zap className="w-4 h-4 mr-2" />
-                {loading ? 'Testando...' : 'Testar Integrações'}
-              </Button>
-
-              {integrationTests && (
-                <div className="space-y-3">
-                  <Separator />
-                  <h4 className="font-medium">Resultados dos Testes:</h4>
-                  
-                  {Object.entries(integrationTests).map(([service, result]) => (
-                    <div key={service} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        {getStatusIcon(result.status)}
-                        <div>
-                          <p className="font-medium capitalize">{service}</p>
-                          <p className="text-sm text-gray-500">{result.message}</p>
-                        </div>
-                      </div>
-                      <Badge variant={result.status === 'success' ? 'default' : 'destructive'}>
-                        {result.status}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <CardContent>
+              <div className="mb-4">
+                <Label htmlFor="freepik-key">Chave da API Freepik
+                  <a href="https://developers.freepik.com/" target="_blank" rel="noopener noreferrer" className="ml-2 text-xs text-blue-600 underline">Como obter?</a>
+                </Label>
+                <Input
+                  id="freepik-key"
+                  type="text"
+                  value={freepikKey}
+                  onChange={e => setFreepikKey(e.target.value)}
+                  placeholder="Cole sua chave da Freepik aqui"
+                  className="mt-1"
+                />
+                <Button onClick={handleSaveFreepikKey} className="mt-2">Salvar Chave</Button>
+                {freepikStatus === 'loading' && <span className="ml-2 text-xs text-blue-600">Salvando...</span>}
+                {freepikStatus === 'success' && <span className="ml-2 text-xs text-green-600">Chave salva!</span>}
+                {freepikStatus === 'error' && <span className="ml-2 text-xs text-red-600">{freepikMessage || 'Erro ao salvar.'}</span>}
+              </div>
+              <div className="mb-4">
+                <Label htmlFor="gemini-key">Chave da API Gemini
+                  <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="ml-2 text-xs text-blue-600 underline">Como obter?</a>
+                </Label>
+                <Input
+                  id="gemini-key"
+                  type="text"
+                  value={geminiKey}
+                  onChange={e => setGeminiKey(e.target.value)}
+                  placeholder="Cole sua chave da Gemini aqui"
+                  className="mt-1"
+                />
+                <Button onClick={handleSaveGeminiKey} className="mt-2">Salvar Chave</Button>
+                {geminiStatus === 'loading' && <span className="ml-2 text-xs text-blue-600">Salvando...</span>}
+                {geminiStatus === 'success' && <span className="ml-2 text-xs text-green-600">Chave salva!</span>}
+                {geminiStatus === 'error' && <span className="ml-2 text-xs text-red-600">{geminiMessage || 'Erro ao salvar.'}</span>}
+              </div>
+              <div className="mb-4">
+                <Label htmlFor="groq-key">Chave da API Groq
+                  <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" className="ml-2 text-xs text-blue-600 underline">Como obter?</a>
+                </Label>
+                <Input
+                  id="groq-key"
+                  type="text"
+                  value={groqKey}
+                  onChange={e => setGroqKey(e.target.value)}
+                  placeholder="Cole sua chave da Groq aqui"
+                  className="mt-1"
+                />
+                <Button onClick={handleSaveGroqKey} className="mt-2">Salvar Chave</Button>
+                {groqStatus === 'loading' && <span className="ml-2 text-xs text-blue-600">Salvando...</span>}
+                {groqStatus === 'success' && <span className="ml-2 text-xs text-green-600">Chave salva!</span>}
+                {groqStatus === 'error' && <span className="ml-2 text-xs text-red-600">{groqMessage || 'Erro ao salvar.'}</span>}
+              </div>
+              <div className="mb-4">
+                <Label htmlFor="cloudinary-name">Cloudinary Cloud Name
+                  <a href="https://cloudinary.com/console" target="_blank" rel="noopener noreferrer" className="ml-2 text-xs text-blue-600 underline">Como obter?</a>
+                </Label>
+                <Input
+                  id="cloudinary-name"
+                  type="text"
+                  value={cloudinaryName}
+                  onChange={e => setCloudinaryName(e.target.value)}
+                  placeholder="Seu cloud name do Cloudinary"
+                  className="mt-1"
+                />
+                <Label htmlFor="cloudinary-key" className="mt-2">Cloudinary API Key
+                  <a href="https://cloudinary.com/console" target="_blank" rel="noopener noreferrer" className="ml-2 text-xs text-blue-600 underline">Como obter?</a>
+                </Label>
+                <Input
+                  id="cloudinary-key"
+                  type="text"
+                  value={cloudinaryKey}
+                  onChange={e => setCloudinaryKey(e.target.value)}
+                  placeholder="Sua API Key do Cloudinary"
+                  className="mt-1"
+                />
+                <Label htmlFor="cloudinary-secret" className="mt-2">Cloudinary API Secret
+                  <a href="https://cloudinary.com/console" target="_blank" rel="noopener noreferrer" className="ml-2 text-xs text-blue-600 underline">Como obter?</a>
+                </Label>
+                <Input
+                  id="cloudinary-secret"
+                  type="text"
+                  value={cloudinarySecret}
+                  onChange={e => setCloudinarySecret(e.target.value)}
+                  placeholder="Sua API Secret do Cloudinary"
+                  className="mt-1"
+                />
+                <Button onClick={handleSaveCloudinary} className="mt-2">Salvar Chaves</Button>
+                {cloudinaryStatus === 'loading' && <span className="ml-2 text-xs text-blue-600">Salvando...</span>}
+                {cloudinaryStatus === 'success' && <span className="ml-2 text-xs text-green-600">Chaves salvas!</span>}
+                {cloudinaryStatus === 'error' && <span className="ml-2 text-xs text-red-600">{cloudinaryMessage || 'Erro ao salvar.'}</span>}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

@@ -6,33 +6,33 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: #FFFFFF;
+    --foreground: #0B0B0F;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: #FFFFFF;
+    --card-foreground: #0B0B0F;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: #FFFFFF;
+    --popover-foreground: #0B0B0F;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: #8A2BE2;
+    --primary-foreground: #FFFFFF;
 
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 84% 4.9%;
+    --secondary: #F5F5F5;
+    --secondary-foreground: #0B0B0F;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: #F5F5F5;
+    --muted-foreground: #6B7280;
 
-    --accent: 210 40% 96%;
+    --accent: #B86BFF;
     --accent-foreground: 222.2 84% 4.9%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: #E50914;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: #E5E7EB;
+    --input: #E5E7EB;
+    --ring: #8A2BE2;
 
     --radius: 0.5rem;
 
@@ -53,33 +53,33 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: #0B0B0F;
+    --foreground: #FFFFFF;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: #1B1C22;
+    --card-foreground: #FFFFFF;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: #1B1C22;
+    --popover-foreground: #FFFFFF;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: #8A2BE2;
+    --primary-foreground: #FFFFFF;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: #1B1C22;
+    --secondary-foreground: #FFFFFF;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: #2A2A2A;
+    --muted-foreground: #A0A0A0;
 
-    --accent: 217.2 32.6% 17.5%;
+    --accent: #B86BFF;
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: #E50914;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: #333333;
+    --input: #333333;
+    --ring: #8A2BE2;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -104,25 +104,233 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   }
 
-  /* Custom scrollbar */
+  /* Netflix-style scrollbar */
   ::-webkit-scrollbar {
     width: 8px;
+    height: 8px;
   }
 
   ::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: hsl(var(--muted));
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
+    background: hsl(var(--muted-foreground) / 0.3);
     border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+
+  /* Netflix-style focus */
+  *:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* Netflix-style transitions */
+  .netflix-transition {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Netflix-style hover effects */
+  .netflix-hover {
+    @apply transition-transform duration-300 ease-out;
+  }
+
+  .netflix-hover:hover {
+    transform: scale(1.05);
+  }
+
+  /* Netflix-style card */
+  .netflix-card {
+    @apply bg-card border border-border rounded-lg overflow-hidden shadow-lg;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .netflix-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+
+  /* Netflix-style button */
+  .netflix-button {
+    @apply bg-primary text-primary-foreground px-6 py-3 rounded-md font-medium;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .netflix-button:hover {
+    @apply bg-primary/90;
+    transform: translateY(-1px);
+  }
+
+  .netflix-button:active {
+    transform: translateY(0);
+  }
+
+  /* Netflix-style gradient backgrounds */
+  .netflix-gradient {
+    background: linear-gradient(135deg, #8A2BE2 0%, #B86BFF 50%, #E50914 100%);
+  }
+
+  .netflix-gradient-dark {
+    background: linear-gradient(135deg, #0B0B0F 0%, #1B1C22 50%, #2A2A2A 100%);
+  }
+
+  /* Netflix-style text gradients */
+  .netflix-text-gradient {
+    background: linear-gradient(135deg, #8A2BE2 0%, #B86BFF 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Netflix-style carousel */
+  .netflix-carousel {
+    @apply flex gap-4 overflow-x-auto pb-4;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .netflix-carousel::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Netflix-style story cards (vertical images) */
+  .netflix-story-card {
+    @apply relative overflow-hidden rounded-lg;
+    aspect-ratio: 9/16;
+    min-width: 120px;
+    max-width: 200px;
+  }
+
+  .netflix-story-card img {
+    @apply w-full h-full object-cover;
+  }
+
+  .netflix-story-card .overlay {
+    @apply absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent;
+  }
+
+  .netflix-story-card .content {
+    @apply absolute bottom-0 left-0 right-0 p-3 text-white;
+  }
+
+  /* Netflix-style progress bar */
+  .netflix-progress {
+    @apply w-full bg-muted rounded-full h-2 overflow-hidden;
+  }
+
+  .netflix-progress-bar {
+    @apply h-full bg-gradient-to-r from-primary to-accent;
+    transition: width 0.3s ease;
+  }
+
+  /* Netflix-style loading skeleton */
+  .netflix-skeleton {
+    @apply bg-muted animate-pulse rounded;
+  }
+
+  /* Netflix-style modal backdrop */
+  .netflix-backdrop {
+    @apply fixed inset-0 bg-black/80 backdrop-blur-sm z-50;
+  }
+
+  /* Netflix-style tooltip */
+  .netflix-tooltip {
+    @apply absolute z-50 px-3 py-2 text-sm text-white bg-black/90 rounded-md;
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+
+  /* Netflix-style responsive grid */
+  .netflix-grid {
+    @apply grid gap-4;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+
+  @media (min-width: 640px) {
+    .netflix-grid {
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .netflix-grid {
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    }
+  }
+}
+
+/* Custom animations */
+@keyframes netflix-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes netflix-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.netflix-fade-in {
+  animation: netflix-fade-in 0.6s ease-out;
+}
+
+.netflix-slide-in {
+  animation: netflix-slide-in 0.6s ease-out;
+}
+
+/* Netflix-style responsive typography */
+.netflix-title {
+  @apply text-2xl font-bold;
+}
+
+@media (min-width: 640px) {
+  .netflix-title {
+    @apply text-3xl;
+  }
+}
+
+@media (min-width: 1024px) {
+  .netflix-title {
+    @apply text-4xl;
+  }
+}
+
+.netflix-subtitle {
+  @apply text-lg font-medium;
+}
+
+@media (min-width: 640px) {
+  .netflix-subtitle {
+    @apply text-xl;
+  }
+}
+
+.netflix-body {
+  @apply text-base;
+}
+
+@media (min-width: 640px) {
+  .netflix-body {
+    @apply text-lg;
   }
 }
 

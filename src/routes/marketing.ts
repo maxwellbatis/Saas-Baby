@@ -36,8 +36,11 @@ import {
   getHashtagAnalytics,
   getHashtagSuggestions,
   analyzeHashtagPerformance,
-  getTrendingHashtags
+  getTrendingHashtags,
+  generateImageWithFreepik,
+  generateVideoWithFreepik
 } from '@/controllers/marketing.controller';
+import { authenticateAdmin } from '../middlewares/auth';
 
 const router = Router();
 
@@ -47,6 +50,7 @@ router.post('/campaigns', createCampaign);
 router.put('/campaigns/:id', updateCampaign);
 router.delete('/campaigns/:id', deleteCampaign);
 router.post('/campaigns/gemini', generateWithGemini);
+router.post('/generate-gemini', authenticateAdmin, generateWithGemini);
 
 // Segmentação avançada
 router.get('/segmentation/stats', getSegmentationStats);
@@ -117,5 +121,9 @@ router.post('/hashtag-analysis', analyzeHashtagPerformance);
 
 // Buscar hashtags em tendência
 router.get('/trending-hashtags', getTrendingHashtags);
+
+router.post('/generate-image', generateImageWithFreepik);
+
+router.post('/generate-video', generateVideoWithFreepik);
 
 export default router; 

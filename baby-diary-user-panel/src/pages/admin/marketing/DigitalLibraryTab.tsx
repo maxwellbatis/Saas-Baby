@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { Sparkles, MessageSquare, Send, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
 import ReactMarkdown from 'react-markdown';
+import { Button } from '../../../components/ui/button';
+import { apiFetch } from '../../../config/api';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
 
 interface DigitalLibraryTabProps {
   posts: any[];
@@ -70,25 +73,61 @@ export const DigitalLibraryTab: React.FC<DigitalLibraryTabProps> = ({
     arguments: '',
     links: ''
   });
-
-  const quickSuggestions = {
-    posts: [
-      "💡 Ideias de posts para engajar mães",
-      "📈 Estratégia de conteúdo para vendas",
-      "🎯 Funil de vendas para posts",
-      "📱 Posts para Instagram/Facebook",
-      "🔥 Posts virais para mães",
-      "💰 Posts para converter em vendas"
-    ],
-    ads: [
-      "🎯 Segmentação para anúncios",
-      "💰 Estratégia de orçamento",
-      "📊 Otimização de campanhas",
-      "🎨 Ideias de criativos",
-      "📈 Funil de conversão",
-      "🔥 Anúncios de alta performance"
-    ]
-  };
+  const [iaModalOpen, setIaModalOpen] = useState(false);
+  const [iaType, setIaType] = useState<'image' | 'video' | 'text'>('image');
+  const [iaPrompt, setIaPrompt] = useState('');
+  const [iaResult, setIaResult] = useState<any>(null);
+  const [iaLoading, setIaLoading] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [iaPromptMode, setIaPromptMode] = useState<'text' | 'prompt-image' | 'prompt-video'>('text');
+  const [suggestedPrompt, setSuggestedPrompt] = useState<string | null>(null);
+  const [targetAudience, setTargetAudience] = useState('gestante');
+  const [feature, setFeature] = useState('memorias');
+  const [visualStyle, setVisualStyle] = useState('realista');
+  const [videoFormat, setVideoFormat] = useState('quadrado');
+  const [videoDuration, setVideoDuration] = useState('10');
+  const [mainColor, setMainColor] = useState('tons pastéis');
+  const [scene, setScene] = useState('casa');
+  const quickThemes = [
+    { label: 'Dica de amamentação', value: 'dica_amamentacao' },
+    { label: 'Rotina do sono', value: 'rotina_sono' },
+    { label: 'Registrar consultas', value: 'consultas' },
+    { label: 'Promoção na loja', value: 'promocao_loja' },
+    { label: 'Registrar vacinas', value: 'vacinas' },
+    { label: 'Acompanhamento de marcos', value: 'marcos' },
+    { label: 'Registrar memórias', value: 'memorias' },
+    { label: 'Dica de saúde', value: 'dica_saude' },
+  ];
+  const featuresList = [
+    { label: 'Memórias', value: 'memorias' },
+    { label: 'Marcos', value: 'marcos' },
+    { label: 'Consultas', value: 'consultas' },
+    { label: 'Loja', value: 'loja' },
+    { label: 'Vacinas', value: 'vacinas' },
+    { label: 'Dicas de saúde', value: 'dica_saude' },
+  ];
+  const audienceList = [
+    { label: 'Gestante', value: 'gestante' },
+    { label: 'Mãe de bebê', value: 'mae_bebe' },
+    { label: 'Mãe de criança', value: 'mae_crianca' },
+  ];
+  const visualStyles = [
+    'realista', 'cartoon', 'flat', 'aquarela', 'minimalista', '3D', 'colagem', 'infográfico'
+  ];
+  const videoFormats = [
+    { label: 'Quadrado (1:1)', value: 'quadrado' },
+    { label: 'Vertical (9:16)', value: 'vertical' },
+    { label: 'Horizontal (16:9)', value: 'horizontal' },
+    { label: 'Stories', value: 'stories' },
+    { label: 'Reels', value: 'reels' },
+  ];
+  const durations = ['5', '10', '15', '30', '60'];
+  const mainColors = [
+    'tons pastéis', 'vibrantes', 'azul', 'rosa', 'verde', 'amarelo', 'colorido', 'neutro'
+  ];
+  const scenes = [
+    'casa', 'parque', 'consultório', 'quarto do bebê', 'cozinha', 'ar livre', 'sala de estar', 'escola'
+  ];
 
   const handleSendMessage = async (type: string) => {
     const message = chatInput[type];
@@ -233,10 +272,451 @@ export const DigitalLibraryTab: React.FC<DigitalLibraryTabProps> = ({
     setExpandedChat(expandedChat === type ? null : type);
   };
 
+  // Gerar imagem com IA (Freepik)
+  const handleGenerateImage = async () => {
+    setIaType('image');
+    setIaPrompt('');
+    setIaResult(null);
+    setIaModalOpen(true);
+  };
+  const handleConfirmGenerateImage = async () => {
+    setIaLoading(true);
+    try {
+      const res = await apiFetch('admin/marketing/generate-image', {
+        method: 'POST',
+        body: JSON.stringify({ prompt: iaPrompt }),
+      });
+      setIaResult({ type: 'image', url: res.imageUrl });
+    } catch (err) {
+      toast({ title: 'Erro ao gerar imagem', variant: 'destructive' });
+    } finally {
+      setIaLoading(false);
+    }
+  };
+
+  // Upload de imagem para animar
+  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Aqui você pode integrar com Cloudinary ou backend, por enquanto só preview local
+    const url = URL.createObjectURL(file);
+    setUploadedImage(url);
+    setIaResult({ type: 'image', url });
+  };
+
+  // Gerar vídeo com IA (Freepik)
+  const handleGenerateVideo = async () => {
+    setIaType('video');
+    setIaPrompt('');
+    setIaResult(null);
+    setIaModalOpen(true);
+  };
+  const handleConfirmGenerateVideo = async () => {
+    setIaLoading(true);
+    try {
+      const res = await apiFetch('admin/marketing/generate-video', {
+        method: 'POST',
+        body: JSON.stringify({ prompt: iaPrompt, duration: '5' }),
+      });
+      setIaResult({ type: 'video', url: res.videoUrl });
+    } catch (err) {
+      toast({ title: 'Erro ao gerar vídeo', variant: 'destructive' });
+    } finally {
+      setIaLoading(false);
+    }
+  };
+
+  // Animar imagem (gerar vídeo a partir de imagem)
+  const handleAnimateImage = async () => {
+    if (!iaResult?.url && !uploadedImage) return;
+    setIaLoading(true);
+    try {
+      const res = await apiFetch('admin/marketing/generate-video', {
+        method: 'POST',
+        body: JSON.stringify({ image: iaResult?.url || uploadedImage, duration: '5' }),
+      });
+      setIaResult({ type: 'video', url: res.videoUrl });
+    } catch (err) {
+      toast({ title: 'Erro ao animar imagem', variant: 'destructive' });
+    } finally {
+      setIaLoading(false);
+    }
+  };
+
+  // Gerar texto/copy com IA (Gemini)
+  const handleGenerateText = async () => {
+    setIaType('text');
+    setIaPrompt('');
+    setIaResult(null);
+    setIaModalOpen(true);
+  };
+  const handleConfirmGenerateText = async () => {
+    setIaLoading(true);
+    try {
+      const res = await apiFetch('admin/marketing/generate-gemini', {
+        method: 'POST',
+        body: JSON.stringify({ prompt: iaPrompt }),
+      });
+      setIaResult({ type: 'text', text: res.content });
+    } catch (err) {
+      toast({ title: 'Erro ao gerar texto', variant: 'destructive' });
+    } finally {
+      setIaLoading(false);
+    }
+  };
+
+  // Gerar prompt para imagem com Gemini
+  const handleGeneratePromptImage = async () => {
+    setIaPromptMode('prompt-image');
+    setIaPrompt('');
+    setSuggestedPrompt(null);
+    setIaModalOpen(true);
+  };
+  const handleConfirmGeneratePromptImage = async () => {
+    setIaLoading(true);
+    try {
+      const res = await apiFetch('admin/marketing/generate-gemini', {
+        method: 'POST',
+        body: JSON.stringify({ prompt: iaPrompt, mode: 'prompt-image' }),
+      });
+      setSuggestedPrompt(res.prompt);
+    } catch (err) {
+      toast({ title: 'Erro ao gerar prompt para imagem', variant: 'destructive' });
+    } finally {
+      setIaLoading(false);
+    }
+  };
+
+  // Gerar prompt para vídeo com Gemini
+  const handleGeneratePromptVideo = async () => {
+    setIaPromptMode('prompt-video');
+    setIaPrompt('');
+    setSuggestedPrompt(null);
+    setIaModalOpen(true);
+  };
+  const handleConfirmGeneratePromptVideo = async () => {
+    setIaLoading(true);
+    try {
+      const res = await apiFetch('admin/marketing/generate-gemini', {
+        method: 'POST',
+        body: JSON.stringify({ prompt: iaPrompt, mode: 'prompt-video' }),
+      });
+      setSuggestedPrompt(res.prompt);
+    } catch (err) {
+      toast({ title: 'Erro ao gerar prompt para vídeo', variant: 'destructive' });
+    } finally {
+      setIaLoading(false);
+    }
+  };
+
+  // Usar prompt sugerido para gerar imagem/vídeo
+  const handleUseSuggestedPrompt = async () => {
+    if (iaPromptMode === 'prompt-image' && suggestedPrompt) {
+      setIaType('image');
+      setIaPrompt(suggestedPrompt);
+      setIaResult(null);
+      setIaModalOpen(false);
+      // Gera imagem automaticamente
+      setIaLoading(true);
+      try {
+        const res = await apiFetch('admin/marketing/generate-image', {
+          method: 'POST',
+          body: JSON.stringify({ prompt: suggestedPrompt }),
+        });
+        setIaResult({ type: 'image', url: res.imageUrl });
+      } catch (err) {
+        toast({ title: 'Erro ao gerar imagem', variant: 'destructive' });
+      } finally {
+        setIaLoading(false);
+      }
+    } else if (iaPromptMode === 'prompt-video' && suggestedPrompt) {
+      setIaType('video');
+      setIaPrompt(suggestedPrompt);
+      setIaResult(null);
+      setIaModalOpen(false);
+      // Gera vídeo automaticamente
+      setIaLoading(true);
+      try {
+        const res = await apiFetch('admin/marketing/generate-video', {
+          method: 'POST',
+          body: JSON.stringify({ prompt: suggestedPrompt, duration: '5' }),
+        });
+        setIaResult({ type: 'video', url: res.videoUrl });
+      } catch (err) {
+        toast({ title: 'Erro ao gerar vídeo', variant: 'destructive' });
+      } finally {
+        setIaLoading(false);
+      }
+    }
+  };
+
+  // Salvar na biblioteca (exemplo para post)
+  const handleSaveToLibrary = (type: string) => {
+    if (iaResult?.type === 'image') {
+      setForm({ ...form, imageUrl: iaResult.url });
+      setDigitalLibraryType(type);
+      setShowModal(true);
+    } else if (iaResult?.type === 'video') {
+      setForm({ ...form, videoUrl: iaResult.url });
+      setDigitalLibraryType(type);
+      setShowModal(true);
+    } else if (iaResult?.type === 'text') {
+      setForm({ ...form, description: iaResult.text });
+      setDigitalLibraryType(type);
+      setShowModal(true);
+    }
+    setIaModalOpen(false);
+  };
+
+  // Função para montar prompt personalizado com automações
+  const buildPrompt = (base: string) => {
+    let audienceText = '';
+    if (targetAudience === 'gestante') audienceText = 'para gestantes';
+    else if (targetAudience === 'mae_bebe') audienceText = 'para mães de bebês';
+    else if (targetAudience === 'mae_crianca') audienceText = 'para mães de crianças pequenas';
+    let featureText = '';
+    const featureObj = featuresList.find(f => f.value === feature);
+    if (featureObj) featureText = `, destacando a funcionalidade de ${featureObj.label.toLowerCase()} do aplicativo Baby Diary`;
+    let styleText = visualStyle ? `, estilo ${visualStyle}` : '';
+    let colorText = mainColor ? `, cores predominantes: ${mainColor}` : '';
+    let sceneText = scene ? `, cenário: ${scene}` : '';
+    let formatText = '';
+    let durationText = '';
+    if (base.toLowerCase().includes('vídeo')) {
+      formatText = videoFormat ? `, formato ${videoFormat}` : '';
+      durationText = videoDuration ? `, duração de ${videoDuration} segundos` : '';
+    } else if (base.toLowerCase().includes('imagem')) {
+      formatText = videoFormat ? `, formato ${videoFormat}` : '';
+    }
+    return `${base} ${audienceText}${featureText}${styleText}${colorText}${sceneText}${formatText}${durationText}`;
+  };
+
+  // Sugestão rápida preenche prompt e IA
+  const handleQuickTheme = (themeValue: string) => {
+    let themeText = '';
+    switch (themeValue) {
+      case 'dica_amamentacao': themeText = 'Dica de amamentação'; break;
+      case 'rotina_sono': themeText = 'Rotina do sono do bebê'; break;
+      case 'consultas': themeText = 'Como registrar consultas médicas no app'; break;
+      case 'promocao_loja': themeText = 'Promoção especial na loja do app'; break;
+      case 'vacinas': themeText = 'Como registrar vacinas no app'; break;
+      case 'marcos': themeText = 'Acompanhamento de marcos do desenvolvimento'; break;
+      case 'memorias': themeText = 'Como registrar memórias no app'; break;
+      case 'dica_saude': themeText = 'Dica de saúde para mamães'; break;
+      default: themeText = '';
+    }
+    setIaPrompt(buildPrompt(`Crie um post para Instagram sobre: ${themeText}`));
+    setIaType('text');
+    setIaPromptMode('text');
+    setIaModalOpen(true);
+  };
+
   return (
     <div>
       <h2 className="text-xl font-bold mb-4">Biblioteca Digital</h2>
       
+      {/* Bloco Criação de Conteúdo com IA */}
+      <div className="mb-8 p-4 border rounded-lg bg-blue-50">
+        <h3 className="font-bold text-lg mb-2 text-blue-700">Criação de Conteúdo com IA</h3>
+        {/* Novo fluxo: seleção de público-alvo e funcionalidade */}
+        <div className="flex flex-wrap gap-4 mb-2 items-center">
+          <div>
+            <span className="text-sm font-medium mr-2">Público-alvo:</span>
+            {audienceList.map(aud => (
+              <button
+                key={aud.value}
+                className={`px-2 py-1 rounded text-xs mr-1 ${targetAudience === aud.value ? 'bg-blue-600 text-white' : 'bg-white border'}`}
+                onClick={() => setTargetAudience(aud.value)}
+              >
+                {aud.label}
+              </button>
+            ))}
+          </div>
+          <div>
+            <span className="text-sm font-medium mr-2">Funcionalidade:</span>
+            <select
+              className="border rounded px-2 py-1 text-xs"
+              value={feature}
+              onChange={e => setFeature(e.target.value)}
+            >
+              {featuresList.map(f => (
+                <option key={f.value} value={f.value}>{f.label}</option>
+              ))}
+            </select>
+          </div>
+          {/* Estilo visual */}
+          <div>
+            <span className="text-sm font-medium mr-2">Estilo visual:</span>
+            <select
+              className="border rounded px-2 py-1 text-xs"
+              value={visualStyle}
+              onChange={e => setVisualStyle(e.target.value)}
+            >
+              {visualStyles.map(style => (
+                <option key={style} value={style}>{style.charAt(0).toUpperCase() + style.slice(1)}</option>
+              ))}
+            </select>
+          </div>
+          {/* Formato de vídeo/imagem */}
+          <div>
+            <span className="text-sm font-medium mr-2">Formato:</span>
+            <select
+              className="border rounded px-2 py-1 text-xs"
+              value={videoFormat}
+              onChange={e => setVideoFormat(e.target.value)}
+            >
+              {videoFormats.map(f => (
+                <option key={f.value} value={f.value}>{f.label}</option>
+              ))}
+            </select>
+          </div>
+          {/* Duração (só para vídeo) */}
+          <div>
+            <span className="text-sm font-medium mr-2">Duração (s):</span>
+            <select
+              className="border rounded px-2 py-1 text-xs"
+              value={videoDuration}
+              onChange={e => setVideoDuration(e.target.value)}
+            >
+              {durations.map(d => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+          </div>
+          {/* Cor predominante */}
+          <div>
+            <span className="text-sm font-medium mr-2">Cor:</span>
+            <select
+              className="border rounded px-2 py-1 text-xs"
+              value={mainColor}
+              onChange={e => setMainColor(e.target.value)}
+            >
+              {mainColors.map(c => (
+                <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+              ))}
+            </select>
+          </div>
+          {/* Cenário/ambiente */}
+          <div>
+            <span className="text-sm font-medium mr-2">Cenário:</span>
+            <select
+              className="border rounded px-2 py-1 text-xs"
+              value={scene}
+              onChange={e => setScene(e.target.value)}
+            >
+              {scenes.map(s => (
+                <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        {/* Sugestões rápidas de temas */}
+        <div className="mb-2 flex flex-wrap gap-2">
+          <span className="text-xs text-gray-500 mr-2">Sugestões rápidas:</span>
+          {quickThemes.map(theme => (
+            <button
+              key={theme.value}
+              className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs hover:bg-purple-200"
+              onClick={() => handleQuickTheme(theme.value)}
+            >
+              {theme.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-2 mb-2">
+          <Button onClick={() => {
+            setIaType('image');
+            setIaPrompt(buildPrompt('Crie uma imagem para Instagram'));
+            setIaPromptMode('text');
+            setIaModalOpen(true);
+          }}>Gerar Imagem com IA</Button>
+          <Button onClick={() => {
+            setIaType('video');
+            setIaPrompt(buildPrompt('Crie um vídeo para Instagram'));
+            setIaPromptMode('text');
+            setIaModalOpen(true);
+          }}>Gerar Vídeo com IA</Button>
+          <Button onClick={() => { setIaType('text'); setIaPrompt(''); setIaPromptMode('text'); setIaModalOpen(true); }}>Gerar Texto/Copy com IA (Gemini)</Button>
+          <Button onClick={handleGeneratePromptImage} variant="secondary">Gerar prompt para imagem (Gemini)</Button>
+          <Button onClick={handleGeneratePromptVideo} variant="secondary">Gerar prompt para vídeo (Gemini)</Button>
+          <label className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer">
+            Upload Imagem
+            <input type="file" accept="image/*" hidden onChange={handleUploadImage} />
+          </label>
+          <Button onClick={handleAnimateImage} disabled={!iaResult?.url && !uploadedImage}>
+            Animar Imagem (Vídeo IA)
+          </Button>
+        </div>
+        {/* Preview IA */}
+        {iaResult && (
+          <div className="mt-4">
+            {iaResult.type === 'image' && (
+              <img src={iaResult.url} alt="Preview IA" className="w-full max-w-xs rounded shadow mb-2" />
+            )}
+            {iaResult.type === 'video' && (
+              <video src={iaResult.url} controls className="w-full max-w-xs rounded shadow mb-2" />
+            )}
+            {iaResult.type === 'text' && (
+              <div className="bg-white p-3 rounded shadow mb-2 whitespace-pre-line">{iaResult.text}</div>
+            )}
+            <div className="flex gap-2">
+              <Button onClick={() => handleSaveToLibrary('post')}>Salvar como Post</Button>
+              <Button onClick={() => handleSaveToLibrary('video')}>Salvar como Vídeo</Button>
+              <Button onClick={() => handleSaveToLibrary('ad')}>Salvar como Anúncio</Button>
+              <Button onClick={() => handleSaveToLibrary('creative')}>Salvar como Criativo</Button>
+            </div>
+          </div>
+        )}
+      </div>
+      {/* Modal para prompt IA */}
+      <Dialog open={iaModalOpen} onOpenChange={setIaModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {iaPromptMode === 'prompt-image' && 'Gerar prompt para imagem (Gemini)'}
+              {iaPromptMode === 'prompt-video' && 'Gerar prompt para vídeo (Gemini)'}
+              {iaType === 'image' && iaPromptMode === 'text' && 'Gerar Imagem com IA'}
+              {iaType === 'video' && iaPromptMode === 'text' && 'Gerar Vídeo com IA'}
+              {iaType === 'text' && iaPromptMode === 'text' && 'Gerar Texto/Copy com IA (Gemini)'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">{iaPromptMode === 'prompt-image' ? 'Descreva a ideia da imagem' : iaPromptMode === 'prompt-video' ? 'Descreva a ideia do vídeo' : 'Prompt'}</label>
+            <input
+              className="w-full border rounded p-2"
+              value={iaPrompt}
+              onChange={e => setIaPrompt(e.target.value)}
+              placeholder={iaPromptMode === 'prompt-image' ? 'Ex: Post sobre alimentação saudável para bebês' : iaPromptMode === 'prompt-video' ? 'Ex: Vídeo sobre rotina do sono do bebê' : 'Descreva o que deseja gerar...'}
+              disabled={iaLoading}
+            />
+          </div>
+          {/* Exibir prompt sugerido se houver */}
+          {suggestedPrompt && (
+            <div className="mb-4 bg-gray-100 p-3 rounded">
+              <div className="text-xs text-gray-500 mb-1">Prompt sugerido:</div>
+              <div className="font-mono text-sm mb-2">{suggestedPrompt}</div>
+              <Button onClick={handleUseSuggestedPrompt} className="mb-2">Usar este prompt para gerar {iaPromptMode === 'prompt-image' ? 'imagem' : 'vídeo'}</Button>
+            </div>
+          )}
+          <div className="flex gap-2">
+            {iaPromptMode === 'prompt-image' ? (
+              <Button onClick={handleConfirmGeneratePromptImage} disabled={iaLoading || !iaPrompt}>Gerar Prompt</Button>
+            ) : iaPromptMode === 'prompt-video' ? (
+              <Button onClick={handleConfirmGeneratePromptVideo} disabled={iaLoading || !iaPrompt}>Gerar Prompt</Button>
+            ) : (
+              <Button onClick={
+                iaType === 'image' ? handleConfirmGenerateImage :
+                iaType === 'video' ? handleConfirmGenerateVideo :
+                handleConfirmGenerateText
+              } disabled={iaLoading || !iaPrompt}>
+                Gerar
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => { setIaModalOpen(false); setSuggestedPrompt(null); }} disabled={iaLoading}>Cancelar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Seção de Posts */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
@@ -267,13 +747,13 @@ export const DigitalLibraryTab: React.FC<DigitalLibraryTabProps> = ({
             <div className="p-4 border-b bg-white">
               <p className="text-sm font-medium mb-2">💡 Sugestões rápidas:</p>
               <div className="flex flex-wrap gap-2">
-                {quickSuggestions.posts.map((suggestion, index) => (
+                {quickThemes.map((theme, index) => (
                   <button
                     key={index}
-                    onClick={() => handleQuickSuggestion('posts', suggestion)}
+                    onClick={() => handleQuickSuggestion('posts', theme.value)}
                     className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs hover:bg-purple-200"
                   >
-                    {suggestion}
+                    {theme.label}
                   </button>
                 ))}
               </div>
@@ -406,13 +886,13 @@ export const DigitalLibraryTab: React.FC<DigitalLibraryTabProps> = ({
             <div className="p-4 border-b bg-white">
               <p className="text-sm font-medium mb-2">💡 Sugestões rápidas:</p>
               <div className="flex flex-wrap gap-2">
-                {quickSuggestions.ads.map((suggestion, index) => (
+                {quickThemes.map((theme, index) => (
                   <button
                     key={index}
-                    onClick={() => handleQuickSuggestion('ads', suggestion)}
+                    onClick={() => handleQuickSuggestion('ads', theme.value)}
                     className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs hover:bg-purple-200"
                   >
-                    {suggestion}
+                    {theme.label}
                   </button>
                 ))}
               </div>

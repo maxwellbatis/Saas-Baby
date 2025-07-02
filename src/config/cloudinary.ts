@@ -1,21 +1,28 @@
 import { v2 as cloudinary } from 'cloudinary';
+import { PrismaClient } from '@prisma/client';
+import streamifier from 'streamifier';
 
-// Verificar se as variáveis de ambiente estão definidas
-const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-const apiKey = process.env.CLOUDINARY_API_KEY;
-const apiSecret = process.env.CLOUDINARY_API_SECRET;
+const prisma = new PrismaClient();
 
-// Configuração do Cloudinary
-if (cloudName && apiKey && apiSecret && cloudName.trim() !== '' && apiKey.trim() !== '' && apiSecret.trim() !== '') {
-  cloudinary.config({
-    cloud_name: cloudName,
-    api_key: apiKey,
-    api_secret: apiSecret,
-  });
-  console.log('✅ Cloudinary configurado com sucesso');
-} else {
-  console.log('⚠️ Cloudinary não configurado - verifique as variáveis de ambiente');
-  process.exit(1); // Para o servidor se não estiver configurado
+// Função para buscar as configs do .env
+export async function getCloudinaryConfig() {
+  return {
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME || '',
+    api_key: process.env.CLOUDINARY_API_KEY || '',
+    api_secret: process.env.CLOUDINARY_API_SECRET || '',
+  };
+}
+
+// Função para garantir configuração dinâmica antes de cada uso
+async function ensureCloudinaryConfigured() {
+  const config = await getCloudinaryConfig();
+  if (config.cloud_name && config.api_key && config.api_secret) {
+    cloudinary.config(config);
+    return true;
+  } else {
+    console.log('⚠️ Cloudinary não configurado - verifique as variáveis de ambiente ou integração');
+    return false;
+  }
 }
 
 // Função para fazer upload de mídia (imagem ou vídeo)
@@ -23,6 +30,7 @@ export const uploadMedia = async (
   file: Express.Multer.File,
   folder: string = 'baby-diary'
 ): Promise<{ url: string; publicId: string; secureUrl: string }> => {
+  await ensureCloudinaryConfigured();
   try {
     // Converter o buffer para base64
     const b64 = Buffer.from(file.buffer).toString('base64');
@@ -74,6 +82,7 @@ export const uploadImage = async (
 
 // Função para deletar imagem
 export const deleteImage = async (publicId: string): Promise<void> => {
+  await ensureCloudinaryConfigured();
   try {
     await cloudinary.uploader.destroy(publicId);
   } catch (error) {
@@ -92,6 +101,7 @@ export const optimizeImage = async (
     format?: string;
   } = {}
 ): Promise<string> => {
+  await ensureCloudinaryConfigured();
   try {
     const transformation = [];
     
@@ -113,11 +123,12 @@ export const optimizeImage = async (
 };
 
 // Função para gerar URL de preview
-export const generatePreviewUrl = (
+export const generatePreviewUrl = async (
   publicId: string,
   width: number = 300,
   height: number = 300
-): string => {
+): Promise<string> => {
+  await ensureCloudinaryConfigured();
   try {
     return cloudinary.url(publicId, {
       transformation: [
@@ -138,6 +149,7 @@ export const uploadMultipleImages = async (
   files: Express.Multer.File[],
   folder: string = 'baby-diary'
 ): Promise<Array<{ url: string; publicId: string; secureUrl: string }>> => {
+  await ensureCloudinaryConfigured();
   try {
     const uploadPromises = files.map(file => uploadImage(file, folder));
     const results = await Promise.all(uploadPromises);
@@ -147,5 +159,36 @@ export const uploadMultipleImages = async (
     throw new Error('Falha ao fazer upload das imagens');
   }
 };
+
+export async function uploadToCloudinary(buffer: Buffer, filename: string, type: string) {
+  // Garantir que o Cloudinary está configurado
+  const isConfigured = await ensureCloudinaryConfigured();
+  if (!isConfigured) {
+    throw new Error('Cloudinary não está configurado. Verifique as variáveis de ambiente.');
+  }
+
+  return new Promise<any>((resolve, reject) => {
+    let resourceType: 'video' | 'image' | 'auto' | 'raw' | undefined = 'auto';
+    if (type === 'image') resourceType = 'image';
+    else if (type === 'video') resourceType = 'video';
+    else if (type === 'pdf' || type === 'doc') resourceType = 'raw';
+    
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        resource_type: resourceType,
+        public_id: filename.split('.')[0],
+        folder: 'courses',
+        use_filename: true,
+        unique_filename: true,
+        overwrite: false
+      },
+      (error: any, result: any) => {
+        if (error) return reject(error);
+        resolve(result);
+      }
+    );
+    streamifier.createReadStream(buffer).pipe(uploadStream);
+  });
+}
 
 export default cloudinary; 

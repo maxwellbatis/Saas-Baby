@@ -243,6 +243,25 @@ export class EmailService {
   }
 
   /**
+   * Envia email de incentivo para upgrade de plano
+   */
+  async sendUpgradeIncentiveEmail(data: { email: string, name: string, planName: string, upgradeLink: string }): Promise<boolean> {
+    const templateData = {
+      name: data.name,
+      plan_name: data.planName,
+      upgrade_link: data.upgradeLink,
+      support_email: EMAIL_CONFIG.replyTo,
+      app_name: 'Baby Diary'
+    };
+    return this.sendTemplateEmail({
+      to: data.email,
+      subject: `Desbloqueie todos os recursos do Baby Diary – Faça upgrade para ${data.planName}!`,
+      templateId: EMAIL_TEMPLATES.UPGRADE_INCENTIVE,
+      dynamicTemplateData: templateData
+    });
+  }
+
+  /**
    * Verifica se o serviço está configurado
    */
   isEmailConfigured(): boolean {

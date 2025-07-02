@@ -26,6 +26,11 @@ import Business from "./pages/Business";
 import AcceptFamilyInvite from './pages/AcceptFamilyInvite';
 import MeusPedidos from './pages/MeusPedidos';
 
+// Course pages
+import CoursesHome from './pages/courses/CoursesHome';
+import CourseDetail from './pages/courses/CourseDetail';
+import MyCourses from './pages/courses/MyCourses';
+
 // Admin pages
 import { AdminLogin } from "./pages/admin/AdminLogin";
 import { AdminDashboard } from "./pages/admin/AdminDashboard";
@@ -39,6 +44,7 @@ import { AdminSettings } from "./pages/admin/AdminSettings";
 import { AdminMilestones } from "./pages/admin/AdminMilestones";
 import { AdminMarketing } from "./pages/admin/AdminMarketing";
 import { AdminPedidos } from "./pages/admin/AdminPedidos";
+import { AdminCourses } from "./pages/admin/AdminCourses";
 import LojaRoutes from './pages/loja';
 import AdminLoja from './pages/admin/loja';
 
@@ -75,6 +81,9 @@ function App() {
                     <Route path="/rewards" element={<ProtectedRoute requireBaby={false}><Rewards /></ProtectedRoute>} />
                     <Route path="/settings" element={<ProtectedRoute requireBaby={false}><Settings /></ProtectedRoute>} />
                     <Route path="/meus-pedidos" element={<ProtectedRoute requireBaby={false}><MeusPedidos /></ProtectedRoute>} />
+                    <Route path="/courses" element={<ProtectedRoute requireBaby={false}><CoursesHome /></ProtectedRoute>} />
+                    <Route path="/courses/:id" element={<ProtectedRoute requireBaby={false}><CourseDetail /></ProtectedRoute>} />
+                    <Route path="/my-courses" element={<ProtectedRoute requireBaby={false}><MyCourses /></ProtectedRoute>} />
                     <Route path="/loja/*" element={<ProtectedRoute requireBaby={false}><LojaRoutes /></ProtectedRoute>} />
 
                     {/* Rotas do painel administrativo */}
@@ -88,6 +97,7 @@ function App() {
                     <Route path="/admin/notifications" element={<ProtectedAdminRoute><AdminLayout><AdminNotifications /></AdminLayout></ProtectedAdminRoute>} />
                     <Route path="/admin/settings" element={<ProtectedAdminRoute><AdminLayout><AdminSettings /></AdminLayout></ProtectedAdminRoute>} />
                     <Route path="/admin/marketing" element={<ProtectedAdminRoute><AdminLayout><AdminMarketing /></AdminLayout></ProtectedAdminRoute>} />
+                    <Route path="/admin/courses" element={<ProtectedAdminRoute><AdminLayout><AdminCourses /></AdminLayout></ProtectedAdminRoute>} />
                     <Route path="/admin/loja" element={<ProtectedAdminRoute><AdminLayout><AdminLoja /></AdminLayout></ProtectedAdminRoute>} />
                     <Route path="/admin/pedidos" element={<ProtectedAdminRoute><AdminLayout><AdminPedidos /></AdminLayout></ProtectedAdminRoute>} />
 

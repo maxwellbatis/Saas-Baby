@@ -25,5 +25,6 @@ export const EMAIL_TEMPLATES = {
   WELCOME: process.env.SENDGRID_TEMPLATE_WELCOME || 'd-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
   SUBSCRIPTION_CONFIRMED: process.env.SENDGRID_TEMPLATE_SUBSCRIPTION || 'd-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
   FAMILY_INVITE: process.env.SENDGRID_TEMPLATE_FAMILY_INVITE || 'd-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-  MILESTONE_REMINDER: process.env.SENDGRID_TEMPLATE_MILESTONE || 'd-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+  MILESTONE_REMINDER: process.env.SENDGRID_TEMPLATE_MILESTONE || 'd-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  UPGRADE_INCENTIVE: process.env.SENDGRID_TEMPLATE_UPGRADE_INCENTIVE || 'd-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 }; 

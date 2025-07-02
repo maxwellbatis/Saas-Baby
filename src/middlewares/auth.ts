@@ -431,4 +431,39 @@ export const checkAILimit = async (
   } catch (error) {
     return res.status(500).json({ success: false, error: 'Erro ao verificar limite de IA.' });
   }
+};
+
+// Middleware opcional para autenticar usuário (não retorna erro se não houver token)
+export const optionalAuthenticateUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return next();
+    }
+    const token = extractTokenFromHeader(authHeader);
+    if (!token) {
+      return next();
+    }
+    const decoded = verifyToken(token);
+    if (decoded.role !== 'user') {
+      return next();
+    }
+    // Verificar se o usuário ainda existe e está ativo
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: { id: true, email: true, isActive: true },
+    });
+    if (!user || !user.isActive) {
+      return next();
+    }
+    req.user = decoded;
+    next();
+  } catch (error) {
+    // Se o token for inválido, apenas segue sem req.user
+    next();
+  }
 }; 

@@ -1,4 +1,4 @@
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
@@ -56,7 +56,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { getBgClass, getGradientClass } = useTheme();
-  const { user, babies, isLoading, isAuthenticated, hasBaby, isPregnancyMode, refetch } = useAuth();
+  const { user, babies, isLoading, isAuthenticated, hasBaby, isPregnancyMode, refetch, error } = useAuth();
   const { toast } = useToast();
   const { gamification, loading: gamificationLoading, fetchGamificationData } = useGamification();
 
@@ -391,8 +391,7 @@ const Dashboard = () => {
     aiRewards: [],
   } : null;
 
-  // Mostra loading enquanto carrega os dados
-  if (isLoadingSuggested || loadingStats) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -401,6 +400,18 @@ const Dashboard = () => {
         </div>
       </div>
     );
+  }
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 font-semibold">Erro de autenticação. Faça login novamente.</p>
+        </div>
+      </div>
+    );
+  }
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
   }
 
   const menuItems = [

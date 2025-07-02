@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { messaging } from "@/firebase";
 import { getToken } from "firebase/messaging";
+import { API_CONFIG } from '../config/api';
 
 const VAPID_KEY = "BJQCG3gllMVXza6KvglLt0X8rmryVH1XLQzDHM8w1bTllJLP3RHa5C6VEMNlmA7DR0m-qgYa-dRBpRaeeRjhcNg";
 
@@ -14,7 +15,7 @@ async function registerPushToken() {
       const body = { token, platform: "web", deviceInfo: {} };
       console.log('[Push] Corpo da requisição:', body);
       // ATENÇÃO: Em produção, tornar esta URL dinâmica!
-      const response = await fetch("http://localhost:3000/api/notifications/register-token", {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/notifications/register-token`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

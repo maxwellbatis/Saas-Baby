@@ -30,6 +30,7 @@ import MeusPedidos from './pages/MeusPedidos';
 import CoursesHome from './pages/courses/CoursesHome';
 import CourseDetail from './pages/courses/CourseDetail';
 import MyCourses from './pages/courses/MyCourses';
+import AuthPage from './pages/courses/AuthPage';
 
 // Admin pages
 import { AdminLogin } from "./pages/admin/AdminLogin";
@@ -70,6 +71,8 @@ function App() {
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/business" element={<Business />} />
                     <Route path="/accept-family-invite" element={<AcceptFamilyInvite />} />
+                    {/* ROTA DE LOGIN/CADASTRO MAXFLIX (PÚBLICA) */}
+                    <Route path="/courses/auth" element={<AuthPage />} />
 
                     {/* Rotas protegidas do usuário */}
                     <Route path="/onboarding" element={<ProtectedRoute requireBaby={false}><Onboarding /></ProtectedRoute>} />

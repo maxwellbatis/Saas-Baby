@@ -2998,6 +2998,7 @@ router.get('/courses', async (req: Request, res: Response) => {
 router.get('/courses/:id', authenticateUser, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const userId = req.user!.userId;
     
     const course = await prisma.course.findUnique({
       where: { id },
@@ -3018,25 +3019,47 @@ router.get('/courses/:id', authenticateUser, async (req: Request, res: Response)
       return res.status(404).json({ success: false, error: 'Curso não encontrado' });
     }
 
+    // Buscar progresso do usuário para todas as aulas do curso
+    const userLessonsProgress = await prisma.userCourseProgress.findMany({
+      where: {
+        userId,
+        courseId: id,
+        lessonId: { not: null }
+      }
+    });
+    const completedLessonsSet = new Set(
+      userLessonsProgress.filter(p => p.status === 'completed').map(p => p.lessonId)
+    );
+
+    // Calcular progresso
+    const allLessons = course.modules.flatMap(m => m.lessons);
+    const totalLessons = allLessons.length;
+    const completedCount = allLessons.filter(lesson => completedLessonsSet.has(lesson.id)).length;
+    const progress = totalLessons > 0 ? Math.floor((completedCount / totalLessons) * 100) : 0;
+
+    // Adicionar isCompleted em cada aula
+    const modulesWithProgress = course.modules.map(module => ({
+      ...module,
+      lessons: module.lessons.map(lesson => ({
+        ...lesson,
+        isCompleted: completedLessonsSet.has(lesson.id)
+      }))
+    }));
+
     // Verificar se usuário está inscrito
     const enrollment = await prisma.userCourseProgress.findFirst({
       where: {
-        userId: req.user!.userId,
-        courseId: id
+        userId,
+        courseId: id,
+        lessonId: null
       }
     });
 
-    // Adicionar status de conclusão das aulas
     const courseWithProgress = {
       ...course,
       isEnrolled: !!enrollment,
-      modules: course.modules.map(module => ({
-        ...module,
-        lessons: module.lessons.map(lesson => ({
-          ...lesson,
-          isCompleted: enrollment?.status === 'completed' || false
-        }))
-      }))
+      progress,
+      modules: modulesWithProgress
     };
 
     res.json({ success: true, data: courseWithProgress });
@@ -3096,6 +3119,7 @@ router.post('/courses/:id/enroll', authenticateUser, async (req: Request, res: R
 router.post('/courses/lessons/:id/complete', authenticateUser, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const userId = req.user!.userId;
     
     // Verificar se a aula existe
     const lesson = await prisma.courseLesson.findUnique({
@@ -3116,8 +3140,9 @@ router.post('/courses/lessons/:id/complete', authenticateUser, async (req: Reque
     // Verificar se usuário está inscrito no curso
     const enrollment = await prisma.userCourseProgress.findFirst({
       where: {
-        userId: req.user!.userId,
-        courseId: lesson.module.course.id
+        userId,
+        courseId: lesson.module.course.id,
+        lessonId: null
       }
     });
 
@@ -3125,10 +3150,23 @@ router.post('/courses/lessons/:id/complete', authenticateUser, async (req: Reque
       return res.status(400).json({ success: false, error: 'Você precisa estar inscrito no curso' });
     }
 
-    // Atualizar progresso
-    await prisma.userCourseProgress.update({
-      where: { id: enrollment.id },
-      data: {
+    // Marcar aula como concluída (upsert)
+    await prisma.userCourseProgress.upsert({
+      where: {
+        userId_courseId_lessonId: {
+          userId,
+          courseId: lesson.module.course.id,
+          lessonId: lesson.id
+        }
+      },
+      update: {
+        status: 'completed',
+        progress: 100
+      },
+      create: {
+        userId,
+        courseId: lesson.module.course.id,
+        lessonId: lesson.id,
         status: 'completed',
         progress: 100
       }

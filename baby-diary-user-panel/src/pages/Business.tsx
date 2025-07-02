@@ -265,6 +265,33 @@ const faqList = [
   },
 ];
 
+// Prints do app para carrossel
+const appPrints = [
+  '/prints/app1.png',
+  '/prints/app2.png',
+  '/prints/app3.png',
+  '/prints/app4.png',
+];
+
+// Depoimentos fictícios
+const testimonials = [
+  {
+    name: 'Ana Souza',
+    avatar: '/avatars/ana.png',
+    text: 'Em 2 meses, transformei minha audiência em renda recorrente. O Baby Diary vende sozinho! Nunca vi um produto tão fácil de divulgar e tão desejado pelas mães.'
+  },
+  {
+    name: 'Marina Influencer',
+    avatar: '/avatars/marina.png',
+    text: 'O painel é completo, o suporte é incrível e o app é lindo. Já estou lucrando mais do que com qualquer outro infoproduto.'
+  },
+  {
+    name: 'Patrícia Empreendedora',
+    avatar: '/avatars/patricia.png',
+    text: 'Nunca imaginei que seria tão fácil criar meu próprio império digital. O Baby Diary faz tudo por mim!'
+  }
+];
+
 export default function Business() {
   const [content, setContent] = useState<BusinessPageContent | null>(null);
   const [loading, setLoading] = useState(true);
@@ -440,6 +467,81 @@ export default function Business() {
         </div>
       </section>
 
+      {/* Bloco IMPÉRIO DIGITAL */}
+      <section className="py-16 bg-gradient-to-r from-yellow-100 via-pink-50 to-purple-100 text-center animate-fade-in">
+        <h2 className="text-4xl md:text-5xl font-extrabold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 via-pink-600 to-purple-600 drop-shadow-lg">
+          Construa seu IMPÉRIO DIGITAL materno
+        </h2>
+        <p className="text-xl md:text-2xl max-w-2xl mx-auto mb-6 text-gray-700">
+          O Baby Diary é um negócio que se vende sozinho: mães compartilham, recomendam e viralizam. Você só precisa ativar sua versão e assistir sua renda crescer mês a mês.
+        </p>
+        <div className="flex flex-col md:flex-row justify-center gap-8 mt-8">
+          <div className="flex-1 bg-white/80 rounded-xl shadow-lg p-8 animate-fade-in-up">
+            <h3 className="text-2xl font-bold mb-2 text-pink-700">Lucro Recorrente</h3>
+            <p className="text-lg text-gray-700 mb-2">Assinaturas mensais e anuais, vendas de cursos, loja integrada e comissões de afiliados.</p>
+            <p className="text-3xl font-extrabold text-green-600">Margem de até 90%</p>
+          </div>
+          <div className="flex-1 bg-white/80 rounded-xl shadow-lg p-8 animate-fade-in-up delay-100">
+            <h3 className="text-2xl font-bold mb-2 text-purple-700">Automação Total</h3>
+            <p className="text-lg text-gray-700 mb-2">O sistema faz tudo: onboarding, cobrança, entrega, marketing, suporte e upgrades automáticos.</p>
+            <p className="text-3xl font-extrabold text-blue-600">Venda 24/7 sem esforço</p>
+          </div>
+          <div className="flex-1 bg-white/80 rounded-xl shadow-lg p-8 animate-fade-in-up delay-200">
+            <h3 className="text-2xl font-bold mb-2 text-yellow-700">Escalabilidade Infinita</h3>
+            <p className="text-lg text-gray-700 mb-2">Cada nova mãe aumenta sua receita sem aumentar seu trabalho. Cresça sem limites!</p>
+            <p className="text-3xl font-extrabold text-yellow-600">+2,5 milhões de mães/ano</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Carrossel de prints do app */}
+      <section className="py-12 bg-white/90">
+        <h3 className="text-3xl font-bold mb-8 text-center text-pink-700">Veja o app por dentro</h3>
+        <div className="flex gap-4 overflow-x-auto px-4 md:px-16 pb-4 animate-fade-in">
+          {appPrints.map((src, i) => (
+            <img key={i} src={src} alt={`Print ${i+1}`} className="w-64 h-96 object-cover rounded-2xl shadow-lg transition-transform hover:scale-105" />
+          ))}
+        </div>
+      </section>
+
+      {/* Depoimentos */}
+      <section className="py-12 bg-gradient-to-r from-pink-50 to-blue-50 animate-fade-in">
+        <h3 className="text-3xl font-bold mb-8 text-center text-blue-700">O que dizem nossos parceiros</h3>
+        <div className="flex flex-col md:flex-row gap-8 max-w-4xl mx-auto">
+          {testimonials.map((t, i) => (
+            <Card key={i} className="p-6 flex-1 shadow-lg hover:shadow-2xl transition-all animate-fade-in-up delay-100">
+              <p className="text-lg italic mb-2">“{t.text}”</p>
+              <div className="flex items-center gap-2 mt-4">
+                <img src={t.avatar} alt={t.name} className="w-10 h-10 rounded-full" />
+                <span className="font-semibold">{t.name}</span>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* Formulário de lead rápido */}
+      <section className="py-12 bg-gradient-to-r from-yellow-50 to-pink-100 animate-fade-in">
+        <h3 className="text-3xl font-bold mb-4 text-center text-yellow-700">Receba uma proposta personalizada</h3>
+        <form className="max-w-lg mx-auto bg-white/80 rounded-xl shadow-lg p-8 flex flex-col gap-4 animate-fade-in-up" onSubmit={e => {e.preventDefault(); alert('Proposta enviada! Entraremos em contato.')}}>
+          <input type="text" placeholder="Seu nome" className="rounded-md border px-3 py-2" required />
+          <input type="email" placeholder="Seu e-mail" className="rounded-md border px-3 py-2" required />
+          <input type="tel" placeholder="WhatsApp" className="rounded-md border px-3 py-2" required />
+          <Button type="submit" className="h-12 bg-gradient-to-r from-yellow-400 to-pink-500 text-white font-bold">Quero minha proposta</Button>
+        </form>
+        <div className="flex justify-center gap-4 mt-6 animate-fade-in">
+          <a href="https://wa.me/5599999999999" target="_blank" rel="noopener noreferrer">
+            <Button className="bg-green-500 hover:bg-green-600 text-white">WhatsApp</Button>
+          </a>
+          <a href="https://www.instagram.com/babydiaryapp" target="_blank" rel="noopener noreferrer">
+            <Button className="bg-gradient-to-r from-pink-500 to-yellow-400 text-white">Instagram</Button>
+          </a>
+          <a href="https://www.facebook.com/babydiaryapp" target="_blank" rel="noopener noreferrer">
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white">Facebook</Button>
+          </a>
+        </div>
+      </section>
+
       {/* Bloco para Influenciadoras Maternas */}
       <section className="mb-12 py-10 bg-gradient-to-r from-pink-100 to-yellow-50 border-y-2 border-pink-200">
         <div className="max-w-3xl mx-auto flex flex-col items-center text-center">
@@ -522,7 +624,7 @@ export default function Business() {
         </div>
       </section>
 
-      {/* Vantagens de Negócio */}
+      {/* Seção de Benefícios de Negócio para Infoprodutores */}
       <section className="mb-12 py-12 bg-white/80">
         <h3 className="text-3xl font-bold mb-8 text-center text-blue-700">🚀 Benefícios de Negócio para Infoprodutores</h3>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
@@ -539,6 +641,34 @@ export default function Business() {
           ))}
         </div>
       </section>
+
+      {/* Bloco de destaque das funcionalidades premium */}
+      <div className="my-12 rounded-2xl bg-gradient-to-br from-red-900/80 to-black/90 p-8 shadow-xl border border-white/20 text-white flex flex-col md:flex-row gap-8 items-center">
+        <div className="flex-1 space-y-4">
+          <h2 className="text-3xl md:text-4xl font-extrabold mb-2 flex items-center gap-3">
+            <span className="inline-block bg-gradient-to-r from-red-500 to-pink-500 text-transparent bg-clip-text">Funcionalidades Premium</span>
+            <span className="inline-block px-3 py-1 bg-white/10 rounded-full text-sm font-bold border border-white/20">All-in-one</span>
+          </h2>
+          <p className="text-lg mb-4">Tudo o que você precisa para criar, vender e escalar seu império digital de cursos, comunidade e produtos para mães e experts.</p>
+          <ul className="space-y-3 text-base">
+            <li className="flex items-center gap-2"><span className="inline-block bg-gradient-to-r from-red-500 to-pink-500 rounded-full p-1"><svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="#fff" d="M9 17l-5-5 1.41-1.41L9 14.17l9.59-9.59L20 6l-11 11z"/></svg></span> <b>Área de Cursos/Membros estilo Netflix</b> com experiência Maxflix, vídeos, módulos, progresso e gamificação.</li>
+            <li className="flex items-center gap-2"><span className="inline-block bg-gradient-to-r from-red-500 to-pink-500 rounded-full p-1"><svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="#fff" d="M9 17l-5-5 1.41-1.41L9 14.17l9.59-9.59L20 6l-11 11z"/></svg></span> <b>Email marketing integrado</b> para automação de vendas, onboarding e relacionamento.</li>
+            <li className="flex items-center gap-2"><span className="inline-block bg-gradient-to-r from-red-500 to-pink-500 rounded-full p-1"><svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="#fff" d="M9 17l-5-5 1.41-1.41L9 14.17l9.59-9.59L20 6l-11 11z"/></svg></span> <b>Criação de conteúdo com IA</b> (posts, anúncios, argumentos, vídeos, imagens) usando Gemini e Groq.</li>
+            <li className="flex items-center gap-2"><span className="inline-block bg-gradient-to-r from-red-500 to-pink-500 rounded-full p-1"><svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="#fff" d="M9 17l-5-5 1.41-1.41L9 14.17l9.59-9.59L20 6l-11 11z"/></svg></span> <b>Geração de criativos automáticos</b> para redes sociais, anúncios e vídeos com IA.</li>
+            <li className="flex items-center gap-2"><span className="inline-block bg-gradient-to-r from-red-500 to-pink-500 rounded-full p-1"><svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="#fff" d="M9 17l-5-5 1.41-1.41L9 14.17l9.59-9.59L20 6l-11 11z"/></svg></span> <b>Painel admin completo</b> para gestão de cursos, alunos, vendas, marketing e conteúdo.</li>
+            <li className="flex items-center gap-2"><span className="inline-block bg-gradient-to-r from-red-500 to-pink-500 rounded-full p-1"><svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="#fff" d="M9 17l-5-5 1.41-1.41L9 14.17l9.59-9.59L20 6l-11 11z"/></svg></span> <b>Gamificação, comunidade e loja</b> para engajamento, fidelização e monetização.</li>
+            <li className="flex items-center gap-2"><span className="inline-block bg-gradient-to-r from-red-500 to-pink-500 rounded-full p-1"><svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="#fff" d="M9 17l-5-5 1.41-1.41L9 14.17l9.59-9.59L20 6l-11 11z"/></svg></span> <b>Automação de marketing e vendas</b> para escalar seu negócio sem equipe.</li>
+          </ul>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <span className="inline-block px-4 py-2 bg-white/10 rounded-full border border-white/20 text-sm">Plataforma 100% white-label</span>
+            <span className="inline-block px-4 py-2 bg-white/10 rounded-full border border-white/20 text-sm">Pronta para vender no automático</span>
+            <span className="inline-block px-4 py-2 bg-white/10 rounded-full border border-white/20 text-sm">Suporte a múltiplos produtos e cursos</span>
+          </div>
+        </div>
+        <div className="flex-1 flex justify-center items-center">
+          <img src="/prints/app1.png" alt="Área de membros estilo Netflix" className="rounded-xl shadow-2xl w-full max-w-xs border border-white/20" />
+        </div>
+      </div>
 
       {/* Funcionalidades para o Admin */}
       <section className="mb-12 py-12 bg-gradient-to-r from-pink-50 to-blue-100">

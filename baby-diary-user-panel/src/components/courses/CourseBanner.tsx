@@ -2,7 +2,7 @@ import React from 'react';
 
 export const CourseBanner: React.FC<{ course: any }> = ({ course }) => {
   return (
-    <div className="relative w-full h-[350px] md:h-[500px] flex items-end bg-black">
+    <div className="relative w-full h-[350px] md:h-[500px] flex items-end bg-gradient-to-br from-black/90 via-zinc-900/80 to-[#b91c1c]/80 border-b border-white/20 shadow-xl">
       <img
         src={course.thumbnail}
         alt={course.title}
@@ -14,10 +14,10 @@ export const CourseBanner: React.FC<{ course: any }> = ({ course }) => {
           {course.description}
         </p>
         <div className="flex gap-4">
-          <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded text-lg shadow">
+          <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded text-lg shadow border border-white/30">
             Assistir Agora
           </button>
-          <button className="bg-white bg-opacity-80 hover:bg-opacity-100 text-black font-bold py-2 px-6 rounded text-lg shadow">
+          <button className="bg-white bg-opacity-80 hover:bg-opacity-100 text-black font-bold py-2 px-6 rounded text-lg shadow border border-white/30">
             Saiba Mais
           </button>
         </div>

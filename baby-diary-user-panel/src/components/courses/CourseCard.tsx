@@ -1,16 +1,19 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export const CourseCard: React.FC<{ course: any }> = ({ course }) => {
+  const navigate = useNavigate();
   return (
-    <div className="relative w-40 md:w-56 flex-shrink-0 cursor-pointer group">
+    <div
+      className="relative aspect-[9/16] w-40 md:w-48 lg:w-56 flex-shrink-0 cursor-pointer group rounded-xl overflow-hidden transition-transform duration-200 hover:scale-105"
+      onClick={() => navigate(`/courses/${course.id}`)}
+      style={{ cursor: 'pointer' }}
+    >
       <img
         src={course.thumbnail}
         alt={course.title}
-        className="w-full h-60 md:h-80 object-cover rounded-lg group-hover:scale-105 transition-transform shadow-lg"
+        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
       />
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 rounded-b-lg">
-        <h3 className="text-white text-base font-bold truncate">{course.title}</h3>
-      </div>
     </div>
   );
 }; 

@@ -25,6 +25,11 @@ const ProtectedRoute = ({ children, requireBaby = true }: ProtectedRouteProps) =
 
   // Redireciona para login se não autenticado
   if (!isAuthenticated) {
+    // Se está acessando área de cursos, redireciona para login/cadastro Maxflix
+    if (location.pathname.startsWith("/courses")) {
+      return <Navigate to="/courses/auth" state={{ from: location }} replace />;
+    }
+    // Senão, login padrão do app
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

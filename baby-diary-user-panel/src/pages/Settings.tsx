@@ -266,7 +266,7 @@ const Settings = () => {
         <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 mb-8">
           <BackButton to="/dashboard" />
           <div>
-            <h1 className={`text-2xl sm:text-3xl font-bold bg-gradient-to-r ${theme === 'blue' ? 'from-blue-600 to-cyan-600' : 'from-pink-600 to-rose-600'} bg-clip-text text-transparent`}>
+            <h1 className={`text-2xl sm:text-3xl font-bold ${getGradientClass()} bg-clip-text text-transparent`}>
               Configurações
             </h1>
             <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_CONFIG } from '../../../config/api';
 
 export const AdminCourseEditor: React.FC<{ courseId?: string }> = ({ courseId }) => {
   const [course, setCourse] = useState<any>(null);
@@ -42,7 +43,7 @@ export const AdminCourseEditor: React.FC<{ courseId?: string }> = ({ courseId })
     const formData = new FormData();
     formData.append('file', file);
     formData.append('type', type);
-    const res = await fetch('/api/admin/courses/upload', { method: 'POST', body: formData });
+    const res = await fetch(`${API_CONFIG.BASE_URL}/admin/courses/upload`, { method: 'POST', body: formData });
     const data = await res.json();
     setUploading(false);
     if (type === 'image' && !cb) setForm((f: any) => ({ ...f, thumbnail: data.url }));

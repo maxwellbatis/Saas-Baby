@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
 import { adminCourses } from '../../lib/adminApi';
+import { API_CONFIG } from '../../config/api';
 
 interface Course {
   id: string;
@@ -282,20 +283,29 @@ export const AdminCourses: React.FC = () => {
       formData.append('file', materialForm.file);
       formData.append('type', materialForm.type);
       
-      const response = await adminCourses.uploadCourseFile(formData);
-      
-      await adminCourses.createCourseMaterial({
-        title: materialForm.title,
-        type: materialForm.type,
-        url: response.url,
-        size: materialForm.file.size,
-        lessonId: selectedLesson.id
+      const response = await fetch(`${API_CONFIG.BASE_URL}/admin/courses/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        body: formData
       });
       
-      toast({ title: 'Material enviado com sucesso!' });
-      setShowMaterialModal(false);
-      setMaterialForm({ title: '', type: 'pdf', file: null });
-      loadCourses();
+      const result = await response.json();
+      if (result.url) {
+        await adminCourses.createCourseMaterial({
+          title: materialForm.title,
+          type: materialForm.type,
+          url: result.url,
+          size: materialForm.file.size,
+          lessonId: selectedLesson.id
+        });
+        
+        toast({ title: 'Material enviado com sucesso!' });
+        setShowMaterialModal(false);
+        setMaterialForm({ title: '', type: 'pdf', file: null });
+        loadCourses();
+      }
     } catch (error) {
       toast({ title: 'Erro ao enviar material', description: 'Tente novamente', variant: 'destructive' });
     } finally {
@@ -650,21 +660,10 @@ export const AdminCourses: React.FC = () => {
                                     size="sm"
                                     onClick={() => {
                                       setSelectedLesson(lesson);
-                                      setMaterialForm({ title: '', type: 'pdf', file: null });
-                                      setShowMaterialModal(true);
-                                    }}
-                                  >
-                                    <Upload className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      setSelectedLesson(lesson);
                                       setLessonForm({
                                         title: lesson.title,
                                         description: lesson.description,
-                                        type: lesson.type,
+                                        type: lesson.type || (lesson.videoUrl ? 'video' : 'text'),
                                         content: lesson.content,
                                         videoUrl: lesson.videoUrl || '',
                                         thumbnail: lesson.thumbnail || '',
@@ -719,6 +718,123 @@ export const AdminCourses: React.FC = () => {
                                   ))}
                                 </div>
                               )}
+
+                              {(lessonForm.type === 'video' || lessonForm.videoUrl || lessonForm.thumbnail) && (
+                                <>
+                                  <div className="md:col-span-2">
+                                    <label className="text-sm font-medium">Vídeo da Aula</label>
+                                    <div className="mt-1 flex items-center gap-4">
+                                      {lessonForm.videoUrl && (
+                                        <div className="mb-2 flex items-center gap-2">
+                                          <video 
+                                            src={lessonForm.videoUrl} 
+                                            controls 
+                                            className="w-full max-w-md h-32 object-cover rounded border"
+                                          />
+                                          <Button type="button" variant="outline" size="sm" onClick={() => setLessonForm({ ...lessonForm, videoUrl: '' })}>
+                                            Remover vídeo
+                                          </Button>
+                                        </div>
+                                      )}
+                                      <input
+                                        type="file"
+                                        accept="video/*"
+                                        onChange={async (e) => {
+                                          const file = e.target.files?.[0];
+                                          if (file) {
+                                            try {
+                                              const formData = new FormData();
+                                              formData.append('file', file);
+                                              formData.append('type', 'video');
+                                              const response = await fetch(`${API_CONFIG.BASE_URL}/admin/courses/upload`, {
+                                                method: 'POST',
+                                                headers: {
+                                                  'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+                                                },
+                                                body: formData
+                                              });
+                                              const result = await response.json();
+                                              if (result.url) {
+                                                setLessonForm({ ...lessonForm, videoUrl: result.url });
+                                                e.target.value = '';
+                                              }
+                                            } catch (error) {
+                                              console.error('Erro ao fazer upload:', error);
+                                            }
+                                          }
+                                        }}
+                                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="md:col-span-2">
+                                    <label className="text-sm font-medium">Capa do Vídeo</label>
+                                    <div className="mt-1 flex items-center gap-4">
+                                      {lessonForm.thumbnail && (
+                                        <div className="mb-2 flex items-center gap-2">
+                                          <img 
+                                            src={lessonForm.thumbnail} 
+                                            alt="Capa do vídeo" 
+                                            className="w-32 h-20 object-cover rounded border"
+                                          />
+                                          <Button type="button" variant="outline" size="sm" onClick={() => setLessonForm({ ...lessonForm, thumbnail: '' })}>
+                                            Remover imagem
+                                          </Button>
+                                        </div>
+                                      )}
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={async (e) => {
+                                          const file = e.target.files?.[0];
+                                          if (file) {
+                                            try {
+                                              const formData = new FormData();
+                                              formData.append('file', file);
+                                              formData.append('type', 'image');
+                                              const response = await fetch(`${API_CONFIG.BASE_URL}/admin/courses/upload`, {
+                                                method: 'POST',
+                                                headers: {
+                                                  'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+                                                },
+                                                body: formData
+                                              });
+                                              const result = await response.json();
+                                              if (result.url) {
+                                                setLessonForm({ ...lessonForm, thumbnail: result.url });
+                                                e.target.value = '';
+                                              }
+                                            } catch (error) {
+                                              console.error('Erro ao fazer upload:', error);
+                                            }
+                                          }
+                                        }}
+                                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                      />
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+
+                              <div className="md:col-span-2">
+                                <label className="text-sm font-medium">Descrição</label>
+                                <Textarea
+                                  value={lessonForm.description}
+                                  onChange={(e) => setLessonForm({ ...lessonForm, description: e.target.value })}
+                                  placeholder="Descrição da aula"
+                                  rows={3}
+                                />
+                              </div>
+
+                              <div className="md:col-span-2">
+                                <label className="text-sm font-medium">Conteúdo</label>
+                                <Textarea
+                                  value={lessonForm.content}
+                                  onChange={(e) => setLessonForm({ ...lessonForm, content: e.target.value })}
+                                  placeholder="Conteúdo da aula (texto, HTML, etc.)"
+                                  rows={6}
+                                />
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -795,7 +911,7 @@ export const AdminCourses: React.FC = () => {
                         formData.append('file', file);
                         formData.append('type', 'image');
                         
-                        const response = await fetch('http://localhost:3000/api/admin/courses/upload', {
+                        const response = await fetch(`${API_CONFIG.BASE_URL}/admin/courses/upload`, {
                           method: 'POST',
                           headers: {
                             'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
@@ -960,14 +1076,17 @@ export const AdminCourses: React.FC = () => {
               <>
                 <div className="md:col-span-2">
                   <label className="text-sm font-medium">Vídeo da Aula</label>
-                  <div className="mt-1">
+                  <div className="mt-1 flex items-center gap-4">
                     {lessonForm.videoUrl && (
-                      <div className="mb-2">
+                      <div className="mb-2 flex items-center gap-2">
                         <video 
                           src={lessonForm.videoUrl} 
                           controls 
                           className="w-full max-w-md h-32 object-cover rounded border"
                         />
+                        <Button type="button" variant="outline" size="sm" onClick={() => setLessonForm({ ...lessonForm, videoUrl: '' })}>
+                          Remover vídeo
+                        </Button>
                       </div>
                     )}
                     <input
@@ -980,18 +1099,17 @@ export const AdminCourses: React.FC = () => {
                             const formData = new FormData();
                             formData.append('file', file);
                             formData.append('type', 'video');
-                            
-                            const response = await fetch('http://localhost:3000/api/admin/courses/upload', {
+                            const response = await fetch(`${API_CONFIG.BASE_URL}/admin/courses/upload`, {
                               method: 'POST',
                               headers: {
                                 'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
                               },
                               body: formData
                             });
-                            
                             const result = await response.json();
                             if (result.url) {
                               setLessonForm({ ...lessonForm, videoUrl: result.url });
+                              e.target.value = '';
                             }
                           } catch (error) {
                             console.error('Erro ao fazer upload:', error);
@@ -1002,17 +1120,19 @@ export const AdminCourses: React.FC = () => {
                     />
                   </div>
                 </div>
-
                 <div className="md:col-span-2">
                   <label className="text-sm font-medium">Capa do Vídeo</label>
-                  <div className="mt-1">
+                  <div className="mt-1 flex items-center gap-4">
                     {lessonForm.thumbnail && (
-                      <div className="mb-2">
+                      <div className="mb-2 flex items-center gap-2">
                         <img 
                           src={lessonForm.thumbnail} 
                           alt="Capa do vídeo" 
                           className="w-32 h-20 object-cover rounded border"
                         />
+                        <Button type="button" variant="outline" size="sm" onClick={() => setLessonForm({ ...lessonForm, thumbnail: '' })}>
+                          Remover imagem
+                        </Button>
                       </div>
                     )}
                     <input
@@ -1025,18 +1145,17 @@ export const AdminCourses: React.FC = () => {
                             const formData = new FormData();
                             formData.append('file', file);
                             formData.append('type', 'image');
-                            
-                            const response = await fetch('http://localhost:3000/api/admin/courses/upload', {
+                            const response = await fetch(`${API_CONFIG.BASE_URL}/admin/courses/upload`, {
                               method: 'POST',
                               headers: {
                                 'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
                               },
                               body: formData
                             });
-                            
                             const result = await response.json();
                             if (result.url) {
                               setLessonForm({ ...lessonForm, thumbnail: result.url });
+                              e.target.value = '';
                             }
                           } catch (error) {
                             console.error('Erro ao fazer upload:', error);

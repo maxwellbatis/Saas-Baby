@@ -22,6 +22,7 @@ import {
 import { apiFetch } from '../../config/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { CourseCard } from '../../components/courses/CourseCard';
 
 interface Course {
   id: string;
@@ -103,16 +104,6 @@ const CoursesHome: React.FC = () => {
     return matchesCategory && matchesSearch;
   });
 
-  const groupedCourses = categories.reduce((acc, category) => {
-    const categoryCourses = courses.filter(course => 
-      category.id === 'all' || course.category === category.id
-    );
-    if (categoryCourses.length > 0) {
-      acc[category.id] = categoryCourses;
-    }
-    return acc;
-  }, {} as Record<string, Course[]>);
-
   const toggleFavorite = (courseId: string) => {
     setFavorites(prev => 
       prev.includes(courseId) 
@@ -127,349 +118,88 @@ const CoursesHome: React.FC = () => {
     return hours > 0 ? `${hours}h ${mins}min` : `${mins}min`;
   };
 
-  const CourseCard: React.FC<{ course: Course; showProgress?: boolean }> = ({ course, showProgress = false }) => (
-    <Card 
-      className="group cursor-pointer netflix-card overflow-hidden"
-      onClick={() => {
-        navigate(`/courses/${course.id}`);
-      }}
-    >
-      <div className="relative">
-        <div className="aspect-video bg-gradient-to-br from-primary to-accent relative overflow-hidden">
-          {course.thumbnail ? (
-            <img 
-              src={course.thumbnail} 
-              alt={course.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <BookOpen className="w-16 h-16 text-white opacity-50" />
-            </div>
-          )}
-          
-          {/* Overlay com botão play */}
-          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center">
-            <div className="bg-white bg-opacity-90 rounded-full p-3 transform scale-0 group-hover:scale-100 transition-transform duration-300">
-              <Play className="w-6 h-6 text-primary" />
-            </div>
-          </div>
+  const getTotalLessons = (course: Course) => {
+    return course.modules?.reduce((total, module) => total + module.lessons.length, 0) || 0;
+  };
 
-          {/* Badges */}
-          <div className="absolute top-3 left-3 flex gap-2">
-            {course.isEnrolled && (
-              <Badge className="bg-primary text-white">Inscrito</Badge>
-            )}
-          </div>
+  const getCompletedLessons = (course: Course) => {
+    return course.modules?.reduce((total, module) =>
+      total + module.lessons.filter(lesson => lesson.isCompleted).length, 0
+    ) || 0;
+  };
 
-          {/* Botões de ação */}
-          <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <Button
-              size="sm"
-              variant="ghost"
-              className="bg-white bg-opacity-90 hover:bg-opacity-100"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleFavorite(course.id);
-              }}
-            >
-              <Heart 
-                className={`w-4 h-4 ${favorites.includes(course.id) ? 'fill-destructive text-destructive' : 'text-muted-foreground'}`} 
-              />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="bg-white bg-opacity-90 hover:bg-opacity-100"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Share2 className="w-4 h-4 text-muted-foreground" />
-            </Button>
-          </div>
-
-          {/* Progress bar */}
-          {showProgress && course.progress !== undefined && (
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-muted">
-              <div 
-                className="h-full netflix-progress-bar transition-all duration-300"
-                style={{ width: `${course.progress}%` }}
-              />
-            </div>
-          )}
-        </div>
-      </div>
-
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between mb-2">
-          <Badge variant="outline" className="text-xs">
-            {course.category}
-          </Badge>
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <User className="w-3 h-3" />
-            {course.author}
-          </div>
-        </div>
-
-        <h3 className="font-semibold text-lg mb-2 line-clamp-2 group-hover:text-primary transition-colors text-foreground">
-          {course.title}
-        </h3>
-
-        <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
-          {course.description}
-        </p>
-
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {course.rating && (
-              <div className="flex items-center gap-1">
-                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                <span className="text-sm font-medium text-foreground">{course.rating.toFixed(1)}</span>
-              </div>
-            )}
-            {course.enrolledCount && (
-              <span className="text-sm text-muted-foreground">
-                {course.enrolledCount} alunos
-              </span>
-            )}
-          </div>
-        </div>
-
-        {showProgress && course.progress !== undefined && (
-          <div className="mt-3">
-            <div className="flex justify-between text-sm text-muted-foreground mb-1">
-              <span>Progresso</span>
-              <span>{course.progress}%</span>
-            </div>
-            <div className="netflix-progress">
-              <div 
-                className="netflix-progress-bar transition-all duration-300"
-                style={{ width: `${course.progress}%` }}
-              />
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+  // Remove duplicados pelo id do curso
+  const uniqueCourses = Object.values(
+    courses.reduce((acc, course) => {
+      acc[course.id] = course;
+      return acc;
+    }, {} as Record<string, Course>)
   );
 
-  const CourseCarousel: React.FC<{ title: string; courses: Course[]; showProgress?: boolean }> = ({ 
-    title, 
-    courses, 
-    showProgress = false 
-  }) => {
-    const [startIndex, setStartIndex] = useState(0);
-    const itemsPerView = 4;
-    const maxIndex = Math.max(0, courses.length - itemsPerView);
-
-    const next = () => setStartIndex(prev => Math.min(prev + 1, maxIndex));
-    const prev = () => setStartIndex(prev => Math.max(prev - 1, 0));
-
-    if (courses.length === 0) return null;
-
-    return (
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="netflix-subtitle text-foreground">{title}</h2>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={prev}
-              disabled={startIndex === 0}
-              className="netflix-transition"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={next}
-              disabled={startIndex >= maxIndex}
-              className="netflix-transition"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-
-        <div className="relative">
-          <div className="flex gap-4 transition-transform duration-300" style={{
-            transform: `translateX(-${startIndex * (100 / itemsPerView)}%)`
-          }}>
-            {courses.map(course => (
-              <div key={course.id} className="flex-shrink-0 w-1/4">
-                <CourseCard course={course} showProgress={showProgress} />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const StoriesCarousel: React.FC<{ title: string; courses: Course[] }> = ({ title, courses }) => {
-    const [startIndex, setStartIndex] = useState(0);
-    const itemsPerView = 6;
-    const maxIndex = Math.max(0, courses.length - itemsPerView);
-
-    const next = () => setStartIndex(prev => Math.min(prev + 1, maxIndex));
-    const prev = () => setStartIndex(prev => Math.max(prev - 1, 0));
-
-    if (courses.length === 0) return null;
-
-    return (
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="netflix-subtitle text-foreground">{title}</h2>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={prev}
-              disabled={startIndex === 0}
-              className="netflix-transition"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={next}
-              disabled={startIndex >= maxIndex}
-              className="netflix-transition"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-
-        <div className="relative">
-          <div className="flex gap-4 transition-transform duration-300" style={{
-            transform: `translateX(-${startIndex * (100 / itemsPerView)}%)`
-          }}>
-            {courses.map(course => (
-              <div key={course.id} className="flex-shrink-0">
-                <NetflixStoryCard
-                  image={course.thumbnail || 'https://via.placeholder.com/200x350/8A2BE2/FFFFFF?text=Curso'}
-                  title={course.title}
-                  onClick={() => navigate(`/courses/${course.id}`)}
-                  className="mx-2"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
+  // Renderização principal
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Carregando cursos...</p>
-        </div>
-      </div>
-    );
+    return <div className="text-center text-white py-10">Carregando cursos...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <div className="min-h-screen w-full bg-gradient-to-br from-black via-zinc-900 to-[#b91c1c] pb-16">
+      {/* Banner Maxflix */}
+      <div className="w-full flex flex-col items-center justify-center py-10 mb-8 relative">
+        <h1 className="text-4xl md:text-5xl font-extrabold text-white drop-shadow-lg tracking-widest mb-2">
+          <span className="bg-gradient-to-r from-red-600 via-red-400 to-white bg-clip-text text-transparent">MAXFLIX</span> <span className="text-white">CURSOS</span>
+        </h1>
+        <p className="text-lg md:text-xl text-gray-200 font-medium drop-shadow mb-2">Aprenda com os melhores, no seu ritmo.</p>
+        <span className="text-xs text-white/60 tracking-widest uppercase">O streaming de cursos do Baby Diary</span>
+      </div>
 
-      {/* Seção de Busca e Filtros */}
-      <div className="bg-card shadow-sm border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="netflix-title text-foreground">Cursos para Pais</h1>
-              <p className="text-muted-foreground mt-1">
-                Aprenda com especialistas sobre desenvolvimento infantil
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Buscar cursos..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
-                />
-              </div>
-              <Button variant="outline" className="netflix-transition">
-                <Filter className="w-4 h-4 mr-2" />
-                Filtros
-              </Button>
-            </div>
+      {/* Bloco de incentivo para negócio digital */}
+      <div className="w-full flex flex-col items-center justify-center mb-8 px-4">
+        <div className="max-w-2xl w-full bg-gradient-to-r from-red-700/80 via-black/80 to-pink-700/80 border border-white/20 rounded-2xl shadow-lg p-6 flex flex-col md:flex-row items-center gap-4">
+          <div className="flex-1 text-center md:text-left">
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-2 flex items-center gap-2">
+              <span className="text-pink-400">🚀</span> Transforme seu conhecimento em um negócio digital!
+            </h2>
+            <p className="text-white/80 mb-2">Crie sua própria plataforma de cursos, comunidade e loja com o Baby Diary. Tenha um império digital que vende no automático, com IA, marketing e tudo pronto para você.</p>
           </div>
-
-          {/* Categorias */}
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {categories.map(category => (
-              <Button
-                key={category.id}
-                variant={selectedCategory === category.id ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedCategory(category.id)}
-                className="whitespace-nowrap netflix-transition"
-              >
-                <span className="mr-2">{category.icon}</span>
-                {category.name}
-              </Button>
-            ))}
-          </div>
+          <a href="/business" className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-pink-600 to-red-600 text-white font-bold shadow-lg hover:scale-105 transition-transform text-lg">
+            Quero meu negócio digital
+          </a>
         </div>
       </div>
 
-      {/* Conteúdo */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stories em Destaque */}
-        <StoriesCarousel
-          title="Cursos em Destaque"
-          courses={courses.filter(c => c.rating && c.rating >= 4.5).slice(0, 12)}
-        />
-
-        {/* Todos os Cursos */}
-        <CourseCarousel
-          title="Todos os Cursos"
-          courses={courses}
-        />
-
-        {/* Meus Cursos */}
-        {user && (
-          <CourseCarousel
-            title="Meus Cursos"
-            courses={courses.filter(c => c.isEnrolled)}
-            showProgress={true}
+      {/* Busca e Filtros */}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-4 md:px-16 mb-8">
+        <div className="flex-1 flex items-center bg-black/60 rounded-lg px-4 py-2 border border-white/20 max-w-md">
+          <Search className="w-5 h-5 text-white/60 mr-2" />
+          <input
+            type="text"
+            placeholder="Buscar cursos..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className="bg-transparent outline-none text-white placeholder:text-gray-400 flex-1"
           />
+        </div>
+        <div className="flex gap-2 mt-2 md:mt-0">
+          {categories.map(cat => (
+            <button
+              key={cat.id}
+              className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all ${selectedCategory === cat.id ? 'bg-red-600 text-white border-white/40' : 'bg-black/40 text-white/70 border-white/10 hover:bg-red-700/80'}`}
+              onClick={() => setSelectedCategory(cat.id)}
+            >
+              <span className="mr-1">{cat.icon}</span>{cat.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Cards dos cursos */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-4 md:px-16">
+        {uniqueCourses.length === 0 && (
+          <div className="col-span-full text-center text-white/80 text-lg py-16">Nenhum curso encontrado.</div>
         )}
-
-        {/* Cursos por Categoria */}
-        {Object.entries(groupedCourses).map(([categoryId, categoryCourses]) => {
-          const category = categories.find(c => c.id === categoryId);
-          if (!category || categoryId === 'all') return null;
-          
-          return (
-            <CourseCarousel
-              key={categoryId}
-              title={category.name}
-              courses={categoryCourses.slice(0, 8)}
-            />
-          );
-        })}
-
-        {/* Cursos Mais Populares */}
-        <CourseCarousel
-          title="Cursos Mais Populares"
-          courses={courses
-            .filter(c => c.enrolledCount && c.enrolledCount > 100)
-            .sort((a, b) => (b.enrolledCount || 0) - (a.enrolledCount || 0))
-            .slice(0, 8)
-          }
-        />
+        {uniqueCourses.map(course => (
+          <CourseCard key={course.id} course={course} />
+        ))}
       </div>
     </div>
   );

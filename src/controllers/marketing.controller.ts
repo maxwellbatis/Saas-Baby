@@ -4,7 +4,7 @@ import { generateGeminiContent, generateMarketingContent as generateMarketingCon
 import { uploadImage, uploadMedia } from '@/config/cloudinary';
 import multer from 'multer';
 import { socialMediaAPI } from '@/services/socialMediaAPI.service';
-import fetch from 'node-fetch';
+const fetch = (...args: any[]) => import('node-fetch').then((mod: any) => mod.default(...args));
 
 // Configurar multer para upload de arquivos
 const storage = multer.memoryStorage();

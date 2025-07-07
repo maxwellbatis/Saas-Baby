@@ -262,6 +262,22 @@ export class EmailService {
   }
 
   /**
+   * Envia email de boas-vindas/proposta para lead SaaS
+   */
+  async sendSaasLeadEmail(data: { email: string, name: string, whatsapp: string }): Promise<boolean> {
+    const html = `<p>Olá ${data.name},</p>
+      <p>Recebemos seu interesse em ter seu próprio app Baby Diary White-Label!</p>
+      <p>Em breve nossa equipe entrará em contato pelo WhatsApp <b>${data.whatsapp}</b> ou por este email.</p>
+      <p>Enquanto isso, conheça mais sobre o projeto e veja exemplos ao vivo em <a href="https://babydiary.shop/business" target="_blank">babydiary.shop/business</a>.</p>
+      <p>Atenciosamente,<br/>Equipe Baby Diary</p>`;
+    return this.sendSimpleEmail({
+      to: data.email,
+      subject: 'Recebemos seu interesse no Baby Diary White-Label!',
+      html
+    });
+  }
+
+  /**
    * Verifica se o serviço está configurado
    */
   isEmailConfigured(): boolean {

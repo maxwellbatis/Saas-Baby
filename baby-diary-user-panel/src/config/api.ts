@@ -1,7 +1,7 @@
 // Configuração centralizada da API
 export const API_CONFIG = {
   // URL base da API - pode ser sobrescrita por variável de ambiente
-  BASE_URL: import.meta.env.VITE_API_URL || 'https://api.babydiary.shop/api',
+  BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
   
   // Timeout padrão para requisições
   TIMEOUT: 10000,
@@ -22,7 +22,7 @@ console.log('🔧 Configuração API:', {
 
 // Função para obter a URL completa de um endpoint
 export const getApiUrl = (endpoint?: string): string => {
-  const baseUrl = import.meta.env.VITE_API_URL || 'https://api.babydiary.shop/api';
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
   
   if (!endpoint) {
     return baseUrl;

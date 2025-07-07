@@ -146,6 +146,9 @@ export const AdminSettings: React.FC = () => {
   const [integrationTestResults, setIntegrationTestResults] = useState<any[]>([]);
   const [integrationTestLoading, setIntegrationTestLoading] = useState(false);
   const [integrationTestError, setIntegrationTestError] = useState('');
+  const [facebookPixelId, setFacebookPixelId] = useState('');
+  const [facebookPixelStatus, setFacebookPixelStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [facebookPixelMessage, setFacebookPixelMessage] = useState('');
 
   useEffect(() => {
     loadSettings();
@@ -154,6 +157,7 @@ export const AdminSettings: React.FC = () => {
     fetchGeminiKey();
     fetchGroqKey();
     fetchCloudinary();
+    fetchFacebookPixelId();
   }, []);
 
   const loadSettings = async () => {
@@ -769,6 +773,55 @@ export const AdminSettings: React.FC = () => {
     }
   };
 
+  const fetchFacebookPixelId = async () => {
+    try {
+      setFacebookPixelStatus('loading');
+      const adminToken = localStorage.getItem('adminToken');
+      const res = await fetch(`${getApiUrl()}/admin/integrations/config?key=FACEBOOK_PIXEL_ID`, {
+        headers: { 'Authorization': `Bearer ${adminToken}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setFacebookPixelId(data.value);
+        setFacebookPixelStatus('success');
+      } else {
+        setFacebookPixelId('');
+        setFacebookPixelStatus('idle');
+      }
+    } catch {
+      setFacebookPixelStatus('error');
+    }
+  };
+
+  const handleSaveFacebookPixelId = async () => {
+    try {
+      setFacebookPixelStatus('loading');
+      setFacebookPixelMessage('');
+      const adminToken = localStorage.getItem('adminToken');
+      const res = await fetch(`${getApiUrl()}/admin/integrations/config`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${adminToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ key: 'FACEBOOK_PIXEL_ID', value: facebookPixelId })
+      });
+      if (res.ok) {
+        setFacebookPixelStatus('success');
+        setFacebookPixelMessage('Pixel salvo com sucesso!');
+        toast({ title: 'Pixel do Facebook atualizado!', variant: 'default' });
+      } else {
+        setFacebookPixelStatus('error');
+        setFacebookPixelMessage('Erro ao salvar Pixel.');
+        toast({ title: 'Erro ao salvar Pixel do Facebook', variant: 'destructive' });
+      }
+    } catch {
+      setFacebookPixelStatus('error');
+      setFacebookPixelMessage('Erro ao salvar Pixel.');
+      toast({ title: 'Erro ao salvar Pixel do Facebook', variant: 'destructive' });
+    }
+  };
+
   if (loading && !systemSettings) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -1194,6 +1247,21 @@ export const AdminSettings: React.FC = () => {
                 {cloudinaryStatus === 'loading' && <span className="ml-2 text-xs text-blue-600">Salvando...</span>}
                 {cloudinaryStatus === 'success' && <span className="ml-2 text-xs text-green-600">Chaves salvas!</span>}
                 {cloudinaryStatus === 'error' && <span className="ml-2 text-xs text-red-600">{cloudinaryMessage || 'Erro ao salvar.'}</span>}
+              </div>
+              <div className="mb-4">
+                <Label htmlFor="facebook-pixel-id">ID do Facebook Pixel</Label>
+                <Input
+                  id="facebook-pixel-id"
+                  type="text"
+                  value={facebookPixelId}
+                  onChange={e => setFacebookPixelId(e.target.value)}
+                  placeholder="Ex: 123456789012345"
+                  className="mt-1"
+                />
+                <Button onClick={handleSaveFacebookPixelId} className="mt-2">Salvar Pixel</Button>
+                {facebookPixelStatus === 'loading' && <span className="ml-2 text-xs text-blue-600">Salvando...</span>}
+                {facebookPixelStatus === 'success' && <span className="ml-2 text-xs text-green-600">Pixel salvo!</span>}
+                {facebookPixelStatus === 'error' && <span className="ml-2 text-xs text-red-600">{facebookPixelMessage || 'Erro ao salvar.'}</span>}
               </div>
             </CardContent>
           </Card>

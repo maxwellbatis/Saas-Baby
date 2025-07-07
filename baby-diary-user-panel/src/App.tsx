@@ -48,6 +48,8 @@ import { AdminPedidos } from "./pages/admin/AdminPedidos";
 import { AdminCourses } from "./pages/admin/AdminCourses";
 import LojaRoutes from './pages/loja';
 import AdminLoja from './pages/admin/loja';
+import AdminLeadsSaas from './pages/admin/AdminLeadsSaas';
+import AdminAutomation from './pages/admin/AdminAutomation';
 
 const queryClient = new QueryClient();
 
@@ -103,6 +105,8 @@ function App() {
                     <Route path="/admin/courses" element={<ProtectedAdminRoute><AdminLayout><AdminCourses /></AdminLayout></ProtectedAdminRoute>} />
                     <Route path="/admin/loja" element={<ProtectedAdminRoute><AdminLayout><AdminLoja /></AdminLayout></ProtectedAdminRoute>} />
                     <Route path="/admin/pedidos" element={<ProtectedAdminRoute><AdminLayout><AdminPedidos /></AdminLayout></ProtectedAdminRoute>} />
+                    <Route path="/admin/leads-saas" element={<ProtectedAdminRoute><AdminLayout><AdminLeadsSaas /></AdminLayout></ProtectedAdminRoute>} />
+                    <Route path="/admin/automation" element={<ProtectedAdminRoute><AdminLayout><AdminAutomation /></AdminLayout></ProtectedAdminRoute>} />
 
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />

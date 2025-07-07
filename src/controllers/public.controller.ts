@@ -1,5 +1,8 @@
 import { Request, Response } from 'express';
-import prisma from '@/config/database';
+import { PrismaClient } from '@prisma/client';
+import { EmailService } from '../services/email.service';
+const prisma = new PrismaClient();
+const emailService = new EmailService();
 
 /**
  * Controller para buscar todos os planos ativos
@@ -43,5 +46,23 @@ export const getPublicPlans = async (req: Request, res: Response) => {
       success: false,
       error: 'Erro interno do servidor ao buscar planos.',
     });
+  }
+};
+
+// Receber lead de SaaS (página Business)
+export const createLeadSaas = async (req: Request, res: Response) => {
+  try {
+    const { name, email, whatsapp } = req.body;
+    if (!name || !email || !whatsapp) {
+      return res.status(400).json({ error: 'Nome, email e WhatsApp são obrigatórios.' });
+    }
+    const lead = await prisma.leadSaas.create({
+      data: { name, email, whatsapp }
+    });
+    // Enviar email de boas-vindas/proposta
+    await emailService.sendSaasLeadEmail({ email, name, whatsapp });
+    return res.json({ success: true, lead });
+  } catch (err) {
+    return res.status(500).json({ error: 'Erro ao salvar lead.' });
   }
 }; 

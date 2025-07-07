@@ -1094,3 +1094,47 @@ model UserCourseProgress {
 
   @@unique([userId, courseId, lessonId])
 }
+
+model LeadSaas {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  whatsapp  String
+  status    String   @default("novo") // novo, contatado, convertido, perdido
+  notes     String?  // observações internas
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EmailTemplate {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  subject   String
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  rules     AutomationRule[]
+}
+
+model AutomationRule {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  triggerStatus String   // Ex: "novo", "contatado", etc
+  delayMinutes  Int      // Ex: 60 (enviar após 60 minutos)
+  templateId    String
+  template      EmailTemplate @relation(fields: [templateId], references: [id])
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  histories     AutomationHistory[]
+}
+
+model AutomationHistory {
+  id         String   @id @default(uuid())
+  leadId     String
+  ruleId     String
+  sentAt     DateTime @default(now())
+  status     String   // success, error, etc
+  error      String?
+  rule       AutomationRule @relation(fields: [ruleId], references: [id])
+}

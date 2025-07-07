@@ -42,12 +42,14 @@ const navigation = [
   { name: 'Marcos', href: '/admin/milestones', icon: Trophy },
   { name: 'Planos', href: '/admin/plans', icon: CreditCard },
   { name: 'Gamificação', href: '/admin/gamification', icon: BarChart3 },
+  { name: 'Leads SaaS', href: '/admin/leads-saas', icon: Megaphone },
   { name: 'Marketing', href: '/admin/marketing', icon: Megaphone },
   { name: 'Cursos', href: '/admin/courses', icon: BookOpen },
   { name: 'Loja', href: '/admin/loja', icon: ShoppingBag },
   { name: 'Pedidos', href: '/admin/pedidos', icon: Package },
   { name: 'Notificações', href: '/admin/notifications', icon: Bell },
   { name: 'Configurações', href: '/admin/settings', icon: Settings },
+  { name: 'Automação de Funil', href: '/admin/automation', icon: Megaphone },
 ];
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {

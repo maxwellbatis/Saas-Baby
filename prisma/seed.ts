@@ -1360,6 +1360,30 @@ Texto: "Seu marco ficou registrado para sempre!"`,
     });
   }
   console.log(`✅ ${banners.length} banners criados com sucesso!`);
+
+  // Seed de template de email automático para leads
+  const emailTemplate = await prisma.emailTemplate.upsert({
+    where: { name: 'Boas-vindas Lead SaaS' },
+    update: {},
+    create: {
+      name: 'Boas-vindas Lead SaaS',
+      subject: 'Bem-vindo ao Baby Diary White-Label!',
+      body: '<p>Olá {{name}},<br>Obrigado pelo interesse! Em breve entraremos em contato para apresentar todos os benefícios do nosso SaaS.</p>',
+    },
+  });
+
+  // Seed de regra de automação para leads
+  await prisma.automationRule.upsert({
+    where: { name: 'Enviar boas-vindas para novo lead' },
+    update: {},
+    create: {
+      name: 'Enviar boas-vindas para novo lead',
+      triggerStatus: 'novo',
+      delayMinutes: 5,
+      templateId: emailTemplate.id,
+      active: true,
+    },
+  });
 }
 
 main()

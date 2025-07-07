@@ -35,10 +35,12 @@ const Register = () => {
         if (token) {
           // Aguardar um pouco para garantir que o token foi salvo
           await new Promise(resolve => setTimeout(resolve, 100));
-          
+          // Disparar evento do Facebook Pixel
+          if (window.fbq) {
+            window.fbq('track', 'Lead');
+          }
           // Atualiza o estado global
           await refetch();
-          
           toast({
             title: "Conta criada com sucesso!",
             description: "Agora vamos adicionar seu bebê",

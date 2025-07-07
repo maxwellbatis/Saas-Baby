@@ -4,6 +4,7 @@ import { getPublicPlans } from '@/controllers/public.controller';
 import { getActiveBanners } from '@/controllers/shop.controller';
 import { Request, Response } from 'express';
 import { optionalAuthenticateUser } from '../middlewares/auth';
+import { createLeadSaas } from '../controllers/public.controller';
 
 const router = Router();
 
@@ -451,5 +452,7 @@ router.get('/courses/:id', optionalAuthenticateUser, async (req: Request, res: R
     return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
+
+router.post('/lead-saas', createLeadSaas);
 
 export default router; 

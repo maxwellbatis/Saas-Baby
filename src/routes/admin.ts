@@ -23,6 +23,9 @@ import fs from 'fs';
 import { getIntegrationConfig, updateIntegrationConfig, testIntegrations } from '../controllers/admin.controller';
 const { getUpgradeEmailLogs, sendUpgradeEmailManual } = require('../controllers/admin.controller');
 import { uploadCourseFile } from '../controllers/admin.controller';
+import { listLeadsSaas, updateLeadSaas } from '../controllers/admin.controller';
+import { sendLeadsSaasCampaign } from '../controllers/admin.controller';
+import { AutomationController } from '../controllers/automation.controller';
 
 const router = Router();
 const notificationService = new NotificationService();
@@ -3890,5 +3893,26 @@ router.delete('/courses/materials/:id', authenticateAdmin, deleteCourseMaterial)
 
 // Upload de arquivos para cursos (Cloudinary)
 router.post('/courses/upload', authenticateAdmin, upload.single('file'), uploadCourseFile);
+
+router.get('/leads-saas', authenticateAdmin, listLeadsSaas);
+router.put('/leads-saas/:id', authenticateAdmin, updateLeadSaas);
+router.post('/leads-saas/campaign', authenticateAdmin, sendLeadsSaasCampaign);
+
+// Rotas de automação de funil de vendas
+router.get('/automation/templates', authenticateAdmin, AutomationController.listTemplates);
+router.get('/automation/templates/:id', authenticateAdmin, AutomationController.getTemplate);
+router.post('/automation/templates', authenticateAdmin, AutomationController.createTemplate);
+router.put('/automation/templates/:id', authenticateAdmin, AutomationController.updateTemplate);
+router.delete('/automation/templates/:id', authenticateAdmin, AutomationController.deleteTemplate);
+
+router.get('/automation/rules', authenticateAdmin, AutomationController.listRules);
+router.get('/automation/rules/:id', authenticateAdmin, AutomationController.getRule);
+router.post('/automation/rules', authenticateAdmin, AutomationController.createRule);
+router.put('/automation/rules/:id', authenticateAdmin, AutomationController.updateRule);
+router.delete('/automation/rules/:id', authenticateAdmin, AutomationController.deleteRule);
+
+router.get('/automation/history', authenticateAdmin, AutomationController.listHistory);
+
+router.post('/automation/send-manual', authenticateAdmin, AutomationController.sendManualEmail);
 
 export default router; 

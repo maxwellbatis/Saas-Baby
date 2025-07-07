@@ -1337,4 +1337,53 @@ export const uploadCourseFile = async (req: Request, res: Response): Promise<voi
     console.error('❌ Erro no upload:', err);
     res.status(500).json({ error: 'Erro ao fazer upload', details: err });
   }
+};
+
+// Listar todos os leads SaaS
+export const listLeadsSaas = async (req: Request, res: Response) => {
+  try {
+    const leads = await prisma.leadSaas.findMany({ orderBy: { createdAt: 'desc' } });
+    return res.json({ success: true, data: leads });
+  } catch (err) {
+    return res.status(500).json({ error: 'Erro ao buscar leads.' });
+  }
+};
+
+// Editar status/observações do lead SaaS
+export const updateLeadSaas = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status, notes } = req.body;
+    const lead = await prisma.leadSaas.update({
+      where: { id },
+      data: { status, notes }
+    });
+    return res.json({ success: true, lead });
+  } catch (err) {
+    return res.status(500).json({ error: 'Erro ao atualizar lead.' });
+  }
+};
+
+// Disparar campanha de email para leads SaaS
+export const sendLeadsSaasCampaign = async (req: Request, res: Response) => {
+  try {
+    const { leadIds, subject, message } = req.body;
+    if (!Array.isArray(leadIds) || !subject || !message) {
+      return res.status(400).json({ error: 'Dados obrigatórios: leadIds, subject, message.' });
+    }
+    const leads = await prisma.leadSaas.findMany({ where: { id: { in: leadIds } } });
+    if (!leads.length) return res.status(400).json({ error: 'Nenhum lead encontrado.' });
+    let sent = 0;
+    for (const lead of leads) {
+      const ok = await emailService.sendSimpleEmail({
+        to: lead.email,
+        subject,
+        html: message.replace(/\{\{name\}\}/g, lead.name).replace(/\{\{whatsapp\}\}/g, lead.whatsapp)
+      });
+      if (ok) sent++;
+    }
+    return res.json({ success: true, sent });
+  } catch (err) {
+    return res.status(500).json({ error: 'Erro ao enviar campanha.' });
+  }
 }; 

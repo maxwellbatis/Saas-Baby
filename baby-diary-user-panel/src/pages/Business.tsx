@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Play, Pause, CheckCircle, Shield } from 'lucide-react';
-import { apiFetch } from '../config/api';
+import { apiFetch, getApiUrl } from '../config/api';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '../components/ui/accordion';
+import { useFacebookPixel } from '../hooks/useFacebookPixel';
 
 interface BusinessPageContent {
   id: number;
@@ -266,12 +267,7 @@ const faqList = [
 ];
 
 // Prints do app para carrossel
-const appPrints = [
-  '/prints/app1.png',
-  '/prints/app2.png',
-  '/prints/app3.png',
-  '/prints/app4.png',
-];
+const appPrints = Array.from({ length: 42 }, (_, i) => `/imagens app/${String(i + 1).padStart(2, '0')}.jpeg`);
 
 // Depoimentos fictícios
 const testimonials = [
@@ -292,7 +288,96 @@ const testimonials = [
   }
 ];
 
+function AppPrintsCarousel() {
+  const [index, setIndex] = useState(0);
+  const total = appPrints.length;
+
+  const prev = () => setIndex((prev) => (prev === 0 ? total - 1 : prev - 1));
+  const next = () => setIndex((prev) => (prev === total - 1 ? 0 : prev + 1));
+
+  return (
+    <div className="w-full flex flex-col items-center my-12">
+      <h3 className="text-2xl font-bold text-center mb-4 text-blue-700">Veja o app por dentro</h3>
+      <div className="relative w-full max-w-2xl flex items-center justify-center">
+        <button onClick={prev} className="absolute left-0 z-10 bg-white/70 hover:bg-white/90 rounded-full p-2 shadow-md text-blue-700 text-2xl top-1/2 -translate-y-1/2">
+          &#8592;
+        </button>
+        <img
+          src={appPrints[index]}
+          alt={`Print do app ${index + 1}`}
+          className="rounded-xl shadow-2xl border border-white/30 w-full max-h-[500px] object-contain bg-white"
+        />
+        <button onClick={next} className="absolute right-0 z-10 bg-white/70 hover:bg-white/90 rounded-full p-2 shadow-md text-blue-700 text-2xl top-1/2 -translate-y-1/2">
+          &#8594;
+        </button>
+      </div>
+      <div className="flex gap-1 mt-4 justify-center">
+        {appPrints.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setIndex(i)}
+            className={`w-3 h-3 rounded-full ${i === index ? 'bg-pink-600' : 'bg-gray-300'} transition`}
+            aria-label={`Ir para imagem ${i + 1}`}
+          />
+        ))}
+      </div>
+      <span className="text-xs text-gray-500 mt-2">{index + 1} / {total}</span>
+    </div>
+  );
+}
+
+function LeadSaasForm() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess(false);
+    try {
+      const res = await fetch(`${getApiUrl()}/public/lead-saas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, whatsapp })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSuccess(true);
+        setName('');
+        setEmail('');
+        setWhatsapp('');
+      } else {
+        setError(data.error || 'Erro ao enviar.');
+      }
+    } catch (err) {
+      setError('Erro de conexão.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (success) {
+    return <div className="max-w-lg mx-auto bg-green-100 text-green-800 rounded-xl shadow-lg p-8 text-center font-bold animate-fade-in-up">Proposta enviada! Em breve entraremos em contato pelo WhatsApp ou email.</div>;
+  }
+
+  return (
+    <form className="max-w-lg mx-auto bg-white/80 rounded-xl shadow-lg p-8 flex flex-col gap-4 animate-fade-in-up" onSubmit={handleSubmit}>
+      <input type="text" placeholder="Seu nome" className="rounded-md border px-3 py-2" required value={name} onChange={e => setName(e.target.value)} />
+      <input type="email" placeholder="Seu e-mail" className="rounded-md border px-3 py-2" required value={email} onChange={e => setEmail(e.target.value)} />
+      <input type="tel" placeholder="WhatsApp" className="rounded-md border px-3 py-2" required value={whatsapp} onChange={e => setWhatsapp(e.target.value)} />
+      <Button type="submit" className="h-12 bg-gradient-to-r from-yellow-400 to-pink-500 text-white font-bold" disabled={loading}>{loading ? 'Enviando...' : 'Quero minha proposta'}</Button>
+      {error && <div className="text-red-600 text-sm mt-2">{error}</div>}
+    </form>
+  );
+}
+
 export default function Business() {
+  useFacebookPixel();
   const [content, setContent] = useState<BusinessPageContent | null>(null);
   const [loading, setLoading] = useState(true);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -494,15 +579,8 @@ export default function Business() {
         </div>
       </section>
 
-      {/* Carrossel de prints do app */}
-      <section className="py-12 bg-white/90">
-        <h3 className="text-3xl font-bold mb-8 text-center text-pink-700">Veja o app por dentro</h3>
-        <div className="flex gap-4 overflow-x-auto px-4 md:px-16 pb-4 animate-fade-in">
-          {appPrints.map((src, i) => (
-            <img key={i} src={src} alt={`Print ${i+1}`} className="w-64 h-96 object-cover rounded-2xl shadow-lg transition-transform hover:scale-105" />
-          ))}
-        </div>
-      </section>
+      {/* Após Benefícios de Negócio, antes do bloco premium */}
+      <AppPrintsCarousel />
 
       {/* Depoimentos */}
       <section className="py-12 bg-gradient-to-r from-pink-50 to-blue-50 animate-fade-in">
@@ -523,12 +601,7 @@ export default function Business() {
       {/* Formulário de lead rápido */}
       <section className="py-12 bg-gradient-to-r from-yellow-50 to-pink-100 animate-fade-in">
         <h3 className="text-3xl font-bold mb-4 text-center text-yellow-700">Receba uma proposta personalizada</h3>
-        <form className="max-w-lg mx-auto bg-white/80 rounded-xl shadow-lg p-8 flex flex-col gap-4 animate-fade-in-up" onSubmit={e => {e.preventDefault(); alert('Proposta enviada! Entraremos em contato.')}}>
-          <input type="text" placeholder="Seu nome" className="rounded-md border px-3 py-2" required />
-          <input type="email" placeholder="Seu e-mail" className="rounded-md border px-3 py-2" required />
-          <input type="tel" placeholder="WhatsApp" className="rounded-md border px-3 py-2" required />
-          <Button type="submit" className="h-12 bg-gradient-to-r from-yellow-400 to-pink-500 text-white font-bold">Quero minha proposta</Button>
-        </form>
+        <LeadSaasForm />
         <div className="flex justify-center gap-4 mt-6 animate-fade-in">
           <a href="https://wa.me/5599999999999" target="_blank" rel="noopener noreferrer">
             <Button className="bg-green-500 hover:bg-green-600 text-white">WhatsApp</Button>

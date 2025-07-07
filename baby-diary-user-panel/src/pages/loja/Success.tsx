@@ -98,6 +98,17 @@ const Success: React.FC = () => {
     fetchOrderDetails();
   }, [searchParams]);
 
+  useEffect(() => {
+    if (!loading && orderDetails.totalAmount) {
+      if (window.fbq) {
+        window.fbq('track', 'Purchase', {
+          value: orderDetails.totalAmount,
+          currency: 'BRL'
+        });
+      }
+    }
+  }, [loading, orderDetails.totalAmount]);
+
   const handleBackToShop = () => {
     navigate('/loja');
   };

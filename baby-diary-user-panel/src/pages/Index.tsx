@@ -35,6 +35,8 @@ import {
 } from 'lucide-react';
 import Header from '@/components/Header';
 import { apiFetch } from '@/config/api';
+import { useFacebookPixel } from '@/hooks/useFacebookPixel';
+import AdminAutomation from './admin/AdminAutomation';
 
 interface LandingPageContent {
   id: number;
@@ -60,6 +62,8 @@ const Index = () => {
   const [landingContent, setLandingContent] = useState<LandingPageContent | null>(null);
   const [loading, setLoading] = useState(true);
   const [isVideoPlaying, setIsVideoPlaying] = useState(true);
+
+  useFacebookPixel();
 
   // Carregar conteúdo da landing page
   useEffect(() => {

@@ -1,10 +1,9 @@
 module.exports = {
   apps: [
     {
-      name: 'babydiary-backend',
-      script: 'src/index.ts',
+      name: 'api-babydiary',
+      script: 'start.js',
       interpreter: 'node',
-      interpreter_args: '-r ts-node/register',
       instances: 'max',
       exec_mode: 'cluster',
       env: {

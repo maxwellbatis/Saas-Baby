@@ -14,7 +14,7 @@ import {
   BarChart3,
   Trophy
 } from 'lucide-react';
-import { adminDashboard } from '../../lib/adminApi';
+import { adminDashboard } from '../../lib/adminApi.js';
 
 interface DashboardStats {
   users: {
